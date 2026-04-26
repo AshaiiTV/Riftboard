@@ -709,7 +709,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
   }
 
   return <div><PageHeader eyebrow="Team manager" title="Créer ou rejoindre une team" subtitle="Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation." />
-    <div className="grid gap-5 xl:grid-cols-[.78fr_1.22fr]">
+    <div className={cx("grid gap-5", selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
       <div className="space-y-5">
         <Surface glow>
           <h3 className="text-xl font-black text-white">Créer une team</h3>
@@ -731,19 +731,19 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
           </form>
         </Surface>
 
-        <Surface>
+        {data.teams.length > 0 && <Surface>
           <h3 className="text-xl font-black text-white">Mes teams</h3>
-          <div className="mt-4 space-y-2">{data.teams.length ? data.teams.map((team) => <button key={team.id} onClick={() => setSelectedTeamId(team.id)} className={cx("group flex w-full items-center justify-between rounded-2xl border p-4 text-left transition", selectedTeam?.id === team.id ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div><p className="font-black text-white">{team.name}</p><p className="mt-1 text-xs font-semibold text-slate-600">{team.tag || "NO TAG"} · {team.region || "EUW"}</p></div><ChevronRight className="h-5 w-5 text-slate-700 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></button>) : <EmptyState icon={Users} title="Aucune team" text="Crée une team ou rejoins une structure existante avec un lien d’invitation." />}</div>
-        </Surface>
+          <div className="mt-4 space-y-2">{data.teams.map((team) => <button key={team.id} onClick={() => setSelectedTeamId(team.id)} className={cx("group flex w-full items-center justify-between rounded-2xl border p-4 text-left transition", selectedTeam?.id === team.id ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div><p className="font-black text-white">{team.name}</p><p className="mt-1 text-xs font-semibold text-slate-600">{team.tag || "NO TAG"} · {team.region || "EUW"}</p></div><ChevronRight className="h-5 w-5 text-slate-700 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></button>)}</div>
+        </Surface>}
       </div>
 
-      <Surface glow>
+      {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div><h3 className="text-2xl font-black text-white">{selectedTeam?.name || "Aucune team sélectionnée"}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          {selectedTeam && <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}</div>}
+          <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}</div>
         </div>
 
-        {selectedTeam ? <>
+        <>
           <form onSubmit={createPlayer} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur" required />
             <TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder="Pseudo#TAG" required />
@@ -752,8 +752,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
             <div className="flex items-end"><Button type="submit" disabled={saving} icon={saving ? Loader2 : UserPlus} className="w-full">Ajouter</Button></div>
           </form>
           <PremiumRosterTable roster={roster} />
-        </> : <div className="mt-6"><EmptyState icon={Users} title="Choisis une option" text="Crée une nouvelle team ou rejoins une team existante pour commencer à construire le roster." /></div>}
-      </Surface>
+        </>
+      </Surface>}
     </div>
   </div>;
 }
