@@ -231,6 +231,18 @@ function TextInput({ label, value, onChange, placeholder, type = "text", require
   );
 }
 
+function TextAreaInput({ label, value, onChange, placeholder, icon: Icon, rows = 4 }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">{label}</span>
+      <div className="relative">
+        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-slate-600" />}
+        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("w-full resize-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-650 focus:border-cyan-300/55 focus:bg-black/[0.28] focus:ring-4 focus:ring-cyan-300/10", Icon && "pl-10")} />
+      </div>
+    </label>
+  );
+}
+
 function SelectInput({ label, value, onChange, children }) {
   return (
     <label className="block">
@@ -641,13 +653,79 @@ function ChampionMiniCard({ title, item, icon: Icon, tone: t }) {
   return <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.035] p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-slate-600">{title}</p><p className="mt-2 text-xl font-black text-white">{item?.champion || "—"}</p><p className="mt-1 text-sm font-semibold text-slate-500">{item?.player_name || "Données insuffisantes"}</p></div><div className={cx("rounded-2xl border p-3", tone(t))}><Icon className="h-5 w-5" /></div></div><div className="mt-4 flex flex-wrap gap-2"><Badge tone="slate">{item?.games ?? 0} games</Badge><Badge tone={Number(item?.winrate || 0) >= 55 ? "green" : "yellow"}>{item?.winrate ?? "—"}% WR</Badge><Badge tone={gradeTone(item?.impact_grade)}>{item?.impact_grade || "—"}</Badge></div></div>;
 }
 
+const ROSTER_ROLE_ORDER = ["TOP", "JGL", "MID", "ADC", "SUP"];
+
+function decodeLoose(value) {
+  let output = String(value || "").replace(/\+/g, " ");
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(output);
+      if (decoded === output) break;
+      output = decoded;
+    } catch {
+      break;
+    }
+  }
+  return output;
+}
+
+function parseMultiOpgg(input) {
+  const text = decodeLoose(input);
+  const players = [];
+  const seen = new Set();
+
+  function addRiotId(name, tag) {
+    const cleanName = String(name || "").trim().replace(/\s+/g, " ");
+    const cleanTag = String(tag || "").trim().toUpperCase();
+    if (!cleanName || !cleanTag) return;
+    const riotId = `${cleanName}#${cleanTag}`;
+    const key = riotId.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    players.push({ name: cleanName, riotId });
+  }
+
+  const riotIdPattern = /([A-Za-z0-9À-ÿ _.'-]{2,32})\s*#\s*([A-Za-z0-9]{2,8})/g;
+  for (const match of text.matchAll(riotIdPattern)) addRiotId(match[1], match[2]);
+
+  const urlPattern = /https?:\/\/\S+/g;
+  for (const urlText of text.match(urlPattern) || []) {
+    try {
+      const url = new URL(urlText);
+      const summoners = [
+        ...url.searchParams.getAll("summoners"),
+        ...url.searchParams.getAll("summoner"),
+        ...url.searchParams.getAll("summonerName"),
+      ].join(",");
+      for (const entry of decodeLoose(summoners).split(/[,;\n|]+/)) {
+        for (const match of entry.matchAll(riotIdPattern)) addRiotId(match[1], match[2]);
+      }
+    } catch {}
+  }
+
+  const opggPathPattern = /(?:summoners\/|^)(?:[a-z]{2,5}\/)?([^/?#&,;|\n]+)-([A-Za-z0-9]{2,8})/gi;
+  for (const match of text.matchAll(opggPathPattern)) {
+    addRiotId(decodeLoose(match[1]).replace(/-/g, " "), match[2]);
+  }
+
+  return players;
+}
+
+function opggUrlFromRiotId(riotId, region) {
+  const [name, tag] = String(riotId).split("#");
+  if (!name || !tag) return "";
+  const slug = encodeURIComponent(`${name}-${tag}`);
+  return `https://www.op.gg/summoners/${String(region || "EUW").toLowerCase()}/${slug}`;
+}
+
 function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast }) {
-  const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW" });
+  const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
   const [playerForm, setPlayerForm] = useState({ name: "", riotId: "", opggUrl: "", role: "TOP" });
   const [joinCode, setJoinCode] = useState("");
   const [saving, setSaving] = useState(false);
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0];
   const roster = selectedTeam ? data.players.filter((player) => player.team_id === selectedTeam.id) : [];
+  const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
 
   useEffect(() => {
     if (!selectedTeamId && data.teams[0]?.id) setSelectedTeamId(data.teams[0].id);
@@ -659,10 +737,26 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     event.preventDefault();
     setSaving(true);
     try {
-      await apiFetch("teams-create", { method: "POST", body: JSON.stringify(teamForm) });
-      setTeamForm({ name: "", tag: "", region: "EUW" });
+      const result = await apiFetch("teams-create", { method: "POST", body: JSON.stringify({ name: teamForm.name, tag: teamForm.tag, region: teamForm.region }) });
+      const createdTeam = result.team;
+      let importedCount = 0;
+      for (const [index, player] of multiPlayers.entries()) {
+        await apiFetch("players-create", {
+          method: "POST",
+          body: JSON.stringify({
+            teamId: createdTeam.id,
+            name: player.name,
+            riotId: player.riotId,
+            opggUrl: opggUrlFromRiotId(player.riotId, teamForm.region),
+            role: ROSTER_ROLE_ORDER[index] || "SUB",
+          }),
+        });
+        importedCount += 1;
+      }
+      setTeamForm({ name: "", tag: "", region: "EUW", multiOpgg: "" });
+      setSelectedTeamId(createdTeam.id);
       await refreshAll();
-      pushToast({ type: "green", title: "Team créée", text: "Tu peux maintenant ajouter le roster ou partager le lien d’invitation." });
+      pushToast({ type: "green", title: "Team créée", text: importedCount ? `${importedCount} joueur${importedCount > 1 ? "s" : ""} importé${importedCount > 1 ? "s" : ""} depuis le multi OP.GG.` : "Tu peux maintenant ajouter le roster ou partager le lien d’invitation." });
     } catch (err) {
       pushToast({ type: "red", title: "Création impossible", text: err.message });
     } finally {
@@ -718,6 +812,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
             <TextInput label="Nom de team" value={teamForm.name} onChange={(name) => setTeamForm({ ...teamForm, name })} placeholder="Nom de l'équipe" required icon={Trophy} />
             <TextInput label="Tag" value={teamForm.tag} onChange={(tag) => setTeamForm({ ...teamForm, tag })} placeholder="TAG" required icon={Shield} />
             <SelectInput label="Région" value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })}><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option></SelectInput>
+            <TextAreaInput label="Multi OP.GG ou Riot IDs" value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} placeholder={"Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW"} icon={Clipboard} />
+            {multiPlayers.length > 0 && <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{multiPlayers.length} joueur{multiPlayers.length > 1 ? "s" : ""} détecté{multiPlayers.length > 1 ? "s" : ""}</p><div className="mt-2 flex flex-wrap gap-2">{multiPlayers.map((player, index) => <Badge key={player.riotId} tone={index < 5 ? "cyan" : "slate"}>{ROSTER_ROLE_ORDER[index] || "SUB"} · {player.riotId}</Badge>)}</div></div>}
             <Button type="submit" disabled={saving} icon={saving ? Loader2 : Plus} className="w-full">Créer la team</Button>
           </form>
         </Surface>
