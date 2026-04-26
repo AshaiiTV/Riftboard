@@ -723,6 +723,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
   const [playerForm, setPlayerForm] = useState({ name: "", riotId: "", opggUrl: "", role: "TOP" });
   const [joinCode, setJoinCode] = useState("");
   const [saving, setSaving] = useState(false);
+  const [syncingMostPlayed, setSyncingMostPlayed] = useState(false);
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0];
   const roster = selectedTeam ? data.players.filter((player) => player.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
@@ -802,6 +803,22 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     pushToast({ type: "green", title: "Lien copié", text: "Envoie-le à un joueur, coach ou membre du staff." });
   }
 
+  async function syncMostPlayed() {
+    if (!selectedTeam) return;
+    setSyncingMostPlayed(true);
+    try {
+      const result = await apiFetch("players-sync-most-played", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id }) });
+      await refreshAll();
+      const ok = result.results?.filter((item) => item.ok).length || 0;
+      const failed = result.results?.filter((item) => !item.ok).length || 0;
+      pushToast({ type: failed ? "yellow" : "green", title: "Most played synchronisés", text: `${ok} profil${ok > 1 ? "s" : ""} analysé${ok > 1 ? "s" : ""}${failed ? `, ${failed} erreur${failed > 1 ? "s" : ""}` : ""}.` });
+    } catch (err) {
+      pushToast({ type: "red", title: "Analyse impossible", text: err.message });
+    } finally {
+      setSyncingMostPlayed(false);
+    }
+  }
+
   return <div><PageHeader eyebrow="Team manager" title="Créer ou rejoindre une team" subtitle="Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation." />
     <div className={cx("grid gap-5", selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
       <div className="space-y-5">
@@ -836,7 +853,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}</div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}</div>
         </div>
 
         <>
@@ -854,9 +871,32 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
   </div>;
 }
 
+function formatPoints(value) {
+  const number = Number(value || 0);
+  if (number >= 1000000) return `${(number / 1000000).toFixed(1)}M`;
+  if (number >= 1000) return `${Math.round(number / 1000)}k`;
+  return String(number);
+}
+
+function parseMostPlayed(value) {
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function MostPlayedBadges({ value }) {
+  const mostPlayed = parseMostPlayed(value).slice(0, 3);
+  if (!mostPlayed.length) return <span className="text-xs font-semibold text-slate-600">Non synchronisé</span>;
+  return <div className="flex flex-wrap gap-1.5">{mostPlayed.map((champion) => <span key={`${champion.championId}-${champion.champion}`} className="rounded-xl border border-cyan-300/15 bg-cyan-400/10 px-2.5 py-1 text-xs font-black text-cyan-100">{champion.champion} · {formatPoints(champion.points)}</span>)}</div>;
+}
+
 function PremiumRosterTable({ roster }) {
   if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun joueur" text="Ajoute tes joueurs. Leurs Riot IDs et liens OP.GG seront stockés en DB." /></div>;
-  return <div className="mt-6 overflow-hidden rounded-[1.35rem] border border-white/10"><table className="w-full text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Score</th><th className="px-4 py-3">Statut</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone="blue">{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ?? "—"}</Badge></td><td className="px-4 py-4 text-slate-500">{item.status || "Non analysé"}</td></tr>)}</tbody></table></div>;
+  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[980px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Most played</th><th className="px-4 py-3">Score</th><th className="px-4 py-3">Statut</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone="blue">{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id}</td><td className="px-4 py-4"><MostPlayedBadges value={item.most_played} /></td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ? formatPoints(item.performance_score) : "—"}</Badge></td><td className="px-4 py-4 text-slate-500">{item.status || "Non analysé"}</td></tr>)}</tbody></table></div>;
 }
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast }) {

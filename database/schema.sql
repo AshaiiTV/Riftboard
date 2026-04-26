@@ -69,12 +69,15 @@ create table if not exists players (
   riot_id text not null,
   opgg_url text,
   role text not null check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB')),
+  most_played jsonb not null default '[]'::jsonb,
   performance_score numeric,
   status text default 'Non analysé',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(team_id, riot_id)
 );
+
+alter table players add column if not exists most_played jsonb not null default '[]'::jsonb;
 
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
