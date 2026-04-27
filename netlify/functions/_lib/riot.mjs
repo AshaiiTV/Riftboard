@@ -46,6 +46,7 @@ const ACCOUNT_REGION_BY_PLATFORM = {
 };
 
 let championNameCache = null;
+let championDataCache = null;
 
 export function isRiotConfigured() {
   return Boolean(process.env.RIOT_API_KEY);
@@ -130,7 +131,12 @@ export async function fetchTopChampionMastery(puuid, platform = 'EUW1', count = 
 }
 
 export async function getChampionNameMap() {
-  if (championNameCache) return championNameCache;
+  const data = await getChampionDataMap();
+  return new Map([...data.entries()].map(([key, champion]) => [key, champion.name]));
+}
+
+export async function getChampionDataMap() {
+  if (championDataCache) return championDataCache;
 
   const versionsResponse = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
   if (!versionsResponse.ok) {
@@ -144,8 +150,13 @@ export async function getChampionNameMap() {
   }
   const payload = await championResponse.json();
 
-  championNameCache = new Map(
-    Object.values(payload.data || {}).map((champion) => [Number(champion.key), champion.name])
+  championDataCache = new Map(
+    Object.values(payload.data || {}).map((champion) => [Number(champion.key), {
+      id: champion.id,
+      name: champion.name,
+      imageUrl: `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image.full}`
+    }])
   );
-  return championNameCache;
+  championNameCache = new Map([...championDataCache.entries()].map(([key, champion]) => [key, champion.name]));
+  return championDataCache;
 }

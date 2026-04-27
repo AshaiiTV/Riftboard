@@ -4,16 +4,18 @@ import { requireAuth } from './_lib/auth.mjs';
 import {
   fetchAccountByRiotId,
   fetchTopChampionMastery,
-  getChampionNameMap,
+  getChampionDataMap,
   platformFromRegion
 } from './_lib/riot.mjs';
 
-function normalizeMastery(row, championNames) {
+function normalizeMastery(row, championData) {
   const championId = Number(row.championId);
+  const champion = championData.get(championId);
   const points = Number(row.championPoints || 0);
   return {
     championId,
-    champion: championNames.get(championId) || `Champion ${championId}`,
+    champion: champion?.name || `Champion ${championId}`,
+    imageUrl: champion?.imageUrl || null,
     points,
     level: Number(row.championLevel || 0),
     lastPlayTime: row.lastPlayTime || null
@@ -49,14 +51,25 @@ export default async function handler(request, context) {
     if (!players.length) throw Object.assign(new Error('Ajoute au moins un joueur avant de synchroniser les most played.'), { status: 400 });
 
     const platform = platformFromRegion(team.region);
-    const championNames = await getChampionNameMap();
+    const championData = await getChampionDataMap();
     const results = [];
 
     for (const player of players) {
       try {
+        if (player.role === 'COACH' || !player.riot_id) {
+          await sql`
+            update players
+            set status = ${player.role === 'COACH' ? 'Coach sans Riot ID' : 'Riot ID manquant'},
+                updated_at = now()
+            where id = ${player.id}
+          `;
+          results.push({ playerId: player.id, riotId: player.riot_id, ok: true, skipped: true, reason: player.role === 'COACH' ? 'Coach sans Riot ID' : 'Riot ID manquant' });
+          continue;
+        }
+
         const account = await fetchAccountByRiotId(player.riot_id, platform);
         const mastery = await fetchTopChampionMastery(account.puuid, platform, 5);
-        const mostPlayed = mastery.map((row) => normalizeMastery(row, championNames));
+        const mostPlayed = mastery.map((row) => normalizeMastery(row, championData));
 
         const totalPoints = mostPlayed.reduce((sum, item) => sum + item.points, 0);
         await sql`

@@ -20,10 +20,11 @@ export default async function handler(request, context) {
     await sql`alter table team_members add constraint team_members_role_check check (role in ('owner', 'captain', 'coach', 'analyst', 'player', 'viewer', 'member'))`;
 
     const allowed = await sql`
-      select id
+      select teams.id
       from teams
-      where id = ${teamId}
-        and owner_id = ${user.id}
+      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
+      where teams.id = ${teamId}
+        and (teams.owner_id = ${user.id} or team_members.role = 'captain')
       limit 1
     `;
     if (!allowed[0]) throw Object.assign(new Error('Seul le propriétaire peut modifier les statuts.'), { status: 403 });

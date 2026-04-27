@@ -12,14 +12,16 @@ export default async function handler(request, context) {
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
     const teams = await sql`
-      select *
+      select teams.*
       from teams
-      where id = ${teamId}
-        and owner_id = ${user.id}
+      join team_members on team_members.team_id = teams.id
+      where teams.id = ${teamId}
+        and team_members.user_id = ${user.id}
+        and team_members.role = 'captain'
       limit 1
     `;
     const team = teams[0];
-    if (!team) throw Object.assign(new Error('Seul le propriétaire peut supprimer cette team.'), { status: 403 });
+    if (!team) throw Object.assign(new Error('Seul le capitaine peut supprimer cette team.'), { status: 403 });
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
@@ -29,7 +31,6 @@ export default async function handler(request, context) {
     await sql`
       delete from teams
       where id = ${teamId}
-        and owner_id = ${user.id}
     `;
 
     return json({ ok: true, teamId });

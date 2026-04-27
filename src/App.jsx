@@ -16,6 +16,7 @@ import {
   Flame,
   Gauge,
   Goal,
+  Image as ImageIcon,
   LayoutDashboard,
   Loader2,
   Lock,
@@ -29,9 +30,12 @@ import {
   Sparkles,
   Swords,
   Target,
+  Trash2,
   Trophy,
   UserPlus,
+  UserMinus,
   Users,
+  Upload,
   Wand2,
   X,
 } from "lucide-react";
@@ -45,7 +49,6 @@ const NAV = [
   { id: "champions", label: "Champion pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
   { id: "progression", label: "Progression", icon: Target, shortcut: "P", path: "/progression" },
   { id: "reports", label: "Rapports", icon: FileText, shortcut: "R", path: "/rapports" },
-  { id: "settings", label: "Paramètres", icon: Settings, shortcut: "S", path: "/parametres" },
 ];
 
 const AUTH_ROUTES = {
@@ -645,10 +648,17 @@ function Sidebar({ active, setActive, open, setOpen, user, onLogout, currentMemb
   );
 }
 
-function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam }) {
+function TeamAvatar({ team, className = "h-12 w-12" }) {
+  if (team?.avatar_data_url) {
+    return <div className={cx("overflow-hidden rounded-2xl border border-cyan-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || "Team"} className="h-full w-full object-cover" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
+  }
+  return <img src="/riftboard-rb-mark.svg" alt="RiftBoard" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.35)]", className)} />;
+}
+
+function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="hidden h-12 w-12 object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.35)] md:block" /><div className="relative"><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-cyan-200/70">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex items-center gap-2 rounded-2xl px-0 py-0 text-left transition hover:text-cyan-100"><h1 className="text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-5 w-5 text-cyan-200" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(88vw,360px)] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition", currentTeam?.id === team.id ? "bg-cyan-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span><span className="block text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div></div></header>;
+  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-cyan-200/70">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[58vw] items-center gap-2 rounded-2xl px-0 py-0 text-left transition hover:text-cyan-100"><h1 className="truncate text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-5 w-5 shrink-0 text-cyan-200" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(88vw,380px)] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition", currentTeam?.id === team.id ? "bg-cyan-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} ? {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Plus className="h-4 w-4" />Cr?er une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && <Button variant="ghost" icon={Settings} onClick={onManageTeam}>Gestion</Button>}</div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -663,7 +673,7 @@ function Dashboard({ data, loading, setActive }) {
   const latestMatch = data.matches[0];
   const priority = data.improvements[0];
 
-  return <div><PageHeader eyebrow="Performance surface" title="Vue globale de ta structure" subtitle="Retrouve en un coup d’œil la forme de ton équipe, les priorités de review et les signaux à travailler avant le prochain scrim."><Button variant="ghost" icon={Swords} onClick={() => setActive("matches")}>Importer une game</Button><Button icon={Target} onClick={() => setActive("progression")}>Voir les priorités</Button></PageHeader><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MetricCard delay={0} icon={Trophy} label="Winrate récent" value={d.recentWinrate} hint={d.winrateTrend} tone="green" /><MetricCard delay={0.04} icon={Gauge} label="Score d’impact" value={d.impactScore} hint={d.impactTrend} tone="purple" /><MetricCard delay={0.08} icon={Eye} label="Vision diff" value={d.visionDiff} hint={d.visionTrend} tone="cyan" /><MetricCard delay={0.12} icon={AlertTriangle} label="Risque midgame" value={d.midgameRisk} hint={d.riskTrend} tone="red" /></div><div className="mt-6 grid gap-5 xl:grid-cols-[1.1fr_.9fr]"><Surface glow><div className="mb-5 flex items-center justify-between gap-3"><div><h3 className="text-xl font-black text-white">Cockpit de diagnostic</h3><p className="mt-1 text-sm font-medium text-slate-500">La prochaine action claire avant review.</p></div><Badge tone="purple">live synthesis</Badge></div>{loading ? <SkeletonRows count={3} /> : priority || latestMatch ? <div className="grid gap-4 lg:grid-cols-2"><div className="relative overflow-hidden rounded-[1.35rem] border border-rose-300/18 bg-gradient-to-br from-rose-500/12 to-black/20 p-5"><div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-rose-400/10 blur-2xl" /><Badge tone="red">Priorité #{priority?.rank || 1}</Badge><h4 className="mt-4 text-2xl font-black text-white">{priority?.title || latestMatch?.primary_focus || "Axe de review"}</h4><p className="mt-3 text-sm leading-6 text-slate-300">{priority?.proof || latestMatch?.main_issue || "Importe plus de games pour stabiliser le diagnostic."}</p><div className="mt-4 rounded-2xl border border-white/10 bg-black/[0.20] p-4 text-sm font-bold leading-6 text-white">{priority?.action || "Relire les 90 secondes avant chaque objectif neutre."}</div></div><div className="space-y-3"><ChampionMiniCard title="Pick le plus fiable" item={bestChampion} icon={Crown} tone="green" /><ChampionMiniCard title="Pick à surveiller" item={worstChampion} icon={AlertTriangle} tone="yellow" /></div></div> : <EmptyState icon={BarChart3} title="Dashboard en attente" text="Crée une team ou rejoins-la depuis un lien d’invitation, ajoute les joueurs du roster, puis importe une game. RiftBoard affichera ensuite les diagnostics de ton équipe." action={<Button icon={Users} onClick={() => setActive("teams")}>Créer ou rejoindre une team</Button>} />}</Surface><Surface><div className="mb-4 flex items-center justify-between"><div><h3 className="text-xl font-black text-white">Dernières games</h3><p className="mt-1 text-sm text-slate-500">Historique DB avec focus de review.</p></div><Badge tone="blue">matches</Badge></div>{loading ? <SkeletonRows /> : data.matches.length ? <div className="space-y-3">{data.matches.slice(0, 5).map((match) => <button key={match.id} onClick={() => setActive("matches")} className="group w-full rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[0.06]"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-black text-white">{match.opponent || match.game_id}</p><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge></div><p className="mt-1 text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"} · {match.side || "Side ?"}</p></div><ChevronRight className="h-5 w-5 text-slate-700 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></div><p className="mt-3 text-sm font-bold text-cyan-100">{match.primary_focus || "Analyse qui sert vraiment à calculer"}</p></button>)}</div> : <EmptyState icon={Swords} title="Aucune game importée" text="Colle un Game ID dans l’analyse de match. Les données seront sauvegardées en base." />}</Surface></div></div>;
+  return <div><PageHeader eyebrow="Performance surface" title="Vue globale de ta structure" subtitle="Retrouve en un coup d’œil la forme de ton équipe, les priorités de review et les signaux à travailler avant le prochain scrim."><Button variant="ghost" icon={Swords} onClick={() => setActive("matches")}>Importer une game</Button><Button icon={Target} onClick={() => setActive("progression")}>Voir les priorités</Button></PageHeader><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MetricCard delay={0} icon={Trophy} label="Winrate récent" value={d.recentWinrate} hint={d.winrateTrend} tone="green" /><MetricCard delay={0.04} icon={Gauge} label="Score d’impact" value={d.impactScore} hint={d.impactTrend} tone="purple" /><MetricCard delay={0.08} icon={Eye} label="Vision diff" value={d.visionDiff} hint={d.visionTrend} tone="cyan" /><MetricCard delay={0.12} icon={AlertTriangle} label="Risque midgame" value={d.midgameRisk} hint={d.riskTrend} tone="red" /></div><div className="mt-6 grid gap-5 xl:grid-cols-[1.1fr_.9fr]"><Surface glow><div className="mb-5 flex items-center justify-between gap-3"><div><h3 className="text-xl font-black text-white">Cockpit de diagnostic</h3><p className="mt-1 text-sm font-medium text-slate-500">La prochaine action claire avant review.</p></div><Badge tone="purple">live synthesis</Badge></div>{loading ? <SkeletonRows count={3} /> : priority || latestMatch ? <div className="grid gap-4 lg:grid-cols-2"><div className="relative overflow-hidden rounded-[1.35rem] border border-rose-300/18 bg-gradient-to-br from-rose-500/12 to-black/20 p-5"><div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-rose-400/10 blur-2xl" /><Badge tone="red">Priorité #{priority?.rank || 1}</Badge><h4 className="mt-4 text-2xl font-black text-white">{priority?.title || latestMatch?.primary_focus || "Axe de review"}</h4><p className="mt-3 text-sm leading-6 text-slate-300">{priority?.proof || latestMatch?.main_issue || "Importe plus de games pour stabiliser le diagnostic."}</p><div className="mt-4 rounded-2xl border border-white/10 bg-black/[0.20] p-4 text-sm font-bold leading-6 text-white">{priority?.action || "Relire les 90 secondes avant chaque objectif neutre."}</div></div><div className="space-y-3"><ChampionMiniCard title="Pick le plus fiable" item={bestChampion} icon={Crown} tone="green" /><ChampionMiniCard title="Pick à surveiller" item={worstChampion} icon={AlertTriangle} tone="yellow" /></div></div> : <EmptyState icon={BarChart3} title="Dashboard en attente" text="Crée une team ou rejoins-la depuis un lien d’invitation, ajoute les joueurs du roster, puis importe une game. RiftBoard affichera ensuite les diagnostics de ton équipe." />}</Surface><Surface><div className="mb-4 flex items-center justify-between"><div><h3 className="text-xl font-black text-white">Dernières games</h3><p className="mt-1 text-sm text-slate-500">Historique DB avec focus de review.</p></div><Badge tone="blue">matches</Badge></div>{loading ? <SkeletonRows /> : data.matches.length ? <div className="space-y-3">{data.matches.slice(0, 5).map((match) => <button key={match.id} onClick={() => setActive("matches")} className="group w-full rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[0.06]"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-black text-white">{match.opponent || match.game_id}</p><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge></div><p className="mt-1 text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"} · {match.side || "Side ?"}</p></div><ChevronRight className="h-5 w-5 text-slate-700 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></div><p className="mt-3 text-sm font-bold text-cyan-100">{match.primary_focus || "Analyse qui sert vraiment à calculer"}</p></button>)}</div> : <EmptyState icon={Swords} title="Aucune game importée" text="Colle un Game ID dans l’analyse de match. Les données seront sauvegardées en base." />}</Surface></div></div>;
 }
 
 function ChampionMiniCard({ title, item, icon: Icon, tone: t }) {
@@ -747,7 +757,7 @@ function multiOpggUrlFromRoster(roster, region) {
   return `https://www.op.gg/multisearch/${String(region || "EUW").toLowerCase()}?summoners=${encodeURIComponent(summoners.join(","))}`;
 }
 
-function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast }) {
+function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast }) {
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
   const [playerForm, setPlayerForm] = useState({ name: "", riotId: "", opggUrl: "", role: "TOP" });
   const [joinCode, setJoinCode] = useState("");
@@ -755,11 +765,14 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
   const [syncingMostPlayed, setSyncingMostPlayed] = useState(false);
   const [teamSetupOpen, setTeamSetupOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(false);
+  const [teamEdit, setTeamEdit] = useState({ name: "", tag: "", avatarDataUrl: "", avatarZoom: 1, avatarX: 50, avatarY: 50 });
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0];
   const roster = selectedTeam ? data.players.filter((player) => player.team_id === selectedTeam.id) : [];
   const teamMembers = selectedTeam ? (data.teamMembers || []).filter((member) => member.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
   const hasTeams = data.teams.length > 0;
+  const canManageTeam = ["owner", "captain", "coach"].includes(String(currentMember?.role || "").toLowerCase());
+  const canDeleteTeam = String(currentMember?.role || "").toLowerCase() === "captain";
 
   useEffect(() => {
     if (!selectedTeamId && data.teams[0]?.id) setSelectedTeamId(data.teams[0].id);
@@ -768,9 +781,22 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
   }, [data.teams, selectedTeamId, setSelectedTeamId, joinCode]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(routeSearch || window.location.search);
     if (params.get("create") === "1") setTeamSetupOpen(true);
-  }, []);
+    if (params.get("gestion") === "1") setManagementOpen(true);
+  }, [routeSearch]);
+
+  useEffect(() => {
+    if (!selectedTeam) return;
+    setTeamEdit({
+      name: selectedTeam.name || "",
+      tag: selectedTeam.tag || "",
+      avatarDataUrl: selectedTeam.avatar_data_url || "",
+      avatarZoom: Number(selectedTeam.avatar_zoom || 1),
+      avatarX: Number(selectedTeam.avatar_x ?? 50),
+      avatarY: Number(selectedTeam.avatar_y ?? 50),
+    });
+  }, [selectedTeam?.id]);
 
   async function createTeam(event) {
     event.preventDefault();
@@ -882,6 +908,66 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     }
   }
 
+  function loadTeamAvatar(file) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      pushToast({ type: "red", title: "Avatar invalide", text: "Choisis une image depuis ton PC." });
+      return;
+    }
+    if (file.size > 900000) {
+      pushToast({ type: "yellow", title: "Image trop lourde", text: "Prends une image sous 900 Ko pour la stocker en DB." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setTeamEdit((current) => ({ ...current, avatarDataUrl: String(reader.result || "") }));
+    reader.readAsDataURL(file);
+  }
+
+  async function updateTeam(event) {
+    event.preventDefault();
+    if (!selectedTeam) return;
+    setSaving(true);
+    try {
+      await apiFetch("teams-update", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, ...teamEdit }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Team mise à jour", text: "Nom et avatar sont synchronisés." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Modification impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeMember(userId, label) {
+    if (!selectedTeam) return;
+    if (!window.confirm(`Renvoyer ${label || "ce profil"} de la team ?`)) return;
+    setSaving(true);
+    try {
+      await apiFetch("team-member-remove", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, userId }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Profil renvoyé", text: "Le compte n'a plus accès à cette team." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Renvoi impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deletePlayer(playerId, label) {
+    if (!selectedTeam) return;
+    if (!window.confirm(`Supprimer le profil Riot "${label || "sélectionné"}" du roster ?`)) return;
+    setSaving(true);
+    try {
+      await apiFetch("players-delete", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, playerId }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Profil Riot supprimé", text: "Le roster de gestion est à jour." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function syncMostPlayed() {
     if (!selectedTeam) return;
     setSyncingMostPlayed(true);
@@ -916,8 +1002,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     }
   }
 
-  return <div><PageHeader eyebrow="Team manager" title={hasTeams ? "G?rer ton ?quipe" : "Cr?er ou rejoindre une team"} subtitle={hasTeams ? "La page affiche le roster, les invitations et les analyses de l??quipe active." : "Apr?s la cr?ation du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d?invitation."}>{hasTeams && <><Button variant="ghost" icon={managementOpen ? X : Settings} onClick={() => setManagementOpen((open) => !open)}>{managementOpen ? "Fermer gestion" : "Gestion"}</Button><Button variant="ghost" icon={teamSetupOpen ? X : Plus} onClick={() => setTeamSetupOpen((open) => !open)}>{teamSetupOpen ? "Masquer cr?ation" : "Nouvelle team"}</Button></>}</PageHeader>
-    {managementOpen && selectedTeam && <TeamManagementPanel members={teamMembers} roster={roster} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} />}
+  return <div><PageHeader eyebrow="Team manager" title={hasTeams ? "Gérer ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ? "La page affiche le roster, les invitations et les analyses de l’équipe active." : "Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation."}>{hasTeams && <Button variant="ghost" icon={teamSetupOpen ? X : Plus} onClick={() => setTeamSetupOpen((open) => !open)}>{teamSetupOpen ? "Masquer création" : "Nouvelle team"}</Button>}</PageHeader>
+    {managementOpen && selectedTeam && <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} />}
     <div className={cx("grid gap-5", hasTeams ? teamSetupOpen && "xl:grid-cols-[.78fr_1.22fr]" : selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
       <div className={cx("space-y-5", hasTeams && !teamSetupOpen && "hidden")}>
         <Surface glow>
@@ -947,7 +1033,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!roster.length}>Copier Multi OP.GG</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={UserPlus} onClick={copyInviteLink}>Créer un lien d’invitation</Button>}<Button variant="danger" icon={saving ? Loader2 : X} onClick={deleteTeam} disabled={saving}>Supprimer</Button></div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!roster.length}>Copier Multi OP.GG</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={UserPlus} onClick={copyInviteLink}>Cr?er un lien d?invitation</Button>}</div>
         </div>
 
         <>
@@ -972,63 +1058,17 @@ function formatPoints(value) {
   return String(number);
 }
 
-function TeamManagementPanel({ members, roster, saving, onRoleChange, onLink }) {
+function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, canManage, canDeleteTeam, members, roster, saving, onRoleChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam }) {
   const linkedPlayerByUser = new Map(roster.filter((player) => player.user_id).map((player) => [player.user_id, player]));
-
   return (
     <Surface glow className="mb-6 p-6 md:p-8">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <Badge tone="cyan">Comptes Riot & profils</Badge>
-          <h3 className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">Gestion des comptes de la team</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">Associe chaque compte RiftBoard à un slot joueur ou coach. Les trois champions les plus joués doivent rester visibles ici, parce que c’est une info centrale pour le staff.</p>
-        </div>
-        <Badge tone="cyan">{members.length} compte{members.length > 1 ? "s" : ""}</Badge>
-      </div>
-
-      <div className="mt-8 space-y-8">
-        <div>
-          <h4 className="mb-4 text-xl font-black text-white">Comptes dans la team</h4>
-          <div className="grid gap-4 xl:grid-cols-2">
-          {members.map((member) => (
-            <div key={member.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2"><p className="truncate text-2xl font-black text-white">{member.account_name || member.name}</p><Badge tone={profileStatusTone(member)}>{profileStatusLabel(member)}</Badge></div>
-                  <p className="mt-2 text-sm font-semibold text-slate-500">Compte RiftBoard lié au profil</p>
-                </div>
-                <select value={String(member.role || "player").toLowerCase() === "captain" ? "captain" : String(member.role || "").toLowerCase() === "coach" ? "coach" : "player"} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">
-                  <option value="player">Joueur</option>
-                  <option value="coach">Coach</option>
-                  <option value="captain">Capitaine</option>
-                </select>
-              </div>
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/[0.18] p-4">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Slot lié</p>
-                {linkedPlayerByUser.get(member.user_id) ? <div className="mt-3"><LinkedPlayerSummary player={linkedPlayerByUser.get(member.user_id)} /></div> : <p className="mt-3 text-sm font-semibold text-slate-500">Aucun joueur ou coach lié pour l’instant.</p>}
-              </div>
-            </div>
-          ))}
-          </div>
-        </div>
-
-        <div>
-          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between"><div><h4 className="text-xl font-black text-white">Comptes Riot disponibles</h4><p className="mt-1 text-sm font-semibold text-slate-500">Fais défiler, puis choisis le compte RiftBoard à lier au profil Riot ou coach.</p></div><Badge tone="purple">{roster.length} profil{roster.length > 1 ? "s" : ""}</Badge></div>
-          <div className="flex gap-4 overflow-x-auto pb-3">
-          {roster.map((player) => (
-            <div key={player.id} className="w-[min(88vw,520px)] shrink-0 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="flex min-h-[360px] flex-col gap-4">
-                <LinkedPlayerSummary player={player} />
-                <select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none md:min-w-[260px]">
-                  <option value="">Aucun compte lié</option>
-                  {members.map((member) => <option key={member.user_id} value={member.user_id}>{member.account_name || member.name}</option>)}
-                </select>
-              </div>
-            </div>
-          ))}
-          </div>
-        </div>
-      </div>
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><Badge tone="cyan">Gestion</Badge><h3 className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">Gestion de la team</h3><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">Modifie l'identit? de l'?quipe, les acc?s et les liaisons entre comptes RiftBoard et profils Riot.</p></div><Badge tone="cyan">{members.length} compte{members.length > 1 ? "s" : ""}</Badge></div>
+      <form onSubmit={onSaveTeam} className="mt-8 grid gap-5 xl:grid-cols-[360px_1fr]">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5"><div className="mx-auto h-48 w-48 overflow-hidden rounded-[2rem] border border-cyan-300/25 bg-black/30">{edit.avatarDataUrl ? <img src={edit.avatarDataUrl} alt={team.name} className="h-full w-full object-cover" style={{ transform: "scale(" + Number(edit.avatarZoom || 1) + ")", objectPosition: Number(edit.avatarX ?? 50) + "% " + Number(edit.avatarY ?? 50) + "%" }} /> : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-12 w-12 text-slate-600" /></div>}</div><label className="mt-5 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="hidden" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canManage || saving} /></label><div className="mt-5 space-y-4"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canManage || saving} className="w-full" /></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Cadrage horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canManage || saving} className="w-full" /></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Cadrage vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canManage || saving} className="w-full" /></label></div></div>
+        <div className="space-y-5"><div className="grid gap-4 md:grid-cols-2"><TextInput label="Nom de l'?quipe" value={edit.name} onChange={(name) => setEdit({ ...edit, name })} placeholder="Nom" required icon={Trophy} /><TextInput label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} /></div><div className="flex flex-wrap gap-2"><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button>{canDeleteTeam && <Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={onDeleteTeam} disabled={saving}>Supprimer la team</Button>}</div>{!canManage && <p className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}</div>
+      </form>
+      <div className="mt-10 space-y-8"><div><h4 className="mb-4 text-xl font-black text-white">Comptes dans la team</h4><div className="grid gap-4 xl:grid-cols-2">{members.map((member) => { const label = member.account_name || member.name; return <div key={member.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-2xl font-black text-white">{label}</p><Badge tone={profileStatusTone(member)}>{profileStatusLabel(member)}</Badge></div><p className="mt-2 text-sm font-semibold text-slate-500">Compte RiftBoard li? au profil</p></div><select value={String(member.role || "player").toLowerCase() === "captain" ? "captain" : String(member.role || "").toLowerCase() === "coach" ? "coach" : "player"} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManage} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="player">Joueur</option><option value="coach">Coach</option><option value="captain">Capitaine</option></select></div><div className="mt-5 rounded-2xl border border-white/10 bg-black/[0.18] p-4"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Slot li?</p>{linkedPlayerByUser.get(member.user_id) ? <div className="mt-3"><LinkedPlayerSummary player={linkedPlayerByUser.get(member.user_id)} /></div> : <p className="mt-3 text-sm font-semibold text-slate-500">Aucun joueur ou coach li? pour l'instant.</p>}</div><div className="mt-4 flex justify-end"><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, label)} disabled={saving || !canManage}>Renvoyer le profil</Button></div></div>; })}</div></div>
+        <div><div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between"><div><h4 className="text-xl font-black text-white">Comptes Riot disponibles</h4><p className="mt-1 text-sm font-semibold text-slate-500">Fais d?filer, puis choisis le compte RiftBoard ? lier au profil Riot ou coach.</p></div><Badge tone="purple">{roster.length} profil{roster.length > 1 ? "s" : ""}</Badge></div><div className="flex gap-4 overflow-x-auto pb-3">{roster.map((player) => <div key={player.id} className="w-[min(88vw,520px)] shrink-0 rounded-3xl border border-white/10 bg-white/[0.04] p-5"><div className="flex min-h-[360px] flex-col gap-4"><LinkedPlayerSummary player={player} /><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none md:min-w-[260px]"><option value="">Aucun compte li?</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.account_name || member.name}</option>)}</select><Button type="button" variant="danger" icon={Trash2} onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}>Supprimer ce profil Riot</Button></div></div>)}</div></div></div>
     </Surface>
   );
 }
@@ -1040,12 +1080,16 @@ function LinkedPlayerSummary({ player }) {
       <div className="flex flex-wrap items-center gap-2"><Badge tone={player.role === "COACH" ? "purple" : "blue"}>{player.role}</Badge><p className="text-2xl font-black text-white">{player.name}</p></div>
       <p className="mt-2 text-sm font-semibold text-slate-500">{player.riot_id || "Coach sans Riot ID"}</p>
       {player.role === "COACH" ? <p className="mt-5 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-sm font-semibold text-slate-500">Pas de compte Riot requis pour ce slot coach.</p> : (
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {mostPlayed.length ? mostPlayed.map((champion, index) => <div key={`${champion.championId}-${champion.champion}`} className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-cyan-200/70">Top {index + 1}</p><p className="mt-2 truncate text-lg font-black text-white">{champion.champion}</p><p className="mt-1 text-sm font-bold text-cyan-100">{formatPoints(champion.points)} pts</p></div>) : <div className="rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-sm font-semibold text-slate-500 sm:col-span-3">Most played non synchronisés. Lance “Analyser profils” pour remplir les champions.</div>}
+        <div className="mt-5 flex flex-wrap gap-3">
+          {mostPlayed.length ? mostPlayed.map((champion, index) => <ChampionCircle key={String(champion.championId) + "-" + champion.champion} champion={champion} index={index} />) : <div className="w-full rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-sm font-semibold text-slate-500">Most played non synchronis?s. Lance ?Analyser profils? pour remplir les champions.</div>}
         </div>
       )}
     </div>
   );
+}
+
+function ChampionCircle({ champion, index }) {
+  return <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 px-3 py-2"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-cyan-200/30 bg-black/35">{champion.imageUrl ? <img src={champion.imageUrl} alt={champion.champion} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-lg font-black text-cyan-100">{index + 1}</div>}</div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{champion.champion}</p><p className="mt-0.5 text-xs font-bold text-cyan-100">{formatPoints(champion.points)} pts</p></div></div>;
 }
 
 function parseMostPlayed(value) {
@@ -1060,13 +1104,13 @@ function parseMostPlayed(value) {
 
 function MostPlayedBadges({ value }) {
   const mostPlayed = parseMostPlayed(value).slice(0, 3);
-  if (!mostPlayed.length) return <span className="text-xs font-semibold text-slate-600">Non synchronisé</span>;
-  return <div className="flex flex-wrap gap-1.5">{mostPlayed.map((champion) => <span key={`${champion.championId}-${champion.champion}`} className="rounded-xl border border-cyan-300/15 bg-cyan-400/10 px-2.5 py-1 text-xs font-black text-cyan-100">{champion.champion} · {formatPoints(champion.points)}</span>)}</div>;
+  if (!mostPlayed.length) return <span className="text-xs font-semibold text-slate-600">Non synchronis?</span>;
+  return <div className="flex flex-wrap gap-2">{mostPlayed.map((champion, index) => <ChampionCircle key={String(champion.championId) + "-" + champion.champion} champion={champion} index={index} />)}</div>;
 }
 
 function PremiumRosterTable({ roster }) {
-  if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun joueur" text="Ajoute tes joueurs. Leurs Riot IDs et liens OP.GG seront stockés en DB." /></div>;
-  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[980px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Most played</th><th className="px-4 py-3">Score</th><th className="px-4 py-3">Statut</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone="blue">{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{item.role === "COACH" ? <span className="text-xs font-semibold text-slate-600">Non requis</span> : <MostPlayedBadges value={item.most_played} />}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ? formatPoints(item.performance_score) : "—"}</Badge></td><td className="px-4 py-4 text-slate-500">{item.status || "Non analysé"}</td></tr>)}</tbody></table></div>;
+  if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun joueur" text="Ajoute tes joueurs. Leurs Riot IDs et liens OP.GG seront stock?s en DB." /></div>;
+  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[900px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">R?le</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">3 champions les plus jou?s</th><th className="px-4 py-3">Score</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone={item.role === "COACH" ? "purple" : "blue"}>{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{item.role === "COACH" ? <span className="text-xs font-semibold text-slate-600">Non requis</span> : <MostPlayedBadges value={item.most_played} />}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ? formatPoints(item.performance_score) : "?"}</Badge></td></tr>)}</tbody></table></div>;
 }
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast }) {
@@ -1137,6 +1181,10 @@ function MainApp({ user, onLogout, pushToast, navigate, route }) {
     navigate("/equipes?create=1");
   }
 
+  function openTeamManagement() {
+    navigate("/equipes?gestion=1");
+  }
+
   async function refreshAll() {
     setLoading(true); setApiError("");
     try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); }
@@ -1152,15 +1200,15 @@ function MainApp({ user, onLogout, pushToast, navigate, route }) {
 
   const page = useMemo(() => {
     if (active === "dashboard") return <Dashboard data={data} loading={loading} setActive={setActive} />;
-    if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} pushToast={pushToast} />;
+    if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} />;
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} />;
     if (active === "champions") return <Champions data={data} />;
     if (active === "progression") return <Progression data={data} />;
     if (active === "reports") return <Reports data={data} pushToast={pushToast} />;
     return <SettingsPage />;
-  }, [active, data, loading, selectedTeamId]);
+  }, [active, data, loading, selectedTeamId, currentMember, route.search]);
 
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} currentMember={currentMember} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} currentMember={currentMember} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
 }
 
 export default function RiftBoard() {

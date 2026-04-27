@@ -37,12 +37,20 @@ create table if not exists teams (
   tag text not null,
   region text not null default 'EUW',
   invite_code text,
+  avatar_data_url text,
+  avatar_zoom numeric not null default 1,
+  avatar_x numeric not null default 0,
+  avatar_y numeric not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(owner_id, name)
 );
 
 alter table teams add column if not exists invite_code text;
+alter table teams add column if not exists avatar_data_url text;
+alter table teams add column if not exists avatar_zoom numeric not null default 1;
+alter table teams add column if not exists avatar_x numeric not null default 0;
+alter table teams add column if not exists avatar_y numeric not null default 0;
 update teams
 set invite_code = 'RIFT-' || upper(substr(encode(gen_random_bytes(5), 'hex'), 1, 6))
 where invite_code is null;
