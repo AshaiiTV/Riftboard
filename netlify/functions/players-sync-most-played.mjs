@@ -3,6 +3,8 @@ import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
 import {
   fetchAccountByRiotId,
+  fetchMatchIdsByPuuid,
+  fetchRiotMatchById,
   fetchTopChampionMastery,
   getChampionDataMap,
   platformFromRegion
@@ -20,6 +22,49 @@ function normalizeMastery(row, championData) {
     level: Number(row.championLevel || 0),
     lastPlayTime: row.lastPlayTime || null
   };
+}
+
+function currentSeasonStartTimestamp() {
+  return Math.floor(Date.UTC(new Date().getUTCFullYear(), 0, 1) / 1000);
+}
+
+function normalizeMatchStats(stats, championData) {
+  return [...stats.values()]
+    .sort((a, b) => b.games - a.games || b.wins - a.wins)
+    .slice(0, 5)
+    .map((item) => {
+      const champion = championData.get(Number(item.championId));
+      const winrate = item.games ? Math.round((item.wins / item.games) * 100) : 0;
+      return {
+        championId: Number(item.championId),
+        champion: champion?.name || item.championName || `Champion ${item.championId}`,
+        imageUrl: champion?.imageUrl || null,
+        games: item.games,
+        wins: item.wins,
+        losses: item.games - item.wins,
+        winrate,
+        points: item.games,
+        source: 'match_history'
+      };
+    });
+}
+
+async function fetchCurrentSeasonMostPlayed(puuid, platform, championData) {
+  const matchIds = await fetchMatchIdsByPuuid(puuid, platform, { startTime: currentSeasonStartTimestamp(), count: 20 });
+  const stats = new Map();
+
+  for (const matchId of matchIds) {
+    const match = await fetchRiotMatchById(matchId, platform);
+    const participant = match?.info?.participants?.find((row) => row.puuid === puuid);
+    if (!participant?.championId) continue;
+    const key = Number(participant.championId);
+    const current = stats.get(key) || { championId: key, championName: participant.championName, games: 0, wins: 0 };
+    current.games += 1;
+    if (participant.win) current.wins += 1;
+    stats.set(key, current);
+  }
+
+  return normalizeMatchStats(stats, championData);
 }
 
 export default async function handler(request, context) {
@@ -72,10 +117,18 @@ export default async function handler(request, context) {
         }
 
         const account = await fetchAccountByRiotId(player.riot_id, platform);
-        const mastery = await fetchTopChampionMastery(account.puuid, platform, 5);
-        const mostPlayed = mastery.map((row) => normalizeMastery(row, championData));
+        let mostPlayed = [];
+        let syncSource = 'match_history';
+        try {
+          mostPlayed = await fetchCurrentSeasonMostPlayed(account.puuid, platform, championData);
+          if (!mostPlayed.length) throw new Error('Aucun match trouve sur la saison courante.');
+        } catch (historyErr) {
+          const mastery = await fetchTopChampionMastery(account.puuid, platform, 5);
+          mostPlayed = mastery.map((row) => normalizeMastery(row, championData));
+          syncSource = 'mastery';
+        }
 
-        const totalPoints = mostPlayed.reduce((sum, item) => sum + item.points, 0);
+        const totalPoints = mostPlayed.reduce((sum, item) => sum + Number(item.points || 0), 0);
         await sql`
           update players
           set most_played = ${JSON.stringify(mostPlayed)}::jsonb,
@@ -88,7 +141,7 @@ export default async function handler(request, context) {
         let poolCount = 0;
         for (const [index, champion] of mostPlayed.entries()) {
           const status = index === 0 ? 'lock' : index < 3 ? 'pocket' : 'work';
-          const verdict = index === 0 ? 'Champion principal detecte via Riot Mastery.' : 'Champion recurrent detecte via Riot Mastery.';
+          const verdict = syncSource === 'match_history' ? (index === 0 ? 'Champion principal de la saison courante.' : 'Champion recurrent sur la saison courante.') : (index === 0 ? 'Champion principal detecte via Riot Mastery.' : 'Champion recurrent detecte via Riot Mastery.');
           await sql`
             insert into champion_pool (
               team_id,
@@ -114,18 +167,18 @@ export default async function handler(request, context) {
               ${player.id},
               ${player.name},
               ${champion.champion},
+              ${Number(champion.games || 0)},
+              ${Number(champion.wins || 0)},
+              ${Number(champion.losses || 0)},
+              ${Number(champion.winrate || 0)},
               0,
               0,
-              0,
-              0,
-              0,
-              0,
-              'MASTERY',
+              ${syncSource === 'match_history' ? 'SAISON' : 'MASTERY'},
               ${verdict},
               ${player.role},
               ${status},
-              ${String(champion.points || 0) + ' mastery points'},
-              'mastery',
+              ${champion.games ? `${champion.games} games saison courante` : `${champion.points || 0} mastery points`},
+              ${syncSource},
               now()
             )
             on conflict (team_id, player_id, champion) do update
@@ -141,7 +194,7 @@ export default async function handler(request, context) {
           poolCount += 1;
         }
 
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount });
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount, source: syncSource });
       } catch (err) {
         await sql`
           update players

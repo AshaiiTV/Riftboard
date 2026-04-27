@@ -1192,7 +1192,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ?Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!roster.length}>Copier Multi OP.GG</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={UserPlus} onClick={copyInviteLink}>Cr?er un lien d?invitation</Button>}</div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ?Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>{syncingMostPlayed ? "Analyse en cours..." : "Analyser profils"}</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!roster.length}>Copier Multi OP.GG</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={UserPlus} onClick={copyInviteLink}>Cr?er un lien d?invitation</Button>}</div>
         </div>
 
         <>
@@ -1248,7 +1248,8 @@ function LinkedPlayerSummary({ player }) {
 }
 
 function ChampionCircle({ champion, index }) {
-  return <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 px-3 py-2"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-cyan-200/30 bg-black/35">{champion.imageUrl ?<img src={champion.imageUrl} alt={champion.champion} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-lg font-black text-cyan-100">{index + 1}</div>}</div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{champion.champion}</p><p className="mt-0.5 text-xs font-bold text-cyan-100">{formatPoints(champion.points)} pts</p></div></div>;
+  const detail = champion.games ? `${champion.games} game${Number(champion.games) > 1 ? "s" : ""}` : `${formatPoints(champion.points)} pts`;
+  return <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 px-3 py-2"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-cyan-200/30 bg-black/35">{champion.imageUrl ?<img src={champion.imageUrl} alt={champion.champion} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-lg font-black text-cyan-100">{index + 1}</div>}</div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{champion.champion}</p><p className="mt-0.5 text-xs font-bold text-cyan-100">{detail}</p></div></div>;
 }
 
 function parseMostPlayed(value) {

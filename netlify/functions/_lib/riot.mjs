@@ -113,6 +113,23 @@ export async function fetchRiotMatch(gameId) {
   return riotFetch(url, 'Game ID introuvable côté Riot.');
 }
 
+export async function fetchMatchIdsByPuuid(puuid, platform = 'EUW1', options = {}) {
+  const regional = accountRegionFromPlatform(platform).toLowerCase();
+  const params = new URLSearchParams();
+  if (options.startTime) params.set('startTime', String(options.startTime));
+  if (options.queue) params.set('queue', String(options.queue));
+  params.set('start', String(options.start || 0));
+  params.set('count', String(options.count || 20));
+  const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?${params.toString()}`;
+  return riotFetch(url, 'Historique de matchs introuvable cote Riot.');
+}
+
+export async function fetchRiotMatchById(matchId, platform = 'EUW1') {
+  const regional = accountRegionFromPlatform(platform).toLowerCase();
+  const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}`;
+  return riotFetch(url, 'Match Riot introuvable.');
+}
+
 export async function fetchAccountByRiotId(riotId, platform = 'EUW1') {
   const [gameName, tagLine] = String(riotId || '').split('#').map((part) => part?.trim());
   if (!gameName || !tagLine) {
