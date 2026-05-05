@@ -141,7 +141,7 @@ export default async function handler(request, context) {
         let poolCount = 0;
         for (const [index, champion] of mostPlayed.entries()) {
           const status = index === 0 ? 'lock' : index < 3 ? 'pocket' : 'work';
-          const verdict = syncSource === 'match_history' ? (index === 0 ? 'Champion principal de la saison courante.' : 'Champion recurrent sur la saison courante.') : (index === 0 ? 'Champion principal detecte via Riot Mastery.' : 'Champion recurrent detecte via Riot Mastery.');
+          const verdict = syncSource === 'match_history' ? (index === 0 ? 'Champion principal de la saison courante.' : 'Champion récurrent sur la saison courante.') : (index === 0 ? 'Champion principal détecté via Riot Mastery.' : 'Champion récurrent détecté via Riot Mastery.');
           await sql`
             insert into champion_pool (
               team_id,

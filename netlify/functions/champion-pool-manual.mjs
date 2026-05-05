@@ -80,8 +80,8 @@ export default async function handler(request, context) {
       : status === 'pocket'
         ? 'Pocket pick manuel.'
         : status === 'danger'
-          ? 'Pick manuel a retravailler.'
-          : 'Pick manuel a valider.';
+          ? 'Pick manuel à retravailler.'
+          : 'Pick manuel à valider.';
 
     const rows = await sql`
       insert into champion_pool (team_id, player_id, player_name, champion, games, wins, losses, winrate, kda, cs_per_min, impact_grade, verdict, role, status, notes, source, updated_at)

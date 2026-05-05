@@ -9,7 +9,7 @@ create table if not exists users (
   updated_at timestamptz not null default now()
 );
 
--- Migration v16 : RiftBoard utilise maintenant uniquement un nom de compte.
+-- Migration v16 : RiftBoard utilise un identifiant privé de connexion et un pseudo public.
 alter table users add column if not exists account_name text;
 update users
 set account_name = lower(regexp_replace(coalesce(nullif(name, ''), 'compte') || '-' || substr(id::text, 1, 8), '[^a-z0-9._-]', '', 'g'))

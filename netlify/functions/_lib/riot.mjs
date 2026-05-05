@@ -121,7 +121,7 @@ export async function fetchMatchIdsByPuuid(puuid, platform = 'EUW1', options = {
   params.set('start', String(options.start || 0));
   params.set('count', String(options.count || 20));
   const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?${params.toString()}`;
-  return riotFetch(url, 'Historique de matchs introuvable cote Riot.');
+  return riotFetch(url, 'Historique de matchs introuvable côté Riot.');
 }
 
 export async function fetchRiotMatchById(matchId, platform = 'EUW1') {
