@@ -22,6 +22,7 @@ export default async function handler(request, context) {
 
     await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
     await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
+    await sql`alter table reports add column if not exists updated_at timestamptz not null default now()`;
 
     const membership = await sql`
       select teams.owner_id, team_members.role
@@ -61,6 +62,32 @@ export default async function handler(request, context) {
     ` : [];
     const validMatchIds = validMatches.map((match) => match.id);
     const primaryMatchId = validMatchIds[0] || null;
+
+    if (action === 'update') {
+      if (!reportId) throw Object.assign(new Error('Rapport requis.'), { status: 400 });
+      const existing = await sql`select * from reports where id = ${reportId} and team_id = ${teamId} limit 1`;
+      const report = existing[0];
+      if (!report) throw Object.assign(new Error('Rapport introuvable.'), { status: 404 });
+      if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
+        throw Object.assign(new Error('Seul l’auteur du rapport ou le capitaine peut le modifier.'), { status: 403 });
+      }
+      const rows = await sql`
+        update reports
+        set match_id = ${primaryMatchId},
+            match_ids = ${JSON.stringify(validMatchIds)}::jsonb,
+            title = ${title},
+            content = ${content},
+            updated_at = now()
+        where id = ${reportId}
+          and team_id = ${teamId}
+        returning *
+      `;
+      await sql`
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        values (${user.id}, 'reports.update', 'reports', ${reportId}, ${JSON.stringify({ teamId, title, matchIds: validMatchIds })}::jsonb)
+      `;
+      return json({ report: rows[0] });
+    }
 
     const rows = await sql`
       insert into reports (team_id, match_id, match_ids, created_by, title, content)

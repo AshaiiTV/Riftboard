@@ -244,7 +244,7 @@ async function rebuildImprovements(teamId) {
   }
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster }) {
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null }) {
   const allyTeamId = detectAllyTeam(match, roster);
   const participants = buildParticipants(match, allyTeamId, roster);
   const summary = buildMatchSummary(match, allyTeamId, participants);
@@ -300,8 +300,8 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster }) {
 
   const report = reportForMatch({ team, summary, participants });
   await sql`
-    insert into reports (team_id, match_id, match_ids, title, content)
-    values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${`Review — ${team.name} — ${gameId}`}, ${report})
+    insert into reports (team_id, match_id, match_ids, created_by, title, content)
+    values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report})
   `;
 
   return savedMatch;

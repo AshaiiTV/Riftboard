@@ -1719,6 +1719,17 @@ function compositionSlots(value) {
   return {};
 }
 
+function jsonList(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
+}
+
 function compositionMastery(slots, rows) {
   const picked = Object.values(compositionSlots(slots)).map((slot) => rows.find((row) => row.id === slot.poolId)).filter(Boolean);
   if (!picked.length) return { label: "À remplir", tone: "slate", score: 0 };
@@ -1732,14 +1743,15 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
   const player = players.find((item) => item.id === slot.playerId) || rolePlayers[0];
   const pool = rows.filter((row) => String(row.player_id || "") === String(player?.id || "") || row.player_name === player?.name);
   const pick = pool.find((row) => row.id === slot.poolId);
-  return <div className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><RoleIcon role={role} className="h-6 w-6" /><span className="text-sm font-black text-white">{role}</span></div>{pick && <Badge tone={championPoolStatusTone(championPoolStatus(pick))}>{championPoolStatusLabel(championPoolStatus(pick))}</Badge>}</div><div className="grid gap-2"><select value={player?.id || ""} onChange={(event) => onChange(role, { playerId: event.target.value, poolId: "" })} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-xs font-black text-white outline-none">{rolePlayers.length ? rolePlayers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>) : <option value="">Aucun joueur</option>}</select><select value={slot.poolId || ""} onChange={(event) => onChange(role, { playerId: player?.id || "", poolId: event.target.value })} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-xs font-black text-white outline-none"><option value="">Champion</option>{pool.map((row) => <option key={row.id} value={row.id}>{championDisplayName(row.champion)} · {championPoolStatusLabel(championPoolStatus(row))}</option>)}</select></div>{pick ? <div className="mt-3 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2"><img src={championSquareUrl(pick)} alt={pick.champion} className="h-11 w-11 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(pick.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{pick.games || 0}g · {pick.winrate || 0}% WR · {Number(pick.kda || 0).toFixed(1)} KDA</p></div></div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 p-3 text-xs font-semibold text-slate-600">Choisis un champion du pool de ce joueur.</p>}</div>;
+  return <div className="rounded-xl border border-white/10 bg-black/25 p-2.5"><div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-xs font-black text-white">{role}</span></div>{pick && <Badge tone={championPoolStatusTone(championPoolStatus(pick))}>{championPoolStatusLabel(championPoolStatus(pick))}</Badge>}</div><div className="grid gap-2"><select value={player?.id || ""} onChange={(event) => onChange(role, { playerId: event.target.value, poolId: "" })} className="w-full rounded-lg border border-white/10 bg-black/[0.22] px-2.5 py-2 text-xs font-black text-white outline-none">{rolePlayers.length ? rolePlayers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>) : <option value="">Aucun joueur</option>}</select><select value={slot.poolId || ""} onChange={(event) => onChange(role, { playerId: player?.id || "", poolId: event.target.value })} className="w-full rounded-lg border border-white/10 bg-black/[0.22] px-2.5 py-2 text-xs font-black text-white outline-none"><option value="">Champion</option>{pool.map((row) => <option key={row.id} value={row.id}>{championDisplayName(row.champion)} · {championPoolStatusLabel(championPoolStatus(row))}</option>)}</select></div>{pick ? <div className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-2"><img src={championSquareUrl(pick)} alt={pick.champion} className="h-9 w-9 rounded-lg object-cover" /><div className="min-w-0"><p className="truncate text-xs font-black text-white">{championDisplayName(pick.champion)}</p><p className="truncate text-[0.66rem] font-semibold text-slate-500">{pick.games || 0}g · {pick.winrate || 0}% · {Number(pick.kda || 0).toFixed(1)} KDA</p></div></div> : <p className="mt-2 rounded-lg border border-dashed border-white/10 p-2 text-xs font-semibold text-slate-600">Slot vide.</p>}</div>;
 }
 
-function CompositionCard({ composition, rows, canManage, saving, onDelete }) {
+function CompositionCard({ composition, rows, canManage, saving, onEdit, onDuplicate, onDelete }) {
   const slots = compositionSlots(composition.slots);
+  const tags = jsonList(composition.tags);
   const mastery = compositionMastery(slots, rows);
   const picks = COMP_ROLES.map((role) => rows.find((row) => row.id === slots[role]?.poolId)).filter(Boolean);
-  return <Surface><div className="flex items-start justify-between gap-3"><div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge><h3 className="mt-3 text-2xl font-black text-white">{composition.title}</h3>{composition.notes && <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">{composition.notes}</p>}</div>{canManage && <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} className="rounded-xl p-2 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>}</div><div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">{COMP_ROLES.map((role) => { const pick = rows.find((row) => row.id === slots[role]?.poolId); return <div key={role} className={cx("rounded-2xl border p-2", pick ? tone(championPoolStatusTone(championPoolStatus(pick))) : "border-white/10 bg-black/25 text-slate-500")}><div className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-xs font-black">{role}</span></div>{pick ? <><img src={championSquareUrl(pick)} alt={pick.champion} className="mt-2 h-14 w-14 rounded-xl object-cover" /><p className="mt-2 truncate text-sm font-black text-white">{championDisplayName(pick.champion)}</p><p className="truncate text-[0.68rem] font-semibold opacity-80">{pick.player_name}</p></> : <p className="mt-3 text-xs font-semibold">Slot vide</p>}</div>; })}</div>{picks.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{compositionIdentity(picks).tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tag} x{count}</Badge>)}</div>}</Surface>;
+  return <Surface className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge>{tags.map((tag) => <Badge key={tag} tone="purple">{tag}</Badge>)}</div><h3 className="mt-3 truncate text-xl font-black text-white">{composition.title}</h3>{composition.notes && <p className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-400">{composition.notes}</p>}</div>{canManage && <div className="flex shrink-0 gap-1"><button type="button" onClick={() => onEdit(composition)} disabled={saving} className="rounded-xl p-2 text-slate-500 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={() => onDuplicate(composition)} disabled={saving} className="rounded-xl p-2 text-slate-500 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button><button type="button" onClick={() => onDelete(composition.id)} disabled={saving} className="rounded-xl p-2 text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button></div>}</div><div className="mt-4 grid gap-2 md:grid-cols-5">{COMP_ROLES.map((role) => { const pick = rows.find((row) => row.id === slots[role]?.poolId); return <div key={role} className={cx("min-w-0 rounded-xl border p-2", pick ? tone(championPoolStatusTone(championPoolStatus(pick))) : "border-white/10 bg-black/25 text-slate-500")}><div className="flex items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-[0.68rem] font-black"><RoleIcon role={role} className="h-4 w-4" />{role}</span></div>{pick ? <div className="mt-2 flex items-center gap-2"><img src={championSquareUrl(pick)} alt={pick.champion} className="h-9 w-9 rounded-lg object-cover" /><div className="min-w-0"><p className="truncate text-xs font-black text-white">{championDisplayName(pick.champion)}</p><p className="truncate text-[0.62rem] font-semibold opacity-80">{pick.player_name}</p></div></div> : <p className="mt-2 text-xs font-semibold">Vide</p>}</div>; })}</div>{picks.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{compositionIdentity(picks).tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tag} x{count}</Badge>)}</div>}</Surface>;
 }
 
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember }) {
@@ -1747,8 +1759,9 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && COMP_ROLES.includes(player.role));
   const rows = (data.championPool || []).filter((row) => row.team_id === selectedTeamId);
   const compositions = (data.compositions || []).filter((item) => item.team_id === selectedTeamId);
-  const [form, setForm] = useState({ title: "", notes: "", slots: emptyCompositionSlots(players) });
+  const [form, setForm] = useState({ id: null, title: "", notes: "", tags: [], slots: emptyCompositionSlots(players) });
   const [saving, setSaving] = useState(false);
+  const tagOptions = ["blue side", "red side", "scrim", "BO", "teamfight", "pick", "scaling"];
 
   useEffect(() => {
     setForm((current) => ({ ...current, slots: { ...emptyCompositionSlots(players), ...(current.slots || {}) } }));
@@ -1758,17 +1771,35 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
     setForm((current) => ({ ...current, slots: { ...current.slots, [role]: slot } }));
   }
 
+  function toggleCompTag(tag) {
+    setForm((current) => ({ ...current, tags: current.tags.includes(tag) ? current.tags.filter((item) => item !== tag) : [...current.tags, tag] }));
+  }
+
+  function resetCompositionForm() {
+    setForm({ id: null, title: "", notes: "", tags: [], slots: emptyCompositionSlots(players) });
+  }
+
+  function editComposition(composition) {
+    setForm({ id: composition.id, title: composition.title || "", notes: composition.notes || "", tags: jsonList(composition.tags), slots: { ...emptyCompositionSlots(players), ...compositionSlots(composition.slots) } });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function duplicateComposition(composition) {
+    setForm({ id: null, title: `${composition.title || "Compo"} copie`, notes: composition.notes || "", tags: jsonList(composition.tags), slots: { ...emptyCompositionSlots(players), ...compositionSlots(composition.slots) } });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function saveComposition(event) {
     event.preventDefault();
     if (!canManage) return;
     setSaving(true);
     try {
-      await apiFetch("composition-types-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, title: form.title, notes: form.notes, slots: form.slots }) });
-      setForm({ title: "", notes: "", slots: emptyCompositionSlots(players) });
+      await apiFetch("composition-types-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, compositionId: form.id, title: form.title, notes: form.notes, tags: form.tags, slots: form.slots }) });
+      resetCompositionForm();
       await refreshAll();
-      pushToast({ type: "green", title: "Compo créée", text: "La composition type est disponible pour la team." });
+      pushToast({ type: "green", title: form.id ? "Compo mise à jour" : "Compo créée", text: "La composition type est disponible pour la team." });
     } catch (err) {
-      pushToast({ type: "red", title: "Création impossible", text: err.message });
+      pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
       setSaving(false);
     }
@@ -1789,7 +1820,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   }
 
   const mastery = compositionMastery(form.slots, rows);
-  return <div><PageHeader eyebrow="Draft room" title="Compositions types" subtitle="Construis des compos à partir des champion pools réels, avec une lecture immédiate de la maîtrise poste par poste." />{players.length ? <form onSubmit={saveComposition}><Surface glow><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><h3 className="text-2xl font-black text-white">Nouvelle composition</h3><p className="mt-1 text-sm font-semibold text-slate-500">Chaque slot pioche dans le pool dynamique du joueur du poste.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[1fr_1.4fr]"><TextInput label="Nom de la compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage dragon, Front-to-back Jinx..." required icon={Sparkles} /><TextInput label="Note" value={form.notes} onChange={(notes) => setForm((current) => ({ ...current, notes }))} placeholder="Plan, condition de fight, bans à protéger..." icon={Clipboard} /></div><div className="mt-5 grid gap-3 xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><div className="mt-5 flex justify-end"><Button type="submit" icon={saving ? Loader2 : Plus} disabled={!canManage || saving || !form.title.trim()}>Créer la compo</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des compositions types." />}<div className="mt-6 grid gap-4">{compositions.length ? compositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={canManage} saving={saving} onDelete={deleteComposition} />) : <EmptyState icon={Sparkles} title="Aucune composition type" text="Crée une première compo à partir des champion pools de tes joueurs." />}</div></div>;
+  return <div><PageHeader eyebrow="Draft room" title="Compositions types" subtitle="Construis des compos à partir des champion pools réels, avec une lecture immédiate de la maîtrise poste par poste." />{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><h3 className="text-2xl font-black text-white">{form.id ? "Modifier la composition" : "Nouvelle composition"}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Chaque slot pioche dans le pool dynamique du joueur du poste.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[1fr_1.4fr]"><TextInput label="Nom de la compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage dragon, Front-to-back Jinx..." required icon={Sparkles} /><TextInput label="Note" value={form.notes} onChange={(notes) => setForm((current) => ({ ...current, notes }))} placeholder="Plan, condition de fight, bans à protéger..." icon={Clipboard} /></div><div className="mt-4 flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-500 hover:text-white")}>{tag}</button>)}</div><div className="mt-5 grid gap-2 xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canManage || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des compositions types." />}<div className="mt-6 grid gap-3">{compositions.length ? compositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={canManage} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : <EmptyState icon={Sparkles} title="Aucune composition type" text="Crée une première compo à partir des champion pools de tes joueurs." />}</div></div>;
 }
 
 function DraftPickCard({ pick, label }) {
@@ -1858,11 +1889,24 @@ function roleRows(rows, role) {
 }
 
 function commandResult(command, rows) {
-  const match = String(command || "").trim().match(/^\/(KDA|DAMAGE|VISION|GOLD|KP)\s+["']?([A-Z]{2,3})["']?/i);
+  const raw = String(command || "").trim();
+  const teamMatch = raw.match(/^\/TEAM\s+(KDA|DAMAGE|VISION|GOLD|KP)/i);
+  if (teamMatch) {
+    if (!rows.length) return `${raw} -> aucune game liée.`;
+    const key = teamMatch[1].toUpperCase();
+    const avg = (field) => Math.round(rows.reduce((sum, row) => sum + Number(row[field] || 0), 0) / rows.length);
+    const avgFloat = (field) => (rows.reduce((sum, row) => sum + Number(row[field] || 0), 0) / rows.length).toFixed(2);
+    if (key === "KDA") return `Team KDA moyen: ${avgFloat("kda")} sur ${rows.length} lignes joueur.`;
+    if (key === "DAMAGE") return `Team dégâts moyens par joueur: ${formatPoints(avg("damage"))}.`;
+    if (key === "VISION") return `Team vision moyenne par joueur: ${avg("vision")}.`;
+    if (key === "GOLD") return `Team gold moyen par joueur: ${formatPoints(avg("gold"))}.`;
+    return `Team KP moyen: ${Math.round(Number(avgFloat("kp")) * 100)}%`;
+  }
+  const match = raw.match(/^\/(KDA|DAMAGE|VISION|GOLD|KP)\s+["']?([A-Z]{2,3})["']?/i);
   if (!match) return null;
   const [, key, role] = match;
   const scoped = roleRows(rows, role);
-  if (!scoped.length) return `${command} -> aucune donnée pour ${role.toUpperCase()}.`;
+  if (!scoped.length) return `${raw} -> aucune donnée pour ${role.toUpperCase()}.`;
   const avg = (field) => Math.round(scoped.reduce((sum, row) => sum + Number(row[field] || 0), 0) / scoped.length);
   const avgFloat = (field) => (scoped.reduce((sum, row) => sum + Number(row[field] || 0), 0) / scoped.length).toFixed(2);
   const label = role.toUpperCase();
@@ -1880,17 +1924,22 @@ function renderReportContent(content, rows) {
   });
 }
 
+function ReportPreview({ content, rows }) {
+  return <div className="rounded-2xl border border-white/10 bg-black/[0.26] p-4 text-sm leading-7 text-slate-100 shadow-inner shadow-black/35">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-600">L’aperçu apparaîtra ici.</p>}</div>;
+}
+
 function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const reports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const canCaptainDelete = ["owner", "captain"].includes(String(currentMember?.role || "").toLowerCase());
-  const [form, setForm] = useState({ title: "", content: "", matchIds: [] });
+  const [form, setForm] = useState({ id: null, title: "", content: "", matchIds: [] });
   const [selectedReportId, setSelectedReportId] = useState(null);
   const [lexiconOpen, setLexiconOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const selected = reports.find((report) => report.id === selectedReportId) || reports[0];
   const selectedRows = selected ? reportRows(matches, reportMatchIds(selected)) : [];
   const formRows = reportRows(matches, form.matchIds);
+  const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
 
   function toggleMatch(id) {
     setForm((current) => ({ ...current, matchIds: current.matchIds.includes(id) ? current.matchIds.filter((item) => item !== id) : [...current.matchIds, id] }));
@@ -1900,16 +1949,30 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n"}${command}` }));
   }
 
+  function editReport(report) {
+    setForm({ id: report.id, title: report.title || "", content: report.content || "", matchIds: reportMatchIds(report) });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function duplicateReport(report) {
+    setForm({ id: null, title: `${report.title || "Rapport"} copie`, content: report.content || "", matchIds: reportMatchIds(report) });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetReportForm() {
+    setForm({ id: null, title: "", content: "", matchIds: [] });
+  }
+
   async function saveReport(event) {
     event.preventDefault();
     setSaving(true);
     try {
-      await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, title: form.title, content: form.content, matchIds: form.matchIds }) });
-      setForm({ title: "", content: "", matchIds: [] });
+      await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title: form.title, content: form.content, matchIds: form.matchIds }) });
+      resetReportForm();
       await refreshAll();
-      pushToast({ type: "green", title: "Rapport créé", text: "Le bloc notes de review est enregistré." });
+      pushToast({ type: "green", title: form.id ? "Rapport mis à jour" : "Rapport créé", text: "Le bloc notes de review est enregistré." });
     } catch (err) {
-      pushToast({ type: "red", title: "Création impossible", text: err.message });
+      pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
       setSaving(false);
     }
@@ -1930,8 +1993,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     }
   }
 
-  const commands = [["/KDA \"ADC\"", "KDA moyen du rôle sur les games liées."], ["/DAMAGE \"MID\"", "Dégâts moyens du rôle."], ["/VISION \"SUP\"", "Vision moyenne du rôle."], ["/GOLD \"JGL\"", "Gold moyen du rôle."], ["/KP \"TOP\"", "Participation moyenne aux kills."]];
-  return <div><PageHeader eyebrow="Bloc notes staff" title="Rapports de review" subtitle="Crée des notes liées aux games importées, avec des commandes qui injectent les datas utiles." /><div className="grid gap-5 xl:grid-cols-[.9fr_1.1fr]"><Surface glow><div className="flex items-center justify-between gap-3"><div><h3 className="text-2xl font-black text-white">Créer un rapport</h3><p className="mt-1 text-sm font-semibold text-slate-500">Lie une ou plusieurs games, puis écris la review comme dans un bloc notes.</p></div><Button variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button></div>{lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><div className="grid gap-2 md:grid-cols-2">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/25 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-400">{text}</p></button>)}</div></div>}<form onSubmit={saveReport} className="mt-5 space-y-4"><TextInput label="Titre" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Review scrim vs..." required icon={FileText} /><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Games liées</p><div className="grid max-h-[220px] gap-2 overflow-auto pr-1">{matches.length ? matches.map((match) => <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("rounded-2xl border p-3 text-left transition", form.matchIds.includes(match.id) ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="font-black text-white">{match.opponent || match.game_id}</span></div><p className="mt-1 text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p></button>) : <p className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-500">Importe une game pour lier des données.</p>}</div></div><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Notes</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={"Plan de jeu, erreurs récurrentes, décisions à revoir...\n/KDA \"ADC\""} required rows={9} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-650 focus:border-cyan-300/35" /></label>{form.content && <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-slate-200">{renderReportContent(form.content, formRows)}</div>}<Button type="submit" icon={saving ? Loader2 : Plus} disabled={saving || !selectedTeamId || !form.title.trim() || !form.content.trim()}>Créer le rapport</Button></form></Surface><div className="space-y-5"><Surface><h3 className="text-xl font-black text-white">Rapports existants</h3><div className="mt-4 space-y-2">{reports.length ? reports.map((report) => <button key={report.id} type="button" onClick={() => setSelectedReportId(report.id)} className={cx("w-full rounded-2xl border p-4 text-left transition", selected?.id === report.id ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{report.title}</p><Badge tone="slate">{reportMatchIds(report).length} game{reportMatchIds(report).length > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">Par {report.author_name || "RiftBoard"} · {new Date(report.created_at).toLocaleDateString("fr-FR")}</p></button>) : <EmptyState icon={FileText} title="Aucun rapport" text="Crée un premier rapport lié à tes reviews." />}</div></Surface><Surface glow>{selected ? <><div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-2xl font-black text-white">{selected.title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Par {selected.author_name || "RiftBoard"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p></div>{(canCaptainDelete || selected.created_by === user?.id) && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}</div><div className="rounded-[1.35rem] border border-white/10 bg-black/[0.30] p-5 text-sm leading-7 text-slate-100 shadow-inner shadow-black/40">{renderReportContent(selected.content, selectedRows)}</div></> : <EmptyState icon={FileText} title="Sélectionne un rapport" text="Le contenu apparaîtra ici." />}</Surface></div></div></div>;
+  const commands = [["/KDA \"ADC\"", "KDA moyen d’un rôle."], ["/DAMAGE \"MID\"", "Dégâts moyens d’un rôle."], ["/VISION \"SUP\"", "Vision moyenne d’un rôle."], ["/GOLD \"JGL\"", "Gold moyen d’un rôle."], ["/KP \"TOP\"", "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
+  return <div><PageHeader eyebrow="Bloc notes staff" title="Rapports de review" subtitle="Crée des notes liées aux games importées, avec des commandes qui injectent les datas utiles." /><div className="grid gap-5 xl:grid-cols-[1.05fr_.95fr]"><Surface glow className="p-5"><div className="flex items-center justify-between gap-3"><div><h3 className="text-2xl font-black text-white">{form.id ? "Modifier le rapport" : "Créer un rapport"}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Notes à gauche, rendu data à droite.</p></div><Button variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button></div>{lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><div className="grid gap-2 md:grid-cols-2">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/25 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-400">{text}</p></button>)}</div></div>}<form onSubmit={saveReport} className="mt-5 space-y-4"><TextInput label="Titre" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Review scrim vs..." required icon={FileText} /><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Games liées</p><div className="grid max-h-[180px] gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.length ? matches.map((match) => <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", form.matchIds.includes(match.id) ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{match.opponent || match.game_id}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p></button>) : <p className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-500">Importe une game pour lier des données.</p>}</div></div><div className="grid gap-4 xl:grid-cols-2"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Notes</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={"Plan de jeu, erreurs récurrentes, décisions à revoir...\n/KDA \"ADC\""} required rows={13} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-650 focus:border-cyan-300/35" /></label><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Aperçu</p><ReportPreview content={form.content} rows={formRows} /></div></div><div className="flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetReportForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !form.title.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer le rapport"}</Button></div></form></Surface><div className="space-y-5"><Surface className="p-4"><h3 className="text-xl font-black text-white">Rapports existants</h3><div className="mt-4 max-h-[360px] space-y-2 overflow-auto pr-1">{reports.length ? reports.map((report) => <button key={report.id} type="button" onClick={() => setSelectedReportId(report.id)} className={cx("w-full rounded-xl border p-3 text-left transition", selected?.id === report.id ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{report.title}</p><Badge tone="slate">{reportMatchIds(report).length} game{reportMatchIds(report).length > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">Par {report.author_name || "RiftBoard"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p></button>) : <EmptyState icon={FileText} title="Aucun rapport" text="Crée un premier rapport lié à tes reviews." />}</div></Surface><Surface glow>{selected ? <><div className="mb-4 flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-2xl font-black text-white">{selected.title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Par {selected.author_name || "RiftBoard"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p></div><div className="flex shrink-0 gap-2"><Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>{canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}{canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}</div></div><ReportPreview content={selected.content} rows={selectedRows} /></> : <EmptyState icon={FileText} title="Sélectionne un rapport" text="Le contenu apparaîtra ici." />}</Surface></div></div></div>;
 }
 
 function SettingsPage({ user, onUserUpdate, pushToast }) {

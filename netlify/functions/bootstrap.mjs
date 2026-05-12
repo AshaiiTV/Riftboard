@@ -63,6 +63,7 @@ export default async function handler(request, context) {
     const improvements = await sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`;
     await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
     await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
+    await sql`alter table reports add column if not exists updated_at timestamptz not null default now()`;
     await sql`
       create table if not exists composition_types (
         id uuid primary key default gen_random_uuid(),
@@ -70,11 +71,13 @@ export default async function handler(request, context) {
         created_by uuid references users(id) on delete set null,
         title text not null,
         notes text,
+        tags jsonb not null default '[]'::jsonb,
         slots jsonb not null default '{}'::jsonb,
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now()
       )
     `;
+    await sql`alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb`;
     const compositions = await sql`select * from composition_types where team_id = any(${teamIds}) order by created_at desc limit 50`;
     const reports = await sql`
       select reports.*, users.name as author_name

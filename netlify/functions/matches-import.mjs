@@ -32,7 +32,7 @@ export default async function handler(request, context) {
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
     const match = await fetchRiotMatch(gameId);
-    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster });
+    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id });
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

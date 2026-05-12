@@ -179,7 +179,8 @@ create table if not exists reports (
   created_by uuid references users(id) on delete set null,
   title text not null,
   content text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists composition_types (
@@ -188,6 +189,7 @@ create table if not exists composition_types (
   created_by uuid references users(id) on delete set null,
   title text not null,
   notes text,
+  tags jsonb not null default '[]'::jsonb,
   slots jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -220,6 +222,8 @@ create index if not exists idx_improvements_team on improvements(team_id, rank a
 create index if not exists idx_reports_team on reports(team_id, created_at desc);
 alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb;
 alter table reports add column if not exists created_by uuid references users(id) on delete set null;
+alter table reports add column if not exists updated_at timestamptz not null default now();
+alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb;
 create index if not exists idx_composition_types_team on composition_types(team_id, created_at desc);
 
 create or replace function set_updated_at()
@@ -244,4 +248,8 @@ for each row execute function set_updated_at();
 
 drop trigger if exists trg_composition_types_updated_at on composition_types;
 create trigger trg_composition_types_updated_at before update on composition_types
+for each row execute function set_updated_at();
+
+drop trigger if exists trg_reports_updated_at on reports;
+create trigger trg_reports_updated_at before update on reports
 for each row execute function set_updated_at();
