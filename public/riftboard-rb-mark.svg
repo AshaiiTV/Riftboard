@@ -28,8 +28,6 @@
       <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#22D3EE" flood-opacity="0.28"/>
     </filter>
   </defs>
-
-  <rect width="512" height="512" rx="116" fill="#050711"/>
   <path d="M68 291C51 217 83 137 150 91C217 45 310 40 374 86C438 132 467 220 442 293C418 365 342 419 259 418C176 417 85 365 68 291Z" fill="url(#rb-flare)" filter="url(#rb-glow)"/>
   <path d="M96 284C82 223 109 156 164 119C221 81 298 77 351 115C404 153 428 225 408 286C388 347 325 391 256 390C188 390 110 345 96 284Z" fill="url(#rb-core)"/>
   <path d="M109 191C144 125 219 95 291 105C352 113 394 151 411 202" stroke="#FFF7ED" stroke-width="13" stroke-linecap="round" stroke-opacity="0.34"/>

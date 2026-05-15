@@ -41,7 +41,7 @@ import {
 const API_BASE = "/.netlify/functions";
 
 const NAV = [
-  { id: "teams", label: "Équipes", icon: Users, shortcut: "T", path: "/equipes" },
+  { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Reviews", icon: Swords, shortcut: "M", path: "/reviews" },
   { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
   { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
@@ -1103,6 +1103,16 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     pushToast({ type: "green", title: "Multi OP.GG copié", text: `${roster.length} joueur${roster.length > 1 ?"s" : ""} dans le lien.` });
   }
 
+  async function copyPlayerOpggLink(player) {
+    const link = String(player?.opgg_url || "").trim() || opggUrlFromRiotId(player?.riot_id, selectedTeam?.region);
+    if (!link) {
+      pushToast({ type: "red", title: "OP.GG introuvable", text: "Ajoute un Riot ID ou un lien OP.GG sur ce profil." });
+      return;
+    }
+    await navigator.clipboard.writeText(link);
+    pushToast({ type: "green", title: "OP.GG copié", text: `${player?.name || "Profil"} est dans le presse-papiers.` });
+  }
+
   async function linkPlayerAccount(playerId, userId) {
     if (!selectedTeam) return;
     setSaving(true);
@@ -1270,7 +1280,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
             <div className="flex items-end"><Button type="submit" disabled={saving || !canManageTeam} icon={saving ?Loader2 : UserPlus} className="w-full">Ajouter</Button></div>
           </form>
           {!canManageTeam && <p className="mt-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm font-semibold text-amber-100">Ton rôle permet de consulter la team, mais pas de modifier le roster.</p>}
-          <PremiumRosterTable roster={roster} championPool={(data.championPool || []).filter((row) => row.team_id === selectedTeam.id)} />
+          <PremiumRosterTable roster={roster} championPool={(data.championPool || []).filter((row) => row.team_id === selectedTeam.id)} region={selectedTeam.region} canManage={canManageTeam} saving={saving} onCopyOpgg={copyPlayerOpggLink} onDeletePlayer={deletePlayer} />
         </>
       </Surface>}
     </div>
@@ -1343,9 +1353,12 @@ function MostPlayedBadges({ value, fallback = [] }) {
   return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={String(champion.championId || champion.champion) + "-" + index} champion={champion} index={index} />)}</div>;
 }
 
-function PremiumRosterTable({ roster, championPool = [] }) {
+function PremiumRosterTable({ roster, championPool = [], region = "EUW", canManage = false, saving = false, onCopyOpgg, onDeletePlayer }) {
   if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun joueur" text="Ajoute tes joueurs pour préparer les imports, les reviews et le Champion Pool." /></div>;
-  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[900px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">3 champions les plus joués</th><th className="px-4 py-3">Score</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone={item.role === "COACH" ?"purple" : "blue"}>{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{item.role === "COACH" ?<span className="text-xs font-semibold text-slate-600">Non requis</span> : <MostPlayedBadges value={item.most_played} fallback={championPool.filter((row) => row.player_id === item.id)} />}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ?formatPoints(item.performance_score) : "?"}</Badge></td></tr>)}</tbody></table></div>;
+  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[1040px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">3 champions les plus joués</th><th className="px-4 py-3">Score</th><th className="px-4 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => {
+    const hasOpgg = Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
+    return <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone={item.role === "COACH" ?"purple" : "blue"}>{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{item.role === "COACH" ?<span className="text-xs font-semibold text-slate-600">Non requis</span> : <MostPlayedBadges value={item.most_played} fallback={championPool.filter((row) => row.player_id === item.id)} />}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ?formatPoints(item.performance_score) : "?"}</Badge></td><td className="px-4 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => onCopyOpgg?.(item)} disabled={!hasOpgg} title="Copier l'OP.GG" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-orange-100 transition hover:border-orange-300/35 hover:bg-orange-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={() => onDeletePlayer?.(item.id, item.name)} disabled={!canManage || saving} title="Supprimer le profil joueur" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div></td></tr>;
+  })}</tbody></table></div>;
 }
 
 function MatchIdentityBadges({ rows }) {
