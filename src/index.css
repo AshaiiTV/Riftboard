@@ -24,7 +24,7 @@ button, input, select, textarea {
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.22);
+  background: rgba(249, 115, 22, 0.28);
   color: white;
 }
 
@@ -38,10 +38,10 @@ button, input, select, textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(251, 146, 60, 0.28);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(34, 211, 238, 0.35);
+  background: rgba(249, 115, 22, 0.42);
 }

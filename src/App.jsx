@@ -155,8 +155,9 @@ function tone(t) {
     cyan: "border-cyan-300/25 bg-cyan-400/10 text-cyan-100 shadow-cyan-500/10",
     purple: "border-violet-300/25 bg-violet-500/10 text-violet-100 shadow-violet-500/10",
     pink: "border-fuchsia-300/25 bg-fuchsia-500/10 text-fuchsia-100 shadow-fuchsia-500/10",
+    orange: "border-orange-300/30 bg-orange-500/12 text-orange-100 shadow-orange-500/10",
     green: "border-emerald-300/25 bg-emerald-500/10 text-emerald-100 shadow-emerald-500/10",
-    yellow: "border-amber-300/25 bg-amber-500/10 text-amber-100 shadow-amber-500/10",
+    yellow: "border-orange-300/25 bg-orange-500/10 text-orange-100 shadow-orange-500/10",
     red: "border-rose-300/25 bg-rose-500/10 text-rose-100 shadow-rose-500/10",
     blue: "border-sky-300/25 bg-sky-500/10 text-sky-100 shadow-sky-500/10",
   }[t || "slate"];
@@ -194,12 +195,13 @@ function Badge({ children, tone: t = "slate", pulse = false }) {
 function AmbientBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[#050711]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(124,58,237,.34),transparent_30%),radial-gradient(circle_at_86%_15%,rgba(34,211,238,.20),transparent_30%),radial-gradient(circle_at_55%_92%,rgba(217,70,239,.12),transparent_38%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(249,115,22,.30),transparent_28%),radial-gradient(circle_at_86%_15%,rgba(34,211,238,.22),transparent_30%),radial-gradient(circle_at_55%_92%,rgba(124,58,237,.20),transparent_38%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.034)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.034)_1px,transparent_1px)] bg-[size:48px_48px] opacity-[0.18]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0,rgba(0,0,0,.28)_72%)]" />
-      <motion.div animate={{ x: [0, 34, -24, 0], y: [0, -26, 18, 0], scale: [1, 1.08, 0.96, 1] }} transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }} className="absolute left-[8%] top-[12%] h-80 w-80 rounded-full bg-violet-500/10 blur-3xl" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0,rgba(0,0,0,.20)_72%)]" />
+      <motion.div animate={{ x: [0, 34, -24, 0], y: [0, -26, 18, 0], scale: [1, 1.08, 0.96, 1] }} transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }} className="absolute left-[8%] top-[12%] h-80 w-80 rounded-full bg-orange-500/18 blur-3xl" />
       <motion.div animate={{ x: [0, -30, 20, 0], y: [0, 20, -18, 0], scale: [1, 0.96, 1.1, 1] }} transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }} className="absolute right-[5%] top-[18%] h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent" />
+      <div className="absolute bottom-[8%] right-[18%] h-72 w-72 rounded-full bg-violet-500/12 blur-3xl" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
     </div>
   );
 }
@@ -213,7 +215,7 @@ function Surface({ children, className = "", delay = 0, glow = false }) {
       className={cx(
         "group relative overflow-hidden rounded-[1.65rem] border border-white/10 bg-[#0b1020]/72 p-5 shadow-2xl shadow-black/25 backdrop-blur-2xl",
         "before:pointer-events-none before:absolute before:inset-0 before:rounded-[1.65rem] before:bg-gradient-to-br before:from-white/[0.075] before:via-transparent before:to-transparent before:opacity-80",
-        glow && "after:pointer-events-none after:absolute after:-inset-px after:rounded-[1.65rem] after:bg-gradient-to-r after:from-violet-400/20 after:via-cyan-300/10 after:to-fuchsia-400/20 after:opacity-0 after:blur-xl after:transition after:duration-500 group-hover:after:opacity-100",
+        glow && "after:pointer-events-none after:absolute after:-inset-px after:rounded-[1.65rem] after:bg-gradient-to-r after:from-orange-400/24 after:via-cyan-300/12 after:to-violet-400/18 after:opacity-0 after:blur-xl after:transition after:duration-500 group-hover:after:opacity-100",
         className
       )}
     >
@@ -225,8 +227,8 @@ function Surface({ children, className = "", delay = 0, glow = false }) {
 function Button({ children, icon: Icon, variant = "primary", className = "", disabled = false, ...props }) {
   const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
-    primary: "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-violet-950/40 hover:-translate-y-0.5 hover:shadow-cyan-950/40",
-    ghost: "border border-white/10 bg-white/[0.045] text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[0.075]",
+    primary: "bg-gradient-to-r from-orange-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-orange-950/35 hover:-translate-y-0.5 hover:shadow-orange-950/45",
+    ghost: "border border-white/10 bg-white/[0.045] text-slate-100 hover:-translate-y-0.5 hover:border-orange-300/35 hover:bg-orange-400/[0.075]",
     danger: "border border-rose-300/25 bg-rose-500/10 text-rose-100 hover:-translate-y-0.5 hover:bg-rose-500/15",
   };
   return (
@@ -242,8 +244,8 @@ function TextInput({ label, value, onChange, placeholder, type = "text", require
     <label className="block">
       <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">{label}</span>
       <div className="relative">
-        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />}
-        <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-650 focus:border-cyan-300/55 focus:bg-black/[0.28] focus:ring-4 focus:ring-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10")} />
+        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-200/55" />}
+        <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-650 focus:border-orange-300/60 focus:bg-black/[0.28] focus:ring-4 focus:ring-orange-300/10 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10")} />
       </div>
     </label>
   );
@@ -254,8 +256,8 @@ function TextAreaInput({ label, value, onChange, placeholder, icon: Icon, rows =
     <label className="block">
       <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">{label}</span>
       <div className="relative">
-        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-slate-600" />}
-        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("w-full resize-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-650 focus:border-cyan-300/55 focus:bg-black/[0.28] focus:ring-4 focus:ring-cyan-300/10", Icon && "pl-10")} />
+        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-orange-200/55" />}
+        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("w-full resize-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-650 focus:border-orange-300/60 focus:bg-black/[0.28] focus:ring-4 focus:ring-orange-300/10", Icon && "pl-10")} />
       </div>
     </label>
   );
@@ -266,7 +268,7 @@ function SelectInput({ label, value, onChange, children }) {
     <label className="block">
       <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">{label}</span>
       <div className="relative">
-        <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full appearance-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/55 focus:ring-4 focus:ring-cyan-300/10">
+        <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full appearance-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-orange-300/60 focus:ring-4 focus:ring-orange-300/10">
           {children}
         </select>
         <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -279,7 +281,7 @@ function PageHeader({ eyebrow, title, subtitle, children }) {
   return (
     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div>
-        <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-200/75">{eyebrow}</p></div>
+        <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-orange-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-orange-200/80">{eyebrow}</p></div>
         <h2 className="max-w-4xl text-3xl font-black tracking-tight text-white md:text-5xl">{title}</h2>
         {subtitle && <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">{subtitle}</p>}
       </div>
@@ -341,7 +343,7 @@ function BrandLogo({ compact = false, className = "" }) {
         src={compact ?"/riftboard-rb-mark.svg" : "/riftboard-rb-logo.svg"}
         alt="RiftBoard"
         className={cx(
-          "object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.30)]",
+          "object-contain drop-shadow-[0_0_22px_rgba(249,115,22,.30)]",
           compact ?"h-12 w-12" : "h-14 w-auto max-w-[180px] sm:max-w-[245px]"
         )}
       />
@@ -361,9 +363,9 @@ function MarketingPreview() {
 
   return (
     <motion.div initial={{ opacity: 0, x: 28, rotateY: -9 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} transition={{ duration: 0.75, delay: 0.1 }} className="relative hidden lg:block">
-      <div className="absolute -inset-6 rounded-[2.6rem] bg-gradient-to-r from-cyan-400/20 via-violet-500/10 to-fuchsia-500/25 blur-2xl" />
-      <div className="relative overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-[#07101f]/92 p-5 shadow-2xl shadow-violet-950/45 backdrop-blur-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_5%,rgba(139,92,246,.22),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(34,211,238,.16),transparent_34%)]" />
+      <div className="absolute -inset-6 rounded-[2.6rem] bg-gradient-to-r from-orange-500/24 via-fuchsia-500/12 to-cyan-400/20 blur-2xl" />
+      <div className="relative overflow-hidden rounded-[2rem] border border-orange-300/22 bg-[#07101f]/88 p-5 shadow-2xl shadow-orange-950/25 backdrop-blur-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_5%,rgba(249,115,22,.23),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(34,211,238,.15),transparent_34%)]" />
         <div className="relative z-10 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
           <BrandLogo compact />
           <p className="text-sm font-black text-white">Aperçu du tableau de bord</p>
@@ -374,7 +376,7 @@ function MarketingPreview() {
             <div key={m[0]} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <p className="text-xs font-bold text-slate-500">{m[0]}</p>
               <p className="mt-3 text-2xl font-black text-white">{m[1]}</p>
-              <p className="mt-1 text-xs font-black text-cyan-200/70">{m[2]}</p>
+              <p className="mt-1 text-xs font-black text-orange-200/75">{m[2]}</p>
             </div>
           ))}
         </div>
@@ -385,9 +387,9 @@ function MarketingPreview() {
             <div className="mt-4 space-y-3">
               {pool.map((label, i) => (
                 <div key={label} className="grid grid-cols-[42px_1fr_84px] items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-400/30 to-violet-500/30 text-xs font-black text-white">{i + 1}</div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-orange-200/20 bg-gradient-to-br from-orange-400/35 to-fuchsia-500/25 text-xs font-black text-white">{i + 1}</div>
                   <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                    <motion.div animate={{ opacity: [0.45, 0.85, 0.45] }} transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.12 }} className="h-full rounded-full bg-gradient-to-r from-cyan-300/45 to-violet-400/45" style={{ width: `${76 - i * 9}%` }} />
+                    <motion.div animate={{ opacity: [0.45, 0.9, 0.45] }} transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.12 }} className="h-full rounded-full bg-gradient-to-r from-orange-300/60 via-fuchsia-300/45 to-cyan-300/45" style={{ width: `${76 - i * 9}%` }} />
                   </div>
                   <p className="text-xs font-black text-slate-500">{label}</p>
                 </div>
@@ -411,8 +413,8 @@ function MarketingPreview() {
           </div>
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4">
             <p className="font-black text-white">Performance d’équipe</p>
-            <p className="mt-1 text-xs font-black text-cyan-200/70">Données réelles uniquement</p>
-            <svg viewBox="0 0 320 120" className="mt-5 h-28 w-full"><defs><linearGradient id="line" x1="0" x2="1"><stop stopColor="#22d3ee"/><stop offset="1" stopColor="#8b5cf6"/></linearGradient></defs><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25" fill="none" stroke="url(#line)" strokeWidth="6" strokeLinecap="round" opacity=".34"/><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25 L320 120 L0 120Z" fill="url(#line)" opacity=".08"/></svg>
+            <p className="mt-1 text-xs font-black text-orange-200/75">Données réelles uniquement</p>
+            <svg viewBox="0 0 320 120" className="mt-5 h-28 w-full"><defs><linearGradient id="line" x1="0" x2="1"><stop stopColor="#fb923c"/><stop offset=".52" stopColor="#f472b6"/><stop offset="1" stopColor="#22d3ee"/></linearGradient></defs><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25" fill="none" stroke="url(#line)" strokeWidth="6" strokeLinecap="round" opacity=".4"/><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25 L320 120 L0 120Z" fill="url(#line)" opacity=".1"/></svg>
           </div>
         </div>
       </div>
@@ -422,7 +424,7 @@ function MarketingPreview() {
 
 function StatStrip() {
   const stats = [
-    [Crown, "Champion Pool", "Picks forts et picks pièges", "cyan"],
+    [Crown, "Champion Pool", "Picks forts et picks pièges", "orange"],
     [Swords, "Games importées", "KDA, dégâts, vision, objectifs", "purple"],
     [Target, "Axes de progrès", "Ce qu’il faut travailler", "green"],
     [Eye, "Vision & setup", "Avant dragons et Nashor", "blue"],
@@ -438,8 +440,8 @@ function StatStrip() {
 function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
   const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0";
   const variants = {
-    primary: "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-violet-950/40 hover:-translate-y-0.5 hover:shadow-cyan-950/40",
-    ghost: "border border-white/10 bg-white/[0.045] text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[0.075]",
+    primary: "bg-gradient-to-r from-orange-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-orange-950/35 hover:-translate-y-0.5 hover:shadow-orange-950/45",
+    ghost: "border border-white/10 bg-white/[0.045] text-slate-100 hover:-translate-y-0.5 hover:border-orange-300/35 hover:bg-orange-400/[0.075]",
   };
 
   function go(event) {
@@ -470,7 +472,7 @@ function HomeScreen({ navigate }) {
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_28%,rgba(139,92,246,.16),transparent_26%),radial-gradient(circle_at_85%_22%,rgba(34,211,238,.12),transparent_28%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_28%,rgba(249,115,22,.18),transparent_26%),radial-gradient(circle_at_85%_22%,rgba(34,211,238,.12),transparent_28%)]" />
       <SiteHeader navigate={navigate}>
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
         <LinkButton href="/creer-un-compte" navigate={navigate} className="px-3 py-2.5 sm:px-4">Créer un compte</LinkButton>
@@ -479,9 +481,9 @@ function HomeScreen({ navigate }) {
       <main className="relative z-10 mx-auto max-w-7xl px-5 pb-16">
         <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.88fr_1.12fr] lg:py-10">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
-            <Badge tone="cyan" pulse>La plateforme d’analyse pour équipes compétitives</Badge>
+            <Badge tone="orange" pulse>La plateforme d’analyse pour équipes compétitives</Badge>
             <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
-              Moins de <span className="bg-gradient-to-r from-cyan-300 via-sky-400 to-violet-400 bg-clip-text text-transparent">feeling.</span> Plus de <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">décisions claires</span> après chaque game.
+              Moins de <span className="bg-gradient-to-r from-orange-300 via-amber-300 to-fuchsia-400 bg-clip-text text-transparent">feeling.</span> Plus de <span className="bg-gradient-to-r from-orange-400 via-fuchsia-400 to-cyan-300 bg-clip-text text-transparent">décisions claires</span> après chaque game.
             </h1>
             <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">RiftBoard centralise tes games, ton roster et tes reviews pour aider ta team à savoir quoi travailler avant le prochain scrim.</p>
             <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
@@ -493,7 +495,7 @@ function HomeScreen({ navigate }) {
 
         <section id="features" className="grid gap-5 md:grid-cols-3">
           {[
-            { icon: Crown, title: "Champion Pool lisible", text: "Repère les picks fiables, les picks pièges et les champions à remettre au travail avec WR, KDA et volume.", t: "cyan" },
+            { icon: Crown, title: "Champion Pool lisible", text: "Repère les picks fiables, les picks pièges et les champions à remettre au travail avec WR, KDA et volume.", t: "orange" },
             { icon: Swords, title: "Apprendre après chaque game", text: "Lis chaque match avec champions, KDA, dégâts, gold, vision, objectifs et erreurs à comprendre.", t: "purple" },
             { icon: Target, title: "Préparation compétition", text: "Prépare scrims, tournois et matchs officiels avec des priorités concrètes : vision, morts isolées, dragons, Nashor, side lanes.", t: "green" },
           ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-sm leading-7 text-slate-400">{item.text}</p></Surface>; })}
@@ -502,7 +504,7 @@ function HomeScreen({ navigate }) {
         <section id="analytics" className="mt-14 rounded-[2rem] border border-white/10 bg-white/[0.025] p-6 md:p-9">
           <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">Du match à la review</h2><p className="mt-3 text-sm font-semibold text-slate-500">RiftBoard met les données au clair pour que joueurs, coachs et capitaines fassent leur propre lecture.</p></div>
           <div className="grid gap-5 md:grid-cols-4">
-            {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review finit sur une priorité claire pour progresser en tournoi, scrim ou entraînement."]].map(([n, Icon, title, text]) => <div key={n} className="relative rounded-3xl border border-white/10 bg-black/[0.18] p-6"><Badge tone="purple">{n}</Badge><div className="mt-5 flex h-16 w-16 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-400/10 text-cyan-100"><Icon className="h-7 w-7" /></div><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}
+            {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review finit sur une priorité claire pour progresser en tournoi, scrim ou entraînement."]].map(([n, Icon, title, text]) => <div key={n} className="relative rounded-3xl border border-white/10 bg-black/[0.18] p-6"><Badge tone={n === "1" ?"orange" : "purple"}>{n}</Badge><div className="mt-5 flex h-16 w-16 items-center justify-center rounded-full border border-orange-300/25 bg-orange-400/10 text-orange-100"><Icon className="h-7 w-7" /></div><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}
           </div>
           <div className="mt-8 flex justify-center"><LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight} className="px-7 py-4">Créer l’espace équipe</LinkButton></div>
         </section>
@@ -636,7 +638,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
               : "Connecte-toi pour retrouver tes teams, tes imports, tes rapports et tes réglages."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[[BarChart3, "Profil de jeu"], [Shield, "Draft & rôles"], [Users, "Progression team" ]].map(([Icon, label]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Icon className="h-5 w-5 text-cyan-200" /><p className="mt-3 text-sm font-black text-white">{label}</p></div>)}
+            {[[BarChart3, "Profil de jeu"], [Shield, "Draft & rôles"], [Users, "Progression team" ]].map(([Icon, label], index) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Icon className={cx("h-5 w-5", index === 0 ? "text-orange-200" : "text-cyan-200")} /><p className="mt-3 text-sm font-black text-white">{label}</p></div>)}
           </div>
         </motion.div>
 
@@ -654,10 +656,10 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
             {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
             <Button type="submit" disabled={loading} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans RiftBoard"}</Button>
           </form>
-          {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-cyan-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
+          {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-orange-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
           <p className="mt-4 text-center text-sm font-semibold text-slate-600">
             {isRegister ?"Déjà inscrit ?" : "Pas encore de compte ?"}
-            <a className="font-black text-cyan-200 hover:text-white" href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`}>{isRegister ?" Connexion" : " Créer un compte"}</a>
+            <a className="font-black text-orange-200 hover:text-white" href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`}>{isRegister ?" Connexion" : " Créer un compte"}</a>
           </p>
         </Surface>
       </main>
@@ -671,15 +673,15 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
     <>
       <AnimatePresence>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-30 bg-black/65 backdrop-blur-sm lg:hidden" />}</AnimatePresence>
       <aside className={cx("fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-white/10 bg-[#070b16]/88 p-4 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-all duration-300 lg:translate-x-0", collapsed ?"lg:w-24" : "lg:w-76", open ?"translate-x-0 w-76" : "-translate-x-full w-76")}>
-        <button type="button" onClick={() => setCollapsed(!collapsed)} className="absolute -right-4 top-6 hidden h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-[#080d19] text-cyan-100 shadow-xl shadow-black/40 transition hover:border-cyan-300/30 hover:bg-cyan-400/10 lg:flex" title={collapsed ?"Afficher le menu" : "Cacher le menu"}>
+        <button type="button" onClick={() => setCollapsed(!collapsed)} className="absolute -right-4 top-6 hidden h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-[#080d19] text-orange-100 shadow-xl shadow-black/40 transition hover:border-orange-300/35 hover:bg-orange-400/10 lg:flex" title={collapsed ?"Afficher le menu" : "Cacher le menu"}>
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
         <div className={cx("mb-6 flex items-center", collapsed ?"justify-center" : "justify-between")}>
           <div className="flex items-center gap-3"><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="h-11 w-11 object-contain" /><div className={cx("transition lg:block", collapsed && "lg:hidden")}><p className="text-lg font-black tracking-tight">RiftBoard</p><p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-600">League tools</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
-        <nav className="space-y-1.5">{NAV.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => { setActive(item.id); setOpen(false); }} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-2xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-violet-500/30 via-fuchsia-500/12 to-cyan-400/12 text-white shadow-lg shadow-violet-950/20" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-200" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
-        <div className="mt-auto space-y-3"><Surface className={cx("rounded-3xl", collapsed ?"p-3" : "p-4")} delay={0}><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.06] text-cyan-200"><Users className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-600">{status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge></div></Surface><Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
+        <nav className="space-y-1.5">{NAV.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => { setActive(item.id); setOpen(false); }} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-2xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-orange-500/30 via-fuchsia-500/14 to-cyan-400/12 text-white shadow-lg shadow-orange-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-orange-200" : "text-slate-600 group-hover:text-orange-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
+        <div className="mt-auto space-y-3"><Surface className={cx("rounded-3xl", collapsed ?"p-3" : "p-4")} delay={0}><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-400/10 text-orange-200"><Users className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-600">{status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge></div></Surface><Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
       </aside>
     </>
   );
@@ -687,9 +689,9 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
 
 function TeamAvatar({ team, className = "h-12 w-12" }) {
   if (team?.avatar_data_url) {
-    return <div className={cx("overflow-hidden rounded-2xl border border-cyan-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || "Team"} className="h-full w-full object-cover" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
+    return <div className={cx("overflow-hidden rounded-2xl border border-orange-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || "Team"} className="h-full w-full object-cover" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
   }
-  return <img src="/riftboard-rb-mark.svg" alt="RiftBoard" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.35)]", className)} />;
+  return <img src="/riftboard-rb-mark.svg" alt="RiftBoard" className={cx("object-contain drop-shadow-[0_0_18px_rgba(249,115,22,.35)]", className)} />;
 }
 
 function RoleIcon({ role, className = "h-7 w-7" }) {
@@ -701,7 +703,7 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-cyan-200/70">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[58vw] items-center gap-2 rounded-2xl px-0 py-0 text-left transition hover:text-cyan-100"><h1 className="truncate text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-5 w-5 shrink-0 text-cyan-200" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(88vw,380px)] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition", currentTeam?.id === team.id ?"bg-cyan-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && <Button variant="ghost" icon={Settings} onClick={onManageTeam}>Gestion</Button>}</div></header>;
+  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-orange-200/75">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[58vw] items-center gap-2 rounded-2xl px-0 py-0 text-left transition hover:text-orange-100"><h1 className="truncate text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-5 w-5 shrink-0 text-orange-200" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(88vw,380px)] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition", currentTeam?.id === team.id ?"bg-orange-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-orange-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-orange-100 transition hover:bg-orange-400/10"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && <Button variant="ghost" icon={Settings} onClick={onManageTeam}>Gestion</Button>}</div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -1641,9 +1643,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
               {players.map((player) => {
                 const selected = selectedPlayer?.id === player.id;
                 return (
-                  <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("min-w-[190px] rounded-2xl border p-4 text-left transition", selected ? "border-cyan-300/30 bg-cyan-400/10 shadow-lg shadow-cyan-950/20" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}>
+                  <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("min-w-[190px] rounded-2xl border p-4 text-left transition", selected ? "border-orange-300/35 bg-orange-400/10 shadow-lg shadow-orange-950/20" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}>
                     <div className="flex items-center gap-3">
-                      <div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", selected ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-black/25")}>
+                      <div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", selected ? "border-orange-300/35 bg-orange-400/10" : "border-white/10 bg-black/25")}>
                         <RoleIcon role={player.role} />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -1676,7 +1678,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
                     <TextInput label="Ajouter un champion" value={query} onChange={setQuery} placeholder="Cherche Ahri, Renekton, Kai'Sa..." icon={Search} />
                     <div className="mt-3 flex flex-wrap gap-2">
                       {laneOptions.map((lane) => (
-                        <button key={lane} type="button" onClick={() => setLaneFilter(lane)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", laneFilter === lane ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.035] text-slate-500 hover:text-white")}>{lane === "ALL" ? "Toutes lanes" : lane}</button>
+                        <button key={lane} type="button" onClick={() => setLaneFilter(lane)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", laneFilter === lane ? "border-orange-300/35 bg-orange-400/10 text-orange-100" : "border-white/10 bg-white/[0.035] text-slate-500 hover:text-white")}>{lane === "ALL" ? "Toutes lanes" : lane}</button>
                       ))}
                     </div>
                   </div>
@@ -1687,7 +1689,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
                         <h3 className="text-xl font-black text-white">{selectedPlayer.name}</h3>
                         <p className="mt-1 text-sm font-semibold text-slate-500">{visibleChampions.length} champions affichés · glisse un champion vers une colonne.</p>
                       </div>
-                      <Badge tone="cyan">{selectedPlayer.role}</Badge>
+                      <Badge tone="orange">{selectedPlayer.role}</Badge>
                     </div>
                     <div className="grid max-h-[260px] gap-2 overflow-auto pr-1 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-8">
                       {visibleChampions.map((champion) => {

@@ -1,31 +1,49 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="rb-orb" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(177 121) rotate(49) scale(391 376)">
-      <stop stop-color="#57FFF0"/>
-      <stop offset="0.45" stop-color="#5D8CFF"/>
-      <stop offset="1" stop-color="#C85CFF"/>
-    </radialGradient>
-    <linearGradient id="rb-ink" x1="140" y1="133" x2="364" y2="377" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="0.56" stop-color="#E9FCFF"/>
-      <stop offset="1" stop-color="#9AF3FF"/>
+    <linearGradient id="rb-flare" x1="78" y1="103" x2="438" y2="397" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7ED"/>
+      <stop offset="0.18" stop-color="#FDBA74"/>
+      <stop offset="0.48" stop-color="#F97316"/>
+      <stop offset="0.76" stop-color="#E879F9"/>
+      <stop offset="1" stop-color="#22D3EE"/>
     </linearGradient>
-    <filter id="rb-soft-shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="20" stdDeviation="28" flood-color="#020617" flood-opacity="0.45"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#22D3EE" flood-opacity="0.32"/>
+    <linearGradient id="rb-ink" x1="151" y1="145" x2="353" y2="364" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.58" stop-color="#FFE7C2"/>
+      <stop offset="1" stop-color="#7DEBFF"/>
+    </linearGradient>
+    <linearGradient id="rb-cut" x1="114" y1="329" x2="402" y2="173" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="0.5" stop-color="#FB923C"/>
+      <stop offset="1" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <radialGradient id="rb-core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(252 230) rotate(82) scale(218 229)">
+      <stop stop-color="#172033"/>
+      <stop offset="0.7" stop-color="#070B16"/>
+      <stop offset="1" stop-color="#03050D"/>
+    </radialGradient>
+    <filter id="rb-glow" x="-28%" y="-28%" width="156%" height="156%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#020617" flood-opacity="0.56"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="24" flood-color="#F97316" flood-opacity="0.5"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#22D3EE" flood-opacity="0.28"/>
     </filter>
   </defs>
 
-  <path d="M256 42C326 42 404 70 441 132C479 196 467 286 428 353C389 420 321 466 249 462C177 458 107 420 72 356C37 292 36 211 73 146C111 80 184 42 256 42Z" fill="#07101F"/>
-  <path d="M256 62C321 61 390 88 421 145C454 204 442 282 407 339C373 396 313 435 249 432C184 429 124 396 93 340C62 284 63 214 97 157C131 100 190 63 256 62Z" fill="url(#rb-orb)" filter="url(#rb-soft-shadow)"/>
-  <path d="M257 91C310 91 365 114 391 160C417 207 407 271 379 318C351 365 304 397 251 395C198 393 149 366 124 319C99 272 101 216 128 169C156 121 204 91 257 91Z" fill="#07101F" fill-opacity="0.76"/>
-  <path d="M132 167C165 124 211 108 259 108C310 108 354 128 381 166" stroke="white" stroke-opacity="0.18" stroke-width="10" stroke-linecap="round"/>
-  <path d="M121 337C154 375 200 395 253 396C310 397 356 371 387 329" stroke="#7DEBFF" stroke-opacity="0.16" stroke-width="10" stroke-linecap="round"/>
+  <rect width="512" height="512" rx="116" fill="#050711"/>
+  <path d="M68 291C51 217 83 137 150 91C217 45 310 40 374 86C438 132 467 220 442 293C418 365 342 419 259 418C176 417 85 365 68 291Z" fill="url(#rb-flare)" filter="url(#rb-glow)"/>
+  <path d="M96 284C82 223 109 156 164 119C221 81 298 77 351 115C404 153 428 225 408 286C388 347 325 391 256 390C188 390 110 345 96 284Z" fill="url(#rb-core)"/>
+  <path d="M109 191C144 125 219 95 291 105C352 113 394 151 411 202" stroke="#FFF7ED" stroke-width="13" stroke-linecap="round" stroke-opacity="0.34"/>
+  <path d="M93 313C146 360 212 379 282 364C338 352 384 318 410 269" stroke="#22D3EE" stroke-width="13" stroke-linecap="round" stroke-opacity="0.22"/>
+  <path d="M78 334C144 356 212 340 268 301C322 263 370 244 441 260" stroke="url(#rb-cut)" stroke-width="18" stroke-linecap="round" stroke-opacity="0.82"/>
+  <path d="M104 360C161 381 216 379 276 348" stroke="#FB923C" stroke-width="8" stroke-linecap="round" stroke-opacity="0.7"/>
+  <path d="M384 111L427 96L407 138L451 143L411 166L430 205L391 182L364 220L365 174L322 158L365 145L384 111Z" fill="#FFF7ED" fill-opacity="0.92"/>
 
-  <text x="256" y="316" text-anchor="middle"
-        font-family="Arial Rounded MT Bold, Nunito, Inter, Arial, sans-serif"
-        font-size="166" font-weight="900" letter-spacing="-17"
-        fill="url(#rb-ink)">RB</text>
-
-  <path d="M161 337C198 354 236 363 277 361C310 360 339 352 367 337" stroke="#BDFBFF" stroke-width="9" stroke-linecap="round" stroke-opacity="0.72"/>
+  <g transform="skewX(-10)">
+    <text x="297" y="319" text-anchor="middle"
+      font-family="Arial Black, Arial Rounded MT Bold, Nunito, Inter, Arial, sans-serif"
+      font-size="170" font-weight="900" letter-spacing="-20"
+      fill="url(#rb-ink)">RB</text>
+  </g>
+  <path d="M174 219C209 188 261 180 313 198" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-opacity="0.16"/>
+  <path d="M159 335C200 350 252 349 302 323" stroke="#FDBA74" stroke-width="8" stroke-linecap="round" stroke-opacity="0.72"/>
 </svg>
