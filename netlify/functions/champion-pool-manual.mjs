@@ -28,19 +28,32 @@ export default async function handler(request, context) {
     await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
     await sql`alter table champion_pool add column if not exists notes text`;
     await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
+    await sql`alter table players add column if not exists user_id uuid references users(id) on delete set null`;
 
-    const allowed = await sql`
-      select teams.id
+    const member = await sql`
+      select team_members.role
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
+        and team_members.user_id = ${user.id}
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut modifier le champion pool.'), { status: 403 });
+    const isCaptain = String(member[0]?.role || '').toLowerCase() === 'captain';
 
     if (action === 'delete') {
       if (!poolId) throw Object.assign(new Error('Pick requis.'), { status: 400 });
+      const target = await sql`
+        select champion_pool.*, players.user_id as player_user_id
+        from champion_pool
+        left join players on players.id = champion_pool.player_id
+        where champion_pool.id = ${poolId}
+          and champion_pool.team_id = ${teamId}
+        limit 1
+      `;
+      if (!target[0]) throw Object.assign(new Error('Pick manuel introuvable.'), { status: 404 });
+      if (!isCaptain && String(target[0].player_user_id || '') !== String(user.id)) {
+        throw Object.assign(new Error('Seul le capitaine ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
+      }
       const deleted = await sql`
         delete from champion_pool
         where id = ${poolId}
@@ -66,7 +79,7 @@ export default async function handler(request, context) {
     if (!STATUSES.has(status)) throw Object.assign(new Error('Statut de pick invalide.'), { status: 400 });
 
     const players = await sql`
-      select id, name, role
+      select id, name, role, user_id
       from players
       where id = ${playerId}
         and team_id = ${teamId}
@@ -74,6 +87,9 @@ export default async function handler(request, context) {
     `;
     const player = players[0];
     if (!player) throw Object.assign(new Error('Joueur introuvable dans cette team.'), { status: 404 });
+    if (!isCaptain && String(player.user_id || '') !== String(user.id)) {
+      throw Object.assign(new Error('Seul le capitaine ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
+    }
 
     const verdict = status === 'lock'
       ? 'Pick manuel prioritaire.'
@@ -84,6 +100,19 @@ export default async function handler(request, context) {
           : 'Pick manuel à valider.';
 
     if (poolId) {
+      if (!isCaptain) {
+        const existing = await sql`
+          select player_id
+          from champion_pool
+          where id = ${poolId}
+            and team_id = ${teamId}
+          limit 1
+        `;
+        if (!existing[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
+        if (String(existing[0].player_id || '') !== String(player.id)) {
+          throw Object.assign(new Error('Tu ne peux modifier que ton propre Champion Pool.'), { status: 403 });
+        }
+      }
       const rows = await sql`
         update champion_pool
         set player_id = ${playerId},

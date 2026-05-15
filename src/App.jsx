@@ -1527,9 +1527,9 @@ function ChampionSearchTile({ champion, disabled, canManage, onDragStart }) {
   return <div draggable={canManage && !disabled} onDragStart={(event) => onDragStart(event, { champion })} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", disabled ?"border-white/5 bg-white/[0.02] opacity-35" : "cursor-grab border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10 active:cursor-grabbing")}><img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span></div>;
 }
 
-function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember }) {
+function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const activeTeamId = selectedTeamId || data.teams[0]?.id || null;
-  const canManagePool = ["owner", "captain", "coach"].includes(String(currentMember?.role || "").toLowerCase());
+  const canManageTeamPool = String(currentMember?.role || "").toLowerCase() === "captain";
   const players = (data.players || []).filter((player) => String(player.team_id || "") === String(activeTeamId || "") && player.role !== "COACH");
   const laneOptions = ["ALL", "TOP", "JGL", "MID", "ADC", "SUP"];
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
@@ -1538,6 +1538,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
   const [saving, setSaving] = useState(false);
   const [localPool, setLocalPool] = useState(data.championPool || []);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || players[0];
+  const canManageSelectedPool = canManageTeamPool || String(selectedPlayer?.user_id || "") === String(user?.id || "");
   const selectedRows = (localPool || [])
     .filter((row) => String(row.team_id || "") === String(activeTeamId || "") && selectedPlayer && (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name))
     .map((row) => ({ ...row, role: row.role || selectedPlayer?.role || "UNK", status: championPoolStatus(row) }))
@@ -1575,12 +1576,16 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
   }
 
   function onDragStart(event, row) {
+    if (!canManageSelectedPool) {
+      event.preventDefault();
+      return;
+    }
     event.dataTransfer.setData("application/json", JSON.stringify({ champion: row.champion, poolId: row.id || null }));
     event.dataTransfer.effectAllowed = "move";
   }
 
   async function saveChampion(champion, status, poolId = null) {
-    if (!canManagePool || !selectedPlayer || !champion) return;
+    if (!canManageSelectedPool || !selectedPlayer || !champion) return;
     const championName = championDisplayName(champion);
     const championId = championAssetId(champion);
     const existing = (localPool || []).find((row) => String(row.team_id || "") === String(activeTeamId || "") && (poolId ? String(row.id || "") === String(poolId) : (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name) && championAssetId(row.champion) === championId));
@@ -1620,7 +1625,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
   }
 
   async function deletePick(row) {
-    if (!canManagePool || !window.confirm("Retirer ce champion du pool manuel ?")) return;
+    if (!canManageSelectedPool || !window.confirm("Retirer ce champion du pool manuel ?")) return;
     const previousPool = localPool;
     setLocalPool((current) => current.filter((item) => item.id !== row.id));
     setSaving(true);
@@ -1700,14 +1705,14 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
                         <h3 className="text-xl font-black text-white">{selectedPlayer.name}</h3>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">{visibleChampions.length} champions affichés · glisse un champion vers une colonne.</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">{canManageSelectedPool ? `${visibleChampions.length} champions affichés · glisse un champion vers une colonne.` : "Lecture seule : seul le capitaine ou le joueur lié à ce profil peut modifier ce Champion Pool."}</p>
                       </div>
                       <Badge tone="orange">{selectedPlayer.role}</Badge>
                     </div>
                     <div className="grid max-h-[260px] gap-2 overflow-auto pr-1 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-8">
                       {visibleChampions.map((champion) => {
                         const disabled = pickedChampionKeys.has(championAssetId(champion) || championKey(champion));
-                        return <ChampionSearchTile key={champion} champion={champion} disabled={disabled} canManage={canManagePool} onDragStart={onDragStart} />;
+                        return <ChampionSearchTile key={champion} champion={champion} disabled={disabled} canManage={canManageSelectedPool} onDragStart={onDragStart} />;
                       })}
                     </div>
                   </div>
@@ -1719,7 +1724,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
                   const items = rowsForTier(tier.id);
                   return (
                     <Surface key={tier.id} className="p-3" delay={0}>
-                      <div onDragOver={(event) => event.preventDefault()} onDrop={(event) => dropOnTier(event, tier.id)} className="flex min-h-[280px] flex-col rounded-[1.1rem] border border-white/10 bg-black/20 p-3">
+                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className="flex min-h-[280px] flex-col rounded-[1.1rem] border border-white/10 bg-black/20 p-3">
                         <div className="mb-3">
                           <div className="flex items-center justify-between gap-3">
                             <h3 className="text-lg font-black text-white">{tier.title}</h3>
@@ -1728,7 +1733,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
                           <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-500">{tier.hint}</p>
                         </div>
                         <div className="grid max-h-[300px] flex-1 content-start gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-1">
-                          {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManagePool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[150px] items-center justify-center rounded-xl border border-dashed border-white/10 p-4 text-center text-xs font-semibold leading-5 text-slate-600">Glisse un champion ici.</div>}
+                          {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[150px] items-center justify-center rounded-xl border border-dashed border-white/10 p-4 text-center text-xs font-semibold leading-5 text-slate-600">{canManageSelectedPool ? "Glisse un champion ici." : "Lecture seule."}</div>}
                         </div>
                       </div>
                     </Surface>
@@ -2128,7 +2133,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const page = useMemo(() => {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} />;
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} />;
-    if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} />;
+    if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "settings") return <SettingsPage user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
