@@ -244,10 +244,10 @@ function Button({ children, icon: Icon, variant = "primary", className = "", dis
 function TextInput({ label, value, onChange, placeholder, type = "text", required = false, icon: Icon, disabled = false }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">{label}</span>
+      <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
-        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-200/55" />}
-        <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-650 focus:border-orange-300/60 focus:bg-black/[0.28] focus:ring-4 focus:ring-orange-300/10 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10")} />
+        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-200/70" />}
+        <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-orange-300/60 focus:bg-black/[0.28] focus:ring-4 focus:ring-orange-300/10 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10")} />
       </div>
     </label>
   );
@@ -256,10 +256,10 @@ function TextInput({ label, value, onChange, placeholder, type = "text", require
 function TextAreaInput({ label, value, onChange, placeholder, icon: Icon, rows = 4 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">{label}</span>
+      <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
-        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-orange-200/55" />}
-        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("w-full resize-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-650 focus:border-orange-300/60 focus:bg-black/[0.28] focus:ring-4 focus:ring-orange-300/10", Icon && "pl-10")} />
+        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-orange-200/70" />}
+        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("w-full resize-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-orange-300/60 focus:bg-black/[0.28] focus:ring-4 focus:ring-orange-300/10", Icon && "pl-10")} />
       </div>
     </label>
   );
@@ -268,12 +268,12 @@ function TextAreaInput({ label, value, onChange, placeholder, icon: Icon, rows =
 function SelectInput({ label, value, onChange, children }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">{label}</span>
+      <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
         <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full appearance-none rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-orange-300/60 focus:ring-4 focus:ring-orange-300/10">
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
       </div>
     </label>
   );
@@ -285,7 +285,7 @@ function PageHeader({ eyebrow, title, subtitle, children }) {
       <div>
         <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-orange-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-orange-200/80">{eyebrow}</p></div>
         <h2 className="max-w-4xl text-3xl font-black tracking-tight text-white md:text-5xl">{title}</h2>
-        {subtitle && <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">{subtitle}</p>}
+        {subtitle && <p className="mt-3 max-w-3xl text-base font-medium leading-7 text-slate-300">{subtitle}</p>}
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
@@ -476,7 +476,7 @@ function LegalLinks({ navigate }) {
     ["/confidentialite", "Confidentialité"],
     ["/conditions", "Conditions"],
   ];
-  return <div className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 pb-8 text-xs font-bold text-slate-600">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="rounded-xl border-transparent bg-transparent px-0 py-0 text-xs text-slate-600 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-orange-100">{label}</LinkButton>)}<span>RiftBoard n’est pas affilié à Riot Games.</span></div>;
+  return <div className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 pb-8 text-sm font-bold text-slate-300">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="rounded-xl border-transparent bg-transparent px-0 py-0 text-sm text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-orange-100">{label}</LinkButton>)}<span>RiftBoard n’est pas affilié à Riot Games.</span></div>;
 }
 
 const LEGAL_PAGES = {
@@ -530,9 +530,9 @@ function LegalPage({ route, navigate }) {
         <Surface glow className="p-6 md:p-9">
           <Badge tone="orange">{page.eyebrow}</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">{page.title}</h1>
-          <p className="mt-5 max-w-3xl text-base font-semibold leading-8 text-slate-300">{page.intro}</p>
+          <p className="mt-5 max-w-3xl text-lg font-semibold leading-8 text-slate-200">{page.intro}</p>
           <div className="mt-8 grid gap-4">
-            {page.sections.map(([title, text]) => <section key={title} className="rounded-2xl border border-white/10 bg-black/[0.18] p-5"><h2 className="text-xl font-black text-white">{title}</h2><p className="mt-3 text-sm font-semibold leading-7 text-slate-400">{text}</p></section>)}
+            {page.sections.map(([title, text]) => <section key={title} className="rounded-2xl border border-white/12 bg-black/[0.24] p-5 md:p-6"><h2 className="text-2xl font-black text-white">{title}</h2><p className="mt-3 text-base font-semibold leading-8 text-slate-200">{text}</p></section>)}
           </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
@@ -575,13 +575,13 @@ function HomeScreen({ navigate }) {
             { icon: Crown, title: "Champion Pool lisible", text: "Repère les picks fiables, les picks pièges et les champions à remettre au travail avec WR, KDA et volume.", t: "orange" },
             { icon: Swords, title: "Apprendre après chaque game", text: "Lis chaque match avec champions, KDA, dégâts, gold, vision, objectifs et erreurs à comprendre.", t: "purple" },
             { icon: Target, title: "Préparation compétition", text: "Prépare scrims, tournois et matchs officiels avec des priorités concrètes : vision, morts isolées, dragons, Nashor, side lanes.", t: "green" },
-          ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-sm leading-7 text-slate-400">{item.text}</p></Surface>; })}
+          ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
         </section>
 
         <section id="analytics" className="mt-14 rounded-[2rem] border border-white/10 bg-white/[0.025] p-6 md:p-9">
-          <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">Du match à la review</h2><p className="mt-3 text-sm font-semibold text-slate-500">RiftBoard met les données au clair pour que joueurs, coachs et capitaines fassent leur propre lecture.</p></div>
+          <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">Du match à la review</h2><p className="mt-3 text-base font-semibold text-slate-300">RiftBoard met les données au clair pour que joueurs, coachs et capitaines fassent leur propre lecture.</p></div>
           <div className="grid gap-5 md:grid-cols-4">
-            {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review finit sur une priorité claire pour progresser en tournoi, scrim ou entraînement."]].map(([n, Icon, title, text]) => <div key={n} className="relative rounded-3xl border border-white/10 bg-black/[0.18] p-6"><Badge tone={n === "1" ?"orange" : "purple"}>{n}</Badge><div className="mt-5 flex h-16 w-16 items-center justify-center rounded-full border border-orange-300/25 bg-orange-400/10 text-orange-100"><Icon className="h-7 w-7" /></div><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}
+            {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review finit sur une priorité claire pour progresser en tournoi, scrim ou entraînement."]].map(([n, Icon, title, text]) => <div key={n} className="relative rounded-3xl border border-white/10 bg-black/[0.22] p-6"><Badge tone={n === "1" ?"orange" : "purple"}>{n}</Badge><div className="mt-5 flex h-16 w-16 items-center justify-center rounded-full border border-orange-300/25 bg-orange-400/10 text-orange-100"><Icon className="h-7 w-7" /></div><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-2 text-base font-medium leading-7 text-slate-300">{text}</p></div>)}
           </div>
           <div className="mt-8 flex justify-center"><LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight} className="px-7 py-4">Créer l’espace équipe</LinkButton></div>
         </section>
@@ -614,7 +614,7 @@ function NotFoundPage({ navigate }) {
         <Surface glow className="w-full">
           <Badge tone="red">404</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">Page introuvable</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-7 text-slate-400">Cette URL ne correspond à aucune page RiftBoard. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.</p>
+          <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-7 text-slate-300">Cette URL ne correspond à aucune page RiftBoard. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Connexion</LinkButton>
@@ -639,7 +639,7 @@ function ForgotPasswordPage({ navigate }) {
         <Surface glow className="mx-auto w-full max-w-2xl">
           <Badge tone="yellow">Sécurité du compte</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">Mot de passe oublié</h1>
-          <div className="mt-5 space-y-4 text-sm font-semibold leading-7 text-slate-400 md:text-base">
+          <div className="mt-5 space-y-4 text-base font-semibold leading-8 text-slate-200">
             <p>Pour l’instant, RiftBoard n’envoie pas d’e-mail et n’a pas encore d’administration globale. Donc il n’y a pas de réinitialisation automatique sécurisée.</p>
             <p>Je préfère afficher cette limite clairement plutôt que créer un bouton qui permettrait de prendre le contrôle d’un compte avec seulement un pseudo.</p>
             <p>Si tu connais encore ton mot de passe actuel, connecte-toi puis change-le dans Paramètres. Sinon, il faudra ajouter une vraie vérification plus tard : e-mail, admin global, ou autre preuve forte.</p>
@@ -724,10 +724,10 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
 
         <Surface glow className="mx-auto w-full max-w-xl">
           <h2 className="text-3xl font-black text-white">{isRegister ?"Créer un compte" : "Connexion"}</h2>
-          <p className="mt-2 text-sm font-medium text-slate-500">{isRegister ?"Ton identifiant privé sert à te connecter. Ton pseudo public est visible par les autres." : "Entre ton identifiant privé et ton mot de passe pour accéder au tableau de bord."}</p>
+          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton identifiant privé sert à te connecter. Ton pseudo public est visible par les autres." : "Entre ton identifiant privé et ton mot de passe pour accéder au tableau de bord."}</p>
           <div className="mt-5 flex rounded-2xl border border-white/10 bg-black/[0.18] p-1">
-            <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-500 hover:text-white")}>Connexion</a>
-            <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-500 hover:text-white")}>Créer un compte</a>
+            <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Connexion</a>
+            <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Créer un compte</a>
           </div>
           <form onSubmit={submit} className="mt-5 space-y-4">
             <TextInput label="Identifiant privé" value={form.accountName} onChange={(v) => patch("accountName", v)} placeholder="Ex : ashaii.compte" required icon={Users} />
@@ -737,7 +737,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
             <Button type="submit" disabled={loading} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans RiftBoard"}</Button>
           </form>
           {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-orange-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
-          <p className="mt-4 text-center text-sm font-semibold text-slate-600">
+          <p className="mt-4 text-center text-sm font-semibold text-slate-300">
             {isRegister ?"Déjà inscrit ?" : "Pas encore de compte ?"}
             <a className="font-black text-orange-200 hover:text-white" href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`}>{isRegister ?" Connexion" : " Créer un compte"}</a>
           </p>
