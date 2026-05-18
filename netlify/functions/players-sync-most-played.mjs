@@ -104,6 +104,7 @@ export default async function handler(request, context) {
     const body = await readJson(request);
 
     const teamId = String(body.teamId || '').trim();
+    const playerId = String(body.playerId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
     const teams = await sql`
@@ -117,7 +118,9 @@ export default async function handler(request, context) {
     const team = teams[0];
     if (!team) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut synchroniser les most played.'), { status: 403 });
 
-    const players = await sql`select * from players where team_id = ${teamId} order by created_at asc`;
+    const players = playerId
+      ? await sql`select * from players where team_id = ${teamId} and id = ${playerId} order by created_at asc`
+      : await sql`select * from players where team_id = ${teamId} order by created_at asc`;
     if (!players.length) throw Object.assign(new Error('Ajoute au moins un joueur avant de synchroniser les most played.'), { status: 400 });
 
     const platform = platformFromRegion(team.region);
@@ -130,9 +133,7 @@ export default async function handler(request, context) {
         if (staffRole || !player.riot_id) {
           await sql`
             update players
-            set most_played = ${JSON.stringify([])}::jsonb,
-                performance_score = null,
-                status = ${staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant'},
+            set status = ${staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant'},
                 updated_at = now()
             where id = ${player.id}
           `;
@@ -214,19 +215,18 @@ export default async function handler(request, context) {
       } catch (err) {
         await sql`
           update players
-          set most_played = ${JSON.stringify([])}::jsonb,
-              performance_score = null,
-              status = ${err.message || 'Analyse Riot impossible'},
+          set status = ${err.message || 'Analyse Riot impossible'},
               updated_at = now()
           where id = ${player.id}
         `;
         results.push({ playerId: player.id, riotId: player.riot_id, ok: false, error: err.message || 'Analyse impossible', code: err.code || null, retryAfter: err.retryAfter || null });
+        if (err.code === 'RIOT_RATE_LIMIT') break;
       }
     }
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'players.sync_most_played', 'team', ${teamId}, ${JSON.stringify({ count: players.length, platform, queue: RANKED_SOLO_QUEUE, maxMatches: profileSyncMaxMatches() })}::jsonb)
+      values (${user.id}, 'players.sync_most_played', 'team', ${teamId}, ${JSON.stringify({ count: players.length, playerId: playerId || null, platform, queue: RANKED_SOLO_QUEUE, maxMatches: profileSyncMaxMatches() })}::jsonb)
     `;
 
     return json({ results });
