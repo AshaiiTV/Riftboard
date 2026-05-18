@@ -5,7 +5,6 @@ import {
   fetchAccountByRiotId,
   fetchMatchIdsByPuuid,
   fetchRiotMatchById,
-  fetchTopChampionMastery,
   getChampionDataMap,
   platformFromRegion
 } from './_lib/riot.mjs';
@@ -19,20 +18,6 @@ function profileSyncMaxMatches() {
   const value = Number(process.env.RIOT_PROFILE_SYNC_MAX_MATCHES || DEFAULT_PROFILE_SYNC_MAX_MATCHES);
   if (!Number.isFinite(value) || value <= 0) return DEFAULT_PROFILE_SYNC_MAX_MATCHES;
   return Math.min(Math.floor(value), 1000);
-}
-
-function normalizeMastery(row, championData) {
-  const championId = Number(row.championId);
-  const champion = championData.get(championId);
-  const points = Number(row.championPoints || 0);
-  return {
-    championId,
-    champion: champion?.name || `Champion ${championId}`,
-    imageUrl: champion?.imageUrl || null,
-    points,
-    level: Number(row.championLevel || 0),
-    lastPlayTime: row.lastPlayTime || null
-  };
 }
 
 function currentSeasonStartTimestamp() {
@@ -56,7 +41,7 @@ async function mapLimited(items, limit, mapper) {
 function normalizeMatchStats(stats, championData) {
   return [...stats.values()]
     .sort((a, b) => b.games - a.games || b.wins - a.wins)
-    .slice(0, 5)
+    .slice(0, 3)
     .map((item) => {
       const champion = championData.get(Number(item.championId));
       const winrate = item.games ? Math.round((item.wins / item.games) * 100) : 0;
@@ -94,14 +79,18 @@ async function fetchCurrentSeasonMostPlayed(puuid, platform, championData) {
   const stats = new Map();
 
   await mapLimited(matchIds, MATCH_FETCH_CONCURRENCY, async (matchId) => {
-    const match = await fetchRiotMatchById(matchId, platform);
-    const participant = match?.info?.participants?.find((row) => row.puuid === puuid);
-    if (!participant?.championId) return;
-    const key = Number(participant.championId);
-    const current = stats.get(key) || { championId: key, championName: participant.championName, games: 0, wins: 0 };
-    current.games += 1;
-    if (participant.win) current.wins += 1;
-    stats.set(key, current);
+    try {
+      const match = await fetchRiotMatchById(matchId, platform);
+      const participant = match?.info?.participants?.find((row) => row.puuid === puuid);
+      if (!participant?.championId) return;
+      const key = Number(participant.championId);
+      const current = stats.get(key) || { championId: key, championName: participant.championName, games: 0, wins: 0 };
+      current.games += 1;
+      if (participant.win) current.wins += 1;
+      stats.set(key, current);
+    } catch {
+      // Keep the season signal honest: a failed match fetch is ignored, never replaced by mastery.
+    }
   });
 
   return normalizeMatchStats(stats, championData);
@@ -140,7 +129,9 @@ export default async function handler(request, context) {
         if (staffRole || !player.riot_id) {
           await sql`
             update players
-            set status = ${staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant'},
+            set most_played = ${JSON.stringify([])}::jsonb,
+                performance_score = null,
+                status = ${staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant'},
                 updated_at = now()
             where id = ${player.id}
           `;
@@ -149,23 +140,15 @@ export default async function handler(request, context) {
         }
 
         const account = await fetchAccountByRiotId(player.riot_id, platform);
-        let mostPlayed = [];
-        let syncSource = 'match_history';
-        try {
-          mostPlayed = await fetchCurrentSeasonMostPlayed(account.puuid, platform, championData);
-          if (!mostPlayed.length) throw new Error('Aucun match trouve sur la saison courante.');
-        } catch (historyErr) {
-          const mastery = await fetchTopChampionMastery(account.puuid, platform, 5);
-          mostPlayed = mastery.map((row) => normalizeMastery(row, championData));
-          syncSource = 'mastery';
-        }
+        const mostPlayed = await fetchCurrentSeasonMostPlayed(account.puuid, platform, championData);
+        if (!mostPlayed.length) throw new Error('Aucun match trouvé sur la saison courante.');
 
         const totalPoints = mostPlayed.reduce((sum, item) => sum + Number(item.points || 0), 0);
         await sql`
           update players
           set most_played = ${JSON.stringify(mostPlayed)}::jsonb,
               performance_score = ${totalPoints || null},
-              status = ${mostPlayed.length ? 'Most played synchronisés' : 'Aucune maîtrise trouvée'},
+              status = ${mostPlayed.length ? 'Most played saison synchronisés' : 'Aucun match saison trouvé'},
               updated_at = now()
           where id = ${player.id}
         `;
@@ -173,7 +156,7 @@ export default async function handler(request, context) {
         let poolCount = 0;
         for (const [index, champion] of mostPlayed.entries()) {
           const status = index === 0 ? 'lock' : index < 3 ? 'pocket' : 'work';
-          const verdict = syncSource === 'match_history' ? (index === 0 ? 'Champion principal de la saison courante.' : 'Champion récurrent sur la saison courante.') : (index === 0 ? 'Champion principal détecté via Riot Mastery.' : 'Champion récurrent détecté via Riot Mastery.');
+          const verdict = index === 0 ? 'Champion le plus joué sur la saison courante.' : 'Champion récurrent sur la saison courante.';
           await sql`
             insert into champion_pool (
               team_id,
@@ -205,12 +188,12 @@ export default async function handler(request, context) {
               ${Number(champion.winrate || 0)},
               0,
               0,
-              ${syncSource === 'match_history' ? 'SAISON' : 'MASTERY'},
+              ${'SAISON'},
               ${verdict},
               ${player.role},
               ${status},
-              ${champion.games ? `${champion.games} games saison courante` : `${champion.points || 0} mastery points`},
-              ${syncSource},
+              ${`${champion.games || 0} games saison courante`},
+              ${'match_history'},
               now()
             )
             on conflict (team_id, player_id, champion) do update
@@ -226,11 +209,13 @@ export default async function handler(request, context) {
           poolCount += 1;
         }
 
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount, source: syncSource });
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount, source: 'match_history' });
       } catch (err) {
         await sql`
           update players
-          set status = ${err.message || 'Analyse Riot impossible'},
+          set most_played = ${JSON.stringify([])}::jsonb,
+              performance_score = null,
+              status = ${err.message || 'Analyse Riot impossible'},
               updated_at = now()
           where id = ${player.id}
         `;
