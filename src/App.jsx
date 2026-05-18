@@ -1361,7 +1361,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       const skipped = result.results?.filter((item) => item.skipped).length || 0;
       const failed = result.results?.filter((item) => !item.ok).length || 0;
       const poolCount = result.results?.reduce((sum, item) => sum + Number(item.poolCount || 0), 0) || 0;
-      pushToast({ type: failed ?"yellow" : "green", title: "Most played synchronisés", text: `${ok} profil${ok > 1 ?"s" : ""} analysé${ok > 1 ?"s" : ""}${poolCount ?`, ${poolCount} champion${poolCount > 1 ?"s" : ""} ajouté${poolCount > 1 ?"s" : ""}` : ""}${failed ?`, ${failed} erreur${failed > 1 ?"s" : ""}` : ""}.` });
+      const firstError = result.results?.find((item) => !item.ok)?.error;
+      pushToast({ type: failed ?"yellow" : "green", title: "Most played synchronisés", text: `${ok} profil${ok > 1 ?"s" : ""} analysé${ok > 1 ?"s" : ""}${poolCount ?`, ${poolCount} champion${poolCount > 1 ?"s" : ""} ajouté${poolCount > 1 ?"s" : ""}` : ""}${failed ?`, ${failed} erreur${failed > 1 ?"s" : ""}` : ""}${firstError ?` : ${firstError}` : ""}.` });
     } catch (err) {
       pushToast({ type: "red", title: "Analyse impossible", text: err.message });
     } finally {

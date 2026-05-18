@@ -10,9 +10,9 @@ import {
 } from './_lib/riot.mjs';
 
 const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
-const MATCH_PAGE_SIZE = 100;
-const MATCH_FETCH_CONCURRENCY = 8;
-const DEFAULT_PROFILE_SYNC_MAX_MATCHES = 300;
+const MATCH_PAGE_SIZE = 80;
+const MATCH_FETCH_CONCURRENCY = 10;
+const DEFAULT_PROFILE_SYNC_MAX_MATCHES = 80;
 
 function profileSyncMaxMatches() {
   const value = Number(process.env.RIOT_PROFILE_SYNC_MAX_MATCHES || DEFAULT_PROFILE_SYNC_MAX_MATCHES);
