@@ -43,6 +43,7 @@ const API_BASE = "/.netlify/functions";
 const NAV = [
   { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Reviews", icon: Swords, shortcut: "M", path: "/reviews" },
+  { id: "tournaments", label: "Codes Tournoi", icon: Trophy, shortcut: "O", path: "/codes-tournoi" },
   { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
   { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
   { id: "reports", label: "Rapports", icon: FileText, shortcut: "R", path: "/rapports" },
@@ -108,6 +109,7 @@ const DEFAULT_DATA = {
   compositions: [],
   improvements: [],
   reports: [],
+  tournamentCodes: [],
 };
 
 async function apiFetch(path, options = {}) {
@@ -1377,6 +1379,72 @@ function MatchIdentityBadges({ rows }) {
   return <div className="mt-3 flex flex-wrap gap-2"><Badge tone={championStyleTone(allyIdentity.primary)}>Nous: {allyIdentity.primary}</Badge>{enemy.length > 0 && <Badge tone={championStyleTone(enemyIdentity.primary)}>Eux: {enemyIdentity.primary}</Badge>}</div>;
 }
 
+function TournamentCodes({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
+  const [form, setForm] = useState({ label: "", opponent: "", code: "", platform: "EUW1" });
+  const [saving, setSaving] = useState(false);
+  const [importingId, setImportingId] = useState("");
+  const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
+  const canManage = selectedTeam && (selectedTeam.owner_id === user?.id || ["captain", "coach"].includes(String(currentMember?.role || "").toLowerCase()));
+  const codes = (data.tournamentCodes || []).filter((item) => item.team_id === selectedTeam?.id);
+
+  function updateForm(key, value) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function saveCode(event, action = "create") {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await apiFetch("tournament-codes-manage", { method: "POST", body: JSON.stringify({ ...form, action, teamId: selectedTeam?.id }) });
+      setForm({ label: "", opponent: "", code: "", platform: form.platform });
+      await refreshAll();
+      pushToast({ type: "green", title: action === "generate" ? "Code généré" : "Code enregistré", text: "Il est prêt pour l'import des games tournoi." });
+    } catch (err) {
+      pushToast({ type: "red", title: action === "generate" ? "Génération impossible" : "Code impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function copyCode(code) {
+    try {
+      await navigator.clipboard.writeText(code);
+      pushToast({ type: "cyan", title: "Code copié", text: "Tu peux le coller dans le lobby LoL." });
+    } catch {
+      pushToast({ type: "red", title: "Copie impossible", text: "Le navigateur bloque le presse-papiers." });
+    }
+  }
+
+  async function importCode(item) {
+    setImportingId(item.id);
+    try {
+      await apiFetch("matches-import", { method: "POST", body: JSON.stringify({ teamId: selectedTeam?.id, tournamentCode: item.code, platform: item.platform }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Game importée", text: "Le code tournoi est lié à la review." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Import impossible", text: err.message });
+    } finally {
+      setImportingId("");
+    }
+  }
+
+  async function deleteCode(item) {
+    if (!window.confirm(`Supprimer le code "${item.label}" ?`)) return;
+    setSaving(true);
+    try {
+      await apiFetch("tournament-codes-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeam?.id, codeId: item.id }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Code supprimé", text: "La liste est à jour." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <div><PageHeader eyebrow="Tournoi" title="Codes Tournoi" subtitle="Prépare les codes de scrim, importe les games jouées avec ces codes, puis retrouve l'analyse dans Reviews." />{selectedTeam ? <div className="grid gap-5 xl:grid-cols-[.92fr_1.08fr]"><Surface glow><div className="flex items-start justify-between gap-3"><div><h3 className="text-2xl font-black text-white">Créer un code</h3><p className="mt-1 text-sm font-semibold text-slate-500">Ajoute un code fourni par Riot, ou tente une génération si l'accès Tournament API est configuré.</p></div><Badge tone={canManage ? "green" : "slate"}>{canManage ? "Staff" : "Lecture"}</Badge></div><form onSubmit={(event) => saveCode(event, "create")} className="mt-5 space-y-4"><div className="grid gap-3 md:grid-cols-2"><TextInput label="Nom" value={form.label} onChange={(value) => updateForm("label", value)} placeholder="Scrim vs BK Rookies" required icon={Trophy} /><TextInput label="Adversaire" value={form.opponent} onChange={(value) => updateForm("opponent", value)} placeholder="Nom de l'équipe adverse" icon={Swords} /></div><div className="grid gap-3 md:grid-cols-[.6fr_1.4fr]"><SelectInput label="Serveur" value={form.platform} onChange={(value) => updateForm("platform", value)}><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></SelectInput><TextInput label="Code tournoi" value={form.code} onChange={(value) => updateForm("code", value)} placeholder="Code Riot à coller ici" icon={Clipboard} /></div><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Wand2} onClick={(event) => saveCode(event, "generate")} disabled={!canManage || saving || !form.label.trim()}>{saving ? "..." : "Générer via Riot"}</Button><Button type="submit" icon={saving ? Loader2 : Plus} disabled={!canManage || saving || !form.label.trim() || !form.code.trim()}>Ajouter le code</Button></div></form></Surface><Surface><h3 className="text-2xl font-black text-white">Codes actifs</h3><div className="mt-4 space-y-3">{codes.length ? codes.map((item) => <div key={item.id} className="rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-black text-white">{item.label}</p><Badge tone={item.status === "imported" ? "green" : "orange"}>{item.status === "imported" ? "Importé" : "Prêt"}</Badge><Badge tone="slate">{item.platform || "EUW1"}</Badge></div><p className="mt-1 text-sm font-semibold text-slate-500">{item.opponent || "Adversaire libre"} · {new Date(item.created_at).toLocaleDateString("fr-FR")}</p><p className="mt-3 break-all rounded-xl border border-orange-300/15 bg-orange-400/10 px-3 py-2 font-mono text-sm font-black text-orange-100">{item.code}</p>{item.imported_game_id && <p className="mt-2 text-xs font-semibold text-slate-500">Game liée : {item.imported_game_id}</p>}</div><div className="flex shrink-0 flex-wrap gap-2"><Button variant="ghost" icon={Clipboard} onClick={() => copyCode(item.code)}>Copier</Button><Button variant="ghost" icon={importingId === item.id ? Loader2 : Search} onClick={() => importCode(item)} disabled={Boolean(importingId)}>Importer</Button>{canManage && <Button variant="ghost" icon={Trash2} onClick={() => deleteCode(item)} disabled={saving}>Supprimer</Button>}</div></div></div>) : <EmptyState icon={Trophy} title="Aucun code tournoi" text="Crée ou colle un code pour relier les scrims à tes reviews." />}</div></Surface></div> : <EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant de gérer des codes tournoi." />}</div>;
+}
+
 function Matches({ data, refreshAll, selectedTeamId, pushToast }) {
   const [gameId, setGameId] = useState("");
   const [importing, setImporting] = useState(false);
@@ -2143,6 +2211,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const page = useMemo(() => {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} />;
+    if (active === "tournaments") return <TournamentCodes data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;

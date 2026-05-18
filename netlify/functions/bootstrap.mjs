@@ -21,6 +21,22 @@ function buildDashboard(matches, improvements) {
   };
 }
 
+async function loadTournamentCodes(teamIds) {
+  try {
+    return await sql`
+      select tournament_codes.*, users.name as created_by_name
+      from tournament_codes
+      left join users on users.id = tournament_codes.created_by
+      where tournament_codes.team_id = any(${teamIds})
+      order by tournament_codes.created_at desc
+      limit 100
+    `;
+  } catch (err) {
+    if (err?.code === '42P01') return [];
+    throw err;
+  }
+}
+
 export default async function handler(request, context) {
   try {
     const user = await requireAuth(request, context);
@@ -34,7 +50,7 @@ export default async function handler(request, context) {
     const teamIds = teams.map((t) => t.id);
 
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], tournamentCodes: [] });
     }
 
     const [
@@ -44,7 +60,8 @@ export default async function handler(request, context) {
       championPool,
       improvements,
       compositions,
-      reports
+      reports,
+      tournamentCodes
     ] = await Promise.all([
       sql`select * from players where team_id = any(${teamIds}) order by created_at asc`,
       sql`
@@ -68,7 +85,8 @@ export default async function handler(request, context) {
         where reports.team_id = any(${teamIds})
         order by reports.created_at desc
         limit 50
-      `
+      `,
+      loadTournamentCodes(teamIds)
     ]);
     const matchIds = matches.map((m) => m.id);
     const participants = matchIds.length ? await sql`select * from match_participants where match_id = any(${matchIds}) order by team_key asc, role asc` : [];
@@ -81,7 +99,7 @@ export default async function handler(request, context) {
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, tournamentCodes });
   } catch (err) {
     return handleError(err);
   }

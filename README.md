@@ -9,7 +9,7 @@ Dashboard premium d'analyse LoL pour équipes semi-pro.
 - Netlify Hosting
 - Netlify Functions
 - Neon PostgreSQL
-- Riot Match-V5 API côté serveur
+- Riot Match-V5 + Tournament-V5 API côté serveur
 - Auth par cookie HttpOnly + sessions en DB
 
 ## Installation locale
@@ -51,6 +51,21 @@ APP_ENV=production
 
 `DATABASE_URL` vient de Neon. Prends l'URL poolée si Neon la propose.
 
+Pour générer des codes tournoi directement depuis RiftBoard, ajoute aussi au choix :
+
+```txt
+RIOT_TOURNAMENT_ID=...
+```
+
+ou :
+
+```txt
+RIOT_TOURNAMENT_CALLBACK_URL=https://ton-site.netlify.app/.netlify/functions/riot-tournament-callback
+RIOT_TOURNAMENT_NAME=RiftBoard Scrims
+```
+
+Sans ces variables Tournament-V5, la page Codes Tournoi fonctionne quand même en ajout manuel de codes.
+
 ## Neon
 
 Dans Neon, exécute le script :
@@ -59,7 +74,7 @@ Dans Neon, exécute le script :
 database/schema.sql
 ```
 
-Il crée toutes les tables nécessaires : users, sessions, teams, players, matches, match_participants, champion_pool, improvements, reports, audit_logs.
+Il crée toutes les tables nécessaires : users, sessions, teams, players, matches, match_participants, champion_pool, improvements, reports, composition_types, tournament_codes, audit_logs.
 
 ## Test rapide
 
@@ -67,7 +82,7 @@ Il crée toutes les tables nécessaires : users, sessions, teams, players, match
 2. Crée ou sélectionne une team.
 3. Ajoute un joueur avec son Riot ID exact, exemple : `Ashaii#8942`.
 4. Importe une game où ce joueur était présent, exemple : `EUW1_7123456789`.
-5. Va dans Dashboard, Champion Pool, Progression et Rapports.
+5. Va dans Reviews, Champion Pool, Compos Types et Rapports.
 
 ## Important
 

@@ -76,10 +76,15 @@ function requireRiotKey() {
   }
 }
 
-async function riotFetch(url, notFoundMessage) {
+export async function riotFetch(url, notFoundMessage, options = {}) {
   requireRiotKey();
   const response = await fetch(url, {
-    headers: { 'X-Riot-Token': process.env.RIOT_API_KEY }
+    ...options,
+    headers: {
+      'X-Riot-Token': process.env.RIOT_API_KEY,
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.headers || {})
+    }
   });
 
   if (response.status === 401 || response.status === 403) {
@@ -105,6 +110,80 @@ async function riotFetch(url, notFoundMessage) {
   }
 
   return response.json();
+}
+
+export function tournamentConfigStatus() {
+  const canUseExistingTournament = Boolean(process.env.RIOT_TOURNAMENT_ID);
+  const canCreateTournament = Boolean(process.env.RIOT_TOURNAMENT_CALLBACK_URL);
+  return {
+    ready: Boolean(process.env.RIOT_API_KEY && (canUseExistingTournament || canCreateTournament)),
+    missing: [
+      !process.env.RIOT_API_KEY && 'RIOT_API_KEY',
+      !canUseExistingTournament && !canCreateTournament && 'RIOT_TOURNAMENT_ID ou RIOT_TOURNAMENT_CALLBACK_URL'
+    ].filter(Boolean)
+  };
+}
+
+export async function createTournamentProvider({ platform = 'EUW1', callbackUrl = process.env.RIOT_TOURNAMENT_CALLBACK_URL } = {}) {
+  if (!callbackUrl) {
+    throw Object.assign(new Error('RIOT_TOURNAMENT_CALLBACK_URL manquante pour créer un provider Riot.'), {
+      status: 503,
+      code: 'RIOT_TOURNAMENT_NOT_CONFIGURED'
+    });
+  }
+  const host = platformFromRegion(platform).toLowerCase();
+  const url = `https://${host}.api.riotgames.com/lol/tournament/v5/providers`;
+  return riotFetch(url, 'Impossible de créer le provider tournoi côté Riot.', {
+    method: 'POST',
+    body: JSON.stringify({ region: platformFromRegion(platform), url: callbackUrl })
+  });
+}
+
+export async function createTournament({ providerId, platform = 'EUW1', name = process.env.RIOT_TOURNAMENT_NAME || 'RiftBoard Scrims' } = {}) {
+  if (!providerId) throw Object.assign(new Error('Provider Riot manquant.'), { status: 400 });
+  const host = platformFromRegion(platform).toLowerCase();
+  const url = `https://${host}.api.riotgames.com/lol/tournament/v5/tournaments`;
+  return riotFetch(url, 'Impossible de créer le tournoi côté Riot.', {
+    method: 'POST',
+    body: JSON.stringify({ name, providerId })
+  });
+}
+
+async function resolveTournamentId(platform) {
+  if (process.env.RIOT_TOURNAMENT_ID) return process.env.RIOT_TOURNAMENT_ID;
+  const providerId = await createTournamentProvider({ platform });
+  return createTournament({ providerId, platform });
+}
+
+export async function createTournamentCode({ tournamentId = process.env.RIOT_TOURNAMENT_ID, platform = 'EUW1', count = 1, metadata = '' } = {}) {
+  const config = tournamentConfigStatus();
+  if (!config.ready) {
+    throw Object.assign(new Error(`Génération Riot non configurée (${config.missing.join(', ')}). Tu peux quand même ajouter un code manuellement.`), {
+      status: 503,
+      code: 'RIOT_TOURNAMENT_NOT_CONFIGURED',
+      missing: config.missing
+    });
+  }
+
+  const host = platformFromRegion(platform).toLowerCase();
+  const resolvedTournamentId = tournamentId || await resolveTournamentId(platform);
+  const params = new URLSearchParams({ count: String(Math.max(1, Math.min(5, Number(count) || 1))), tournamentId: String(resolvedTournamentId) });
+  const body = {
+    allowedSummonerIds: [],
+    metadata,
+    teamSize: 5,
+    pickType: 'TOURNAMENT_DRAFT',
+    mapType: 'SUMMONERS_RIFT',
+    spectatorType: 'ALL'
+  };
+  const url = `https://${host}.api.riotgames.com/lol/tournament/v5/codes?${params.toString()}`;
+  return riotFetch(url, 'Impossible de générer le code tournoi côté Riot.', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export async function fetchMatchIdsByTournamentCode(tournamentCode, platform = 'EUW1') {
+  const regional = accountRegionFromPlatform(platform).toLowerCase();
+  const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/by-tournament-code/${encodeURIComponent(tournamentCode)}/ids`;
+  return riotFetch(url, 'Aucune game Riot trouvée pour ce code tournoi.');
 }
 
 export async function fetchRiotMatch(gameId) {
