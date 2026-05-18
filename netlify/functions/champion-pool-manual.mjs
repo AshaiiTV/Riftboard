@@ -3,6 +3,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
 
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
+const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
 
 function cleanText(value, max = 120) {
   return String(value || '').trim().slice(0, max);
@@ -81,6 +82,9 @@ export default async function handler(request, context) {
     `;
     const player = players[0];
     if (!player) throw Object.assign(new Error('Joueur introuvable dans cette team.'), { status: 404 });
+    if (!GAMEPLAY_ROLES.has(String(player.role || '').toUpperCase())) {
+      throw Object.assign(new Error('Ce profil staff ne peut pas avoir de Champion Pool.'), { status: 400 });
+    }
     if (!isCaptain && String(player.user_id || '') !== String(user.id)) {
       throw Object.assign(new Error('Seul le capitaine ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
     }

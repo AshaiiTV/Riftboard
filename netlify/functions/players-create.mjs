@@ -2,7 +2,8 @@ import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
 
-const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH']);
+const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
+const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', ...STAFF_ROLES]);
 
 export default async function handler(request, context) {
   try {
@@ -12,13 +13,18 @@ export default async function handler(request, context) {
 
     const teamId = String(body.teamId || '').trim();
     const name = String(body.name || '').trim();
-    const riotId = String(body.riotId || '').trim() || null;
-    const opggUrl = String(body.opggUrl || '').trim() || null;
+    let riotId = String(body.riotId || '').trim() || null;
+    let opggUrl = String(body.opggUrl || '').trim() || null;
     const role = String(body.role || '').trim().toUpperCase();
+    const staffRole = STAFF_ROLES.has(role);
 
     if (!teamId || !name) throw Object.assign(new Error('Team et nom requis.'), { status: 400 });
     if (!ROLES.has(role)) throw Object.assign(new Error('Rôle invalide.'), { status: 400 });
-    if (role !== 'COACH' && !riotId) throw Object.assign(new Error('Riot ID requis pour un joueur.'), { status: 400 });
+    if (!staffRole && !riotId) throw Object.assign(new Error('Riot ID requis pour un joueur.'), { status: 400 });
+    if (staffRole) {
+      riotId = null;
+      opggUrl = null;
+    }
 
     const allowed = await sql`
       select teams.id
@@ -28,7 +34,7 @@ export default async function handler(request, context) {
         and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut ajouter un profil Riot.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut ajouter un profil.'), { status: 403 });
 
     const rows = await sql`
       insert into players (team_id, name, riot_id, opgg_url, role)

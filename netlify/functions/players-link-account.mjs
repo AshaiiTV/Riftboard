@@ -2,6 +2,8 @@ import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
 
+const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
+
 export default async function handler(request, context) {
   try {
     assertMethod(request, 'POST');
@@ -25,7 +27,7 @@ export default async function handler(request, context) {
     if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut lier ou délier un compte.'), { status: 403 });
 
     const player = await sql`
-      select id
+      select id, role
       from players
       where id = ${playerId}
         and team_id = ${teamId}
@@ -52,6 +54,16 @@ export default async function handler(request, context) {
         and team_id = ${teamId}
       returning *
     `;
+
+    if (userId && STAFF_ROLES.has(String(player[0].role || '').toUpperCase())) {
+      await sql`
+        update team_members
+        set role = 'coach'
+        where team_id = ${teamId}
+          and user_id = ${userId}
+          and role = 'player'
+      `;
+    }
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

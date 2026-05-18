@@ -10,6 +10,8 @@ import {
   platformFromRegion
 } from './_lib/riot.mjs';
 
+const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
+
 function normalizeMastery(row, championData) {
   const championId = Number(row.championId);
   const champion = championData.get(championId);
@@ -96,14 +98,15 @@ export default async function handler(request, context) {
 
     for (const player of players) {
       try {
-        if (player.role === 'COACH' || !player.riot_id) {
+        const staffRole = STAFF_ROLES.has(String(player.role || '').toUpperCase());
+        if (staffRole || !player.riot_id) {
           await sql`
             update players
-            set status = ${player.role === 'COACH' ? 'Coach sans Riot ID' : 'Riot ID manquant'},
+            set status = ${staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant'},
                 updated_at = now()
             where id = ${player.id}
           `;
-          results.push({ playerId: player.id, riotId: player.riot_id, ok: true, skipped: true, reason: player.role === 'COACH' ? 'Coach sans Riot ID' : 'Riot ID manquant' });
+          results.push({ playerId: player.id, riotId: player.riot_id, ok: true, skipped: true, reason: staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant' });
           continue;
         }
 
