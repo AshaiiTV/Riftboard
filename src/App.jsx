@@ -1910,8 +1910,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     }
   }
 
-  async function deletePick(row) {
-    if (!canManageSelectedPool || !window.confirm("Retirer ce champion du pool manuel ?")) return;
+  async function deletePick(row, options = {}) {
+    if (!canManageSelectedPool || !row?.id) return;
+    if (options.confirm !== false && !window.confirm("Retirer ce champion du Champion Pool ?")) return;
     const previousPool = localPool;
     setLocalPool((current) => current.filter((item) => item.id !== row.id));
     setSaving(true);
@@ -1929,6 +1930,14 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     event.preventDefault();
     const payload = dragPayload(event);
     if (payload.champion) saveChampion(payload.champion, status, payload.poolId);
+  }
+
+  function dropOnChampionBase(event) {
+    event.preventDefault();
+    const payload = dragPayload(event);
+    if (!payload.poolId) return;
+    const row = selectedRows.find((item) => String(item.id || "") === String(payload.poolId));
+    if (row) deletePick(row, { confirm: false });
   }
 
   return (
@@ -1988,11 +1997,11 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                     </div>
                   </div>
 
-                  <div>
+                  <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnChampionBase(event)}>
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
                         <h3 className="text-xl font-black text-white">{selectedPlayer.name}</h3>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">{canManageSelectedPool ? `${visibleChampions.length} champions affichés · glisse un champion vers une colonne.` : "Lecture seule : seul le capitaine ou le joueur lié à ce profil peut modifier ce Champion Pool."}</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">{canManageSelectedPool ? `${visibleChampions.length} champions affichés · glisse ici un pick pour le retirer.` : "Lecture seule : seul le capitaine ou le joueur lié à ce profil peut modifier ce Champion Pool."}</p>
                       </div>
                       <Badge tone="orange">{selectedPlayer.role}</Badge>
                     </div>

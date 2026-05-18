@@ -53,7 +53,7 @@ export default async function handler(request, context) {
         delete from champion_pool
         where id = ${poolId}
           and team_id = ${teamId}
-          and source in ('manual', 'riot_manual')
+          and source in ('manual', 'riot_manual', 'match_history', 'ranked_solo_history')
         returning *
       `;
       if (!deleted[0]) throw Object.assign(new Error('Pick manuel introuvable.'), { status: 404 });
