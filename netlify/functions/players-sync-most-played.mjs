@@ -10,6 +10,7 @@ import {
 } from './_lib/riot.mjs';
 
 const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
+const RANKED_SOLO_QUEUE = 420;
 const MATCH_PAGE_SIZE = 80;
 const MATCH_FETCH_CONCURRENCY = 10;
 const DEFAULT_PROFILE_SYNC_MAX_MATCHES = 80;
@@ -59,14 +60,14 @@ function normalizeMatchStats(stats, championData) {
     });
 }
 
-async function fetchCurrentSeasonMatchIds(puuid, platform) {
+async function fetchCurrentSeasonSoloqMatchIds(puuid, platform) {
   const startTime = currentSeasonStartTimestamp();
   const maxMatches = profileSyncMaxMatches();
   const matchIds = [];
 
   for (let start = 0; start < maxMatches; start += MATCH_PAGE_SIZE) {
     const count = Math.min(MATCH_PAGE_SIZE, maxMatches - start);
-    const page = await fetchMatchIdsByPuuid(puuid, platform, { startTime, start, count });
+    const page = await fetchMatchIdsByPuuid(puuid, platform, { startTime, queue: RANKED_SOLO_QUEUE, start, count });
     matchIds.push(...page);
     if (page.length < count) break;
   }
@@ -74,8 +75,8 @@ async function fetchCurrentSeasonMatchIds(puuid, platform) {
   return matchIds;
 }
 
-async function fetchCurrentSeasonMostPlayed(puuid, platform, championData) {
-  const matchIds = await fetchCurrentSeasonMatchIds(puuid, platform);
+async function fetchCurrentSeasonSoloqMostPlayed(puuid, platform, championData) {
+  const matchIds = await fetchCurrentSeasonSoloqMatchIds(puuid, platform);
   const stats = new Map();
 
   await mapLimited(matchIds, MATCH_FETCH_CONCURRENCY, async (matchId) => {
@@ -140,15 +141,15 @@ export default async function handler(request, context) {
         }
 
         const account = await fetchAccountByRiotId(player.riot_id, platform);
-        const mostPlayed = await fetchCurrentSeasonMostPlayed(account.puuid, platform, championData);
-        if (!mostPlayed.length) throw new Error('Aucun match trouvé sur la saison courante.');
+        const mostPlayed = await fetchCurrentSeasonSoloqMostPlayed(account.puuid, platform, championData);
+        if (!mostPlayed.length) throw new Error('Aucun match SoloQ trouvé sur la saison courante.');
 
         const totalPoints = mostPlayed.reduce((sum, item) => sum + Number(item.points || 0), 0);
         await sql`
           update players
           set most_played = ${JSON.stringify(mostPlayed)}::jsonb,
               performance_score = ${totalPoints || null},
-              status = ${mostPlayed.length ? 'Most played saison synchronisés' : 'Aucun match saison trouvé'},
+              status = ${mostPlayed.length ? 'Top SoloQ saison synchronisé' : 'Aucun match SoloQ saison trouvé'},
               updated_at = now()
           where id = ${player.id}
         `;
@@ -156,7 +157,7 @@ export default async function handler(request, context) {
         let poolCount = 0;
         for (const [index, champion] of mostPlayed.entries()) {
           const status = index === 0 ? 'lock' : index < 3 ? 'pocket' : 'work';
-          const verdict = index === 0 ? 'Champion le plus joué sur la saison courante.' : 'Champion récurrent sur la saison courante.';
+          const verdict = index === 0 ? 'Champion le plus joué en SoloQ sur la saison courante.' : 'Champion récurrent en SoloQ sur la saison courante.';
           await sql`
             insert into champion_pool (
               team_id,
@@ -192,7 +193,7 @@ export default async function handler(request, context) {
               ${verdict},
               ${player.role},
               ${status},
-              ${`${champion.games || 0} games saison courante`},
+              ${`${champion.games || 0} games SoloQ saison courante`},
               ${'match_history'},
               now()
             )
@@ -209,7 +210,7 @@ export default async function handler(request, context) {
           poolCount += 1;
         }
 
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount, source: 'match_history' });
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount, source: 'ranked_solo_history' });
       } catch (err) {
         await sql`
           update players
@@ -225,7 +226,7 @@ export default async function handler(request, context) {
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'players.sync_most_played', 'team', ${teamId}, ${JSON.stringify({ count: players.length, platform, maxMatches: profileSyncMaxMatches() })}::jsonb)
+      values (${user.id}, 'players.sync_most_played', 'team', ${teamId}, ${JSON.stringify({ count: players.length, platform, queue: RANKED_SOLO_QUEUE, maxMatches: profileSyncMaxMatches() })}::jsonb)
     `;
 
     return json({ results });
