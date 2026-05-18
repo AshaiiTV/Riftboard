@@ -56,7 +56,7 @@ const AUTH_ROUTES = {
   "/inscription": "register",
 };
 
-const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie"];
+const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/mentions-legales", "/confidentialite", "/conditions"];
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 
 function normalizePath(pathname = "/") {
@@ -470,6 +470,81 @@ function SiteHeader({ children, navigate }) {
   );
 }
 
+function LegalLinks({ navigate }) {
+  const links = [
+    ["/mentions-legales", "Mentions légales"],
+    ["/confidentialite", "Confidentialité"],
+    ["/conditions", "Conditions"],
+  ];
+  return <div className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 pb-8 text-xs font-bold text-slate-600">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="rounded-xl border-transparent bg-transparent px-0 py-0 text-xs text-slate-600 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-orange-100">{label}</LinkButton>)}<span>RiftBoard n’est pas affilié à Riot Games.</span></div>;
+}
+
+const LEGAL_PAGES = {
+  "/mentions-legales": {
+    eyebrow: "Cadre légal",
+    title: "Mentions légales",
+    intro: "RiftBoard est un outil indépendant de gestion et d’analyse League of Legends pour équipes, coachs et capitaines.",
+    sections: [
+      ["Éditeur", "RiftBoard est édité par AshaiiTV dans le cadre d’un projet web privé destiné aux équipes League of Legends. Pour toute demande liée au projet, utilise le contact indiqué sur le produit Riot Developer ou le dépôt GitHub du projet."],
+      ["Hébergement", "Le site est hébergé sur Netlify. Les données applicatives sont stockées dans une base PostgreSQL Neon. Les clés Riot et les secrets applicatifs sont conservés uniquement côté serveur via les variables d’environnement Netlify."],
+      ["Riot Games", "RiftBoard n’est pas approuvé, sponsorisé ou affilié à Riot Games. League of Legends et Riot Games sont des marques ou marques déposées de Riot Games, Inc. Les données Riot sont utilisées conformément aux règles du Riot Developer Portal."],
+      ["Responsabilité", "RiftBoard fournit des outils de lecture et d’organisation. Les décisions sportives, analyses de coach, choix de draft et interprétations restent sous la responsabilité des utilisateurs."],
+    ],
+  },
+  "/confidentialite": {
+    eyebrow: "Données",
+    title: "Politique de confidentialité",
+    intro: "Cette page explique quelles données RiftBoard traite et pourquoi. L’objectif est de garder l’outil utile sans exposer inutilement les comptes ou les clés API.",
+    sections: [
+      ["Données de compte", "RiftBoard stocke un identifiant privé, un pseudo public, un mot de passe haché, les sessions de connexion et les informations nécessaires au fonctionnement du compte."],
+      ["Données d’équipe", "L’application peut stocker les équipes, rôles, profils joueurs, Riot IDs, liens OP.GG, champion pools, compositions types, rapports de review, codes tournoi et matchs importés."],
+      ["Données Riot", "Les appels Riot sont effectués côté serveur. La clé API Riot n’est jamais envoyée au navigateur. Les données de match importées servent uniquement à afficher des statistiques et à lier des reviews."],
+      ["Cookies et session", "RiftBoard utilise un cookie HttpOnly pour maintenir la session de connexion. Ce cookie sert à l’authentification et n’est pas destiné au suivi publicitaire."],
+      ["Conservation", "Les données restent conservées tant que l’équipe ou le compte les utilise. Les profils joueurs, rapports et codes tournoi peuvent être supprimés depuis l’interface quand les droits le permettent."],
+    ],
+  },
+  "/conditions": {
+    eyebrow: "Utilisation",
+    title: "Conditions d’utilisation",
+    intro: "RiftBoard est conçu pour aider les équipes à préparer, relire et organiser leurs matchs de manière propre et sécurisée.",
+    sections: [
+      ["Usage autorisé", "L’outil doit être utilisé pour des équipes, scrims, reviews, champion pools, compositions types et rapports liés à League of Legends."],
+      ["Codes tournoi", "La génération ou l’ajout de codes tournoi est réservée aux membres autorisés de l’équipe, notamment owner, capitaine ou coach. Les codes doivent être créés uniquement pour des matchs réels et raisonnables."],
+      ["Sécurité", "Il est interdit de partager des clés Riot, de contourner les droits d’équipe, d’extraire massivement des données ou d’utiliser RiftBoard pour harceler, surveiller ou cibler des joueurs."],
+      ["Contenu utilisateur", "Les rapports et notes de review sont écrits par les utilisateurs. Chaque équipe reste responsable du contenu qu’elle crée, modifie ou supprime."],
+      ["Disponibilité", "RiftBoard dépend de services externes comme Riot API, Netlify et Neon. Certaines fonctionnalités peuvent être indisponibles si ces services changent, expirent ou refusent une requête."],
+    ],
+  },
+};
+
+function LegalPage({ route, navigate }) {
+  const page = LEGAL_PAGES[route.path] || LEGAL_PAGES["/mentions-legales"];
+  return (
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <AmbientBackground />
+      <SiteHeader navigate={navigate}>
+        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
+        <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
+      </SiteHeader>
+      <main className="relative z-10 mx-auto max-w-5xl px-5 pb-12 pt-6">
+        <Surface glow className="p-6 md:p-9">
+          <Badge tone="orange">{page.eyebrow}</Badge>
+          <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">{page.title}</h1>
+          <p className="mt-5 max-w-3xl text-base font-semibold leading-8 text-slate-300">{page.intro}</p>
+          <div className="mt-8 grid gap-4">
+            {page.sections.map(([title, text]) => <section key={title} className="rounded-2xl border border-white/10 bg-black/[0.18] p-5"><h2 className="text-xl font-black text-white">{title}</h2><p className="mt-3 text-sm font-semibold leading-7 text-slate-400">{text}</p></section>)}
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
+            <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Connexion</LinkButton>
+          </div>
+        </Surface>
+      </main>
+      <LegalLinks navigate={navigate} />
+    </div>
+  );
+}
+
 function HomeScreen({ navigate }) {
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
@@ -522,6 +597,7 @@ function HomeScreen({ navigate }) {
           </Surface>
         </section>
       </main>
+      <LegalLinks navigate={navigate} />
     </div>
   );
 }
@@ -545,6 +621,7 @@ function NotFoundPage({ navigate }) {
           </div>
         </Surface>
       </main>
+      <LegalLinks navigate={navigate} />
     </div>
   );
 }
@@ -573,6 +650,7 @@ function ForgotPasswordPage({ navigate }) {
           </div>
         </Surface>
       </main>
+      <LegalLinks navigate={navigate} />
     </div>
   );
 }
@@ -665,6 +743,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
           </p>
         </Surface>
       </main>
+      <LegalLinks navigate={navigate} />
     </div>
   );
 }
@@ -2266,6 +2345,9 @@ export default function RiftBoard() {
       "/creer-un-compte": "Créer un compte — RiftBoard",
       "/inscription": "Créer un compte — RiftBoard",
       "/mot-de-passe-oublie": "Mot de passe oublié — RiftBoard",
+      "/mentions-legales": "Mentions légales — RiftBoard",
+      "/confidentialite": "Confidentialité — RiftBoard",
+      "/conditions": "Conditions — RiftBoard",
     };
     document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — RiftBoard` : "RiftBoard");
   }, [route.path]);
@@ -2298,6 +2380,8 @@ export default function RiftBoard() {
       ?<MainApp user={user} onLogout={() => setUser(null)} onUserUpdate={setUser} pushToast={pushToast} navigate={navigate} route={route} />
       : route.path === "/mot-de-passe-oublie"
         ?<ForgotPasswordPage navigate={navigate} />
+      : LEGAL_PAGES[route.path]
+        ?<LegalPage route={route} navigate={navigate} />
       : mode
         ?<AuthPage mode={mode} onAuth={handleAuth} pushToast={pushToast} navigate={navigate} />
         : routeIsPrivate
