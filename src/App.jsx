@@ -48,6 +48,7 @@ const NAV = [
   { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
   { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
   { id: "reports", label: "Rapports", icon: FileText, shortcut: "R", path: "/rapports" },
+  { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres" },
 ];
 
@@ -752,7 +753,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
 
 function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer }) {
   const status = profileStatusLabel(currentMember);
-  const navItems = NAV.filter((item) => item.id !== "settings");
+  const navItems = NAV.filter((item) => item.id !== "settings" && !item.hidden);
   const settingsItem = NAV.find((item) => item.id === "settings");
   const go = (pageId) => {
     setActive(pageId);
@@ -792,7 +793,7 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-orange-200/75">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[58vw] items-center gap-2 rounded-2xl px-0 py-0 text-left transition hover:text-orange-100"><h1 className="truncate text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-5 w-5 shrink-0 text-orange-200" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(88vw,380px)] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition", currentTeam?.id === team.id ?"bg-orange-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-orange-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-orange-100 transition hover:bg-orange-400/10"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && <Button variant="ghost" icon={Settings} onClick={onManageTeam}>Gestion</Button>}</div></header>;
+  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-orange-200/75">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[58vw] items-center gap-2 rounded-2xl px-0 py-0 text-left transition hover:text-orange-100"><h1 className="truncate text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-5 w-5 shrink-0 text-orange-200" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(88vw,380px)] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition", currentTeam?.id === team.id ?"bg-orange-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-orange-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-orange-100 transition hover:bg-orange-400/10"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam}>Gestion</Button>}</div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -1097,7 +1098,7 @@ function multiOpggUrlFromRoster(roster, region) {
   return `https://www.op.gg/multisearch/${String(region || "EUW").toLowerCase()}?summoners=${encodeURIComponent(summoners.join(","))}`;
 }
 
-function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user }) {
+function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false }) {
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
   const [playerForm, setPlayerForm] = useState({ name: "", riotId: "", opggUrl: "", role: "TOP" });
   const [joinCode, setJoinCode] = useState("");
@@ -1105,7 +1106,6 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const [syncingMostPlayed, setSyncingMostPlayed] = useState(false);
   const [syncingPlayerId, setSyncingPlayerId] = useState("");
   const [teamSetupOpen, setTeamSetupOpen] = useState(false);
-  const [managementOpen, setManagementOpen] = useState(false);
   const [riotCooldownUntil, setRiotCooldownUntil] = useState(0);
   const [nowTick, setNowTick] = useState(Date.now());
   const [teamEdit, setTeamEdit] = useState({ name: "", tag: "", avatarDataUrl: "", avatarZoom: 1, avatarX: 50, avatarY: 50 });
@@ -1130,7 +1130,6 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   useEffect(() => {
     const params = new URLSearchParams(routeSearch || window.location.search);
     if (params.get("create") === "1") setTeamSetupOpen(true);
-    if (params.get("gestion") === "1") setManagementOpen(true);
   }, [routeSearch]);
 
   useEffect(() => {
@@ -1443,8 +1442,9 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     }
   }
 
+  if (managementOnly) return <div><PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Modifie l’identité de l’équipe, les accès, les invitations et les liaisons de profils." />{selectedTeam ? <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} /> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}</div>;
+
   return <div><PageHeader eyebrow="Team manager" title={hasTeams ?"Gérer ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ?"La page affiche le roster, les invitations et les analyses de l’équipe active." : "Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation."}>{hasTeams && <Button variant="ghost" icon={teamSetupOpen ?X : Plus} onClick={() => setTeamSetupOpen((open) => !open)}>{teamSetupOpen ?"Masquer création" : "Nouvelle team"}</Button>}</PageHeader>
-    {managementOpen && selectedTeam && <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} />}
     <div className={cx("grid gap-5", hasTeams ?teamSetupOpen && "xl:grid-cols-[.78fr_1.22fr]" : selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
       <div className={cx("space-y-5", hasTeams && !teamSetupOpen && "hidden")}>
         <Surface glow>
@@ -2408,7 +2408,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }
 
   function openTeamManagement() {
-    navigate("/equipes?gestion=1");
+    navigate("/gestion-equipe");
   }
 
   async function refreshAll() {
@@ -2426,6 +2426,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   const page = useMemo(() => {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
+    if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} />;
     if (active === "tournaments") return <TournamentCodes data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
