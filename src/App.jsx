@@ -500,7 +500,7 @@ const LEGAL_PAGES = {
     title: "Politique de confidentialité",
     intro: "Cette page explique quelles données RiftBoard traite et pourquoi. L’objectif est de garder l’outil utile sans exposer inutilement les comptes ou les clés API.",
     sections: [
-      ["Données de compte", "RiftBoard stocke un identifiant privé, un e-mail de récupération, un pseudo public, un mot de passe haché, les sessions de connexion et les informations nécessaires au fonctionnement du compte."],
+      ["Données de compte", "RiftBoard stocke un e-mail de récupération, un pseudo, un mot de passe haché, les sessions de connexion et les informations nécessaires au fonctionnement du compte."],
       ["Données d’équipe", "L’application peut stocker les équipes, rôles, profils joueurs, Riot IDs, liens OP.GG, champion pools, compositions types, rapports de review, codes tournoi et matchs importés."],
       ["Données Riot", "Les appels Riot sont effectués côté serveur. La clé API Riot n’est jamais envoyée au navigateur. Les données de match importées servent uniquement à afficher des statistiques et à lier des reviews."],
       ["Cookies et session", "RiftBoard utilise un cookie HttpOnly pour maintenir la session de connexion. Ce cookie sert à l’authentification et n’est pas destiné au suivi publicitaire."],
@@ -746,7 +746,7 @@ function ResetPasswordPage({ navigate }) {
 
 function AuthPage({ mode, onAuth, pushToast, navigate }) {
   const isRegister = mode === "register";
-  const [form, setForm] = useState({ accountName: "", email: "", displayName: "", password: "" });
+  const [form, setForm] = useState({ email: "", displayName: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const querySuffix = window.location.search || "";
@@ -759,7 +759,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
     setError("");
     try {
       const endpoint = isRegister ?"auth-register" : "auth-login";
-      const body = { accountName: form.accountName, email: form.email, displayName: form.displayName, password: form.password };
+      const body = { accountName: form.email, email: form.email, displayName: form.displayName, password: form.password };
       const result = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(body) });
       pushToast({ type: "green", title: isRegister ?"Compte créé" : "Connexion réussie", text: "Bienvenue sur RiftBoard." });
       const params = new URLSearchParams(window.location.search);
@@ -803,7 +803,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
           </h1>
           <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">
             {isRegister
-              ?"Ajoute ton e-mail de récupération, crée ton identifiant privé, puis lance ton espace équipe."
+              ?"Ajoute ton e-mail, choisis ton pseudo, puis lance ton espace équipe."
               : "Connecte-toi pour retrouver tes teams, tes imports, tes rapports et tes réglages."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -813,15 +813,14 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
 
         <Surface glow className="mx-auto w-full max-w-xl">
           <h2 className="text-3xl font-black text-white">{isRegister ?"Créer un compte" : "Connexion"}</h2>
-          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton e-mail servira à récupérer ton compte. Ton pseudo public reste séparé." : "Entre ton identifiant privé, ton e-mail et ton mot de passe pour accéder au tableau de bord."}</p>
+          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton e-mail sert à te connecter et à récupérer ton compte." : "Entre ton e-mail et ton mot de passe pour accéder au tableau de bord."}</p>
           <div className="mt-5 flex rounded-2xl border border-white/10 bg-black/[0.18] p-1">
             <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Connexion</a>
             <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Créer un compte</a>
           </div>
           <form onSubmit={submit} className="mt-5 space-y-4">
-            <TextInput label={isRegister ?"Identifiant privé" : "Identifiant ou e-mail"} value={form.accountName} onChange={(v) => patch("accountName", v)} placeholder={isRegister ?"Ex : ashaii.compte" : "ashaii.compte ou joueur@exemple.com"} required icon={Users} />
-            {isRegister && <TextInput label="E-mail de récupération" value={form.email} onChange={(v) => patch("email", v)} placeholder="joueur@exemple.com" type="email" required icon={Mail} />}
-            {isRegister && <TextInput label="Pseudo public" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Ashaii Top" required icon={UserPlus} />}
+            <TextInput label="E-mail" value={form.email} onChange={(v) => patch("email", v)} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
+            {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Ashaii Top" required icon={UserPlus} />}
             <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
             {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
             <Button type="submit" disabled={loading} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans RiftBoard"}</Button>
@@ -2462,7 +2461,7 @@ function SettingsPage({ user, onUserUpdate, pushToast }) {
     try {
       const result = await apiFetch("auth-update-profile", { method: "POST", body: JSON.stringify(profileForm) });
       onUserUpdate(result.user);
-      pushToast({ type: "green", title: "Pseudo public mis à jour", text: "Le changement est visible dans ton espace." });
+      pushToast({ type: "green", title: "Compte mis à jour", text: "Le changement est visible dans ton espace." });
     } catch (err) {
       pushToast({ type: "red", title: "Modification impossible", text: err.message });
     } finally {
@@ -2488,7 +2487,7 @@ function SettingsPage({ user, onUserUpdate, pushToast }) {
     }
   }
 
-  return <div><PageHeader eyebrow="Compte" title="Paramètres" subtitle="Gère ce que les autres voient, et garde ton identifiant de connexion séparé." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Compte</h3><p className="mt-2 text-sm leading-6 text-slate-400">L’e-mail sert uniquement à récupérer ton compte. Ton pseudo public reste ce que les autres voient.</p><form onSubmit={saveProfile} className="mt-5 space-y-4"><TextInput label="Identifiant privé" value={user?.account_name || ""} onChange={() => {}} disabled placeholder="Identifiant privé" icon={Lock} /><TextInput label="E-mail de récupération" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} /><TextInput label="Pseudo public" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Pseudo visible" required icon={Users} /><Button type="submit" icon={savingProfile ?Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim()}>{savingProfile ?"Enregistrement..." : "Enregistrer"}</Button></form></Surface><Surface glow><h3 className="text-xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm leading-6 text-slate-400">Le changement vérifie ton mot de passe actuel avant d’accepter le nouveau.</p><form onSubmit={savePassword} className="mt-5 space-y-4"><TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} /><TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} /><TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} /><Button type="submit" icon={savingPassword ?Loader2 : Shield} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ?"Mise à jour..." : "Changer le mot de passe"}</Button></form></Surface><Surface><h3 className="text-xl font-black text-white">Pourquoi les séparer ?</h3><div className="mt-4 space-y-3 text-sm leading-6 text-slate-400"><p><span className="font-black text-white">E-mail.</span> Il sert à recevoir le lien de mot de passe oublié.</p><p><span className="font-black text-white">Identifiant privé.</span> C’est ton nom de connexion. Il reste à toi et ne doit pas servir de pseudo visible.</p><p><span className="font-black text-white">Pseudo public.</span> C’est le nom affiché aux autres joueurs et au staff. Tu peux le changer quand tu veux.</p></div></Surface></div></div>;
+  return <div><PageHeader eyebrow="Compte" title="Paramètres" subtitle="Gère ton e-mail, ton pseudo et ton mot de passe." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Compte</h3><p className="mt-2 text-sm leading-6 text-slate-400">L’e-mail sert à te connecter et à récupérer ton compte. Le pseudo est le nom visible par les autres.</p><form onSubmit={saveProfile} className="mt-5 space-y-4"><TextInput label="E-mail" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} /><TextInput label="Pseudo" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Pseudo visible" required icon={Users} /><Button type="submit" icon={savingProfile ?Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim()}>{savingProfile ?"Enregistrement..." : "Enregistrer"}</Button></form></Surface><Surface glow><h3 className="text-xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm leading-6 text-slate-400">Le changement vérifie ton mot de passe actuel avant d’accepter le nouveau.</p><form onSubmit={savePassword} className="mt-5 space-y-4"><TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} /><TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} /><TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} /><Button type="submit" icon={savingPassword ?Loader2 : Shield} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ?"Mise à jour..." : "Changer le mot de passe"}</Button></form></Surface><Surface><h3 className="text-xl font-black text-white">Récupération</h3><div className="mt-4 space-y-3 text-sm leading-6 text-slate-400"><p><span className="font-black text-white">E-mail.</span> Il reçoit le lien de mot de passe oublié.</p><p><span className="font-black text-white">Pseudo.</span> Il est visible par les autres joueurs et le staff, et tu peux le changer quand tu veux.</p><p><span className="font-black text-white">Mot de passe.</span> Il reste haché côté serveur et n’est jamais affiché.</p></div></Surface></div></div>;
 }
 
 function MissingEmailModal({ user, onUserUpdate, pushToast }) {
