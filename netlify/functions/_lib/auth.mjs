@@ -5,7 +5,7 @@ import { sql } from './db.mjs';
 export const COOKIE_NAME = 'rb_session';
 const SESSION_DAYS = 14;
 
-function sha256(value) {
+export function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
 
@@ -21,11 +21,20 @@ export function normalizeAccountName(accountName) {
   return String(accountName || '').trim().toLowerCase();
 }
 
+export function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+export function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
 export function safeUser(user) {
   if (!user) return null;
   return {
     id: user.id,
     account_name: user.account_name,
+    email: user.email || '',
     name: user.name || user.account_name,
     created_at: user.created_at
   };
@@ -73,6 +82,7 @@ export async function requireAuth(request, context) {
       sessions.id as session_id,
       users.id,
       users.account_name,
+      users.email,
       users.name,
       users.created_at
     from sessions

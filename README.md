@@ -48,10 +48,14 @@ RIOT_API_KEY=RGAPI-...
 SESSION_SECRET=une_phrase_longue_random_64_caracteres_minimum
 APP_ENV=production
 RIOT_PROFILE_SYNC_MAX_MATCHES=300
+PUBLIC_SITE_URL=https://ton-site.netlify.app
+RESEND_API_KEY=re_...
+RESET_EMAIL_FROM=RiftBoard <noreply@ton-domaine.fr>
 ```
 
 `DATABASE_URL` vient de Neon. Prends l'URL poolée si Neon la propose.
 `RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton "Analyser profils" recalcule les champions joués sur la saison courante.
+`RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
 
 Pour générer des codes tournoi directement depuis RiftBoard, ajoute aussi au choix :
 

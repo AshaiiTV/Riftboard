@@ -3,6 +3,7 @@ create extension if not exists pgcrypto;
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   account_name text not null unique,
+  email text,
   name text not null,
   password_hash text not null,
   created_at timestamptz not null default now(),
@@ -16,7 +17,8 @@ set account_name = lower(regexp_replace(coalesce(nullif(name, ''), 'compte') || 
 where account_name is null or account_name = '';
 alter table users alter column account_name set not null;
 create unique index if not exists idx_users_account_name on users(account_name);
-alter table users drop column if exists email;
+alter table users add column if not exists email text;
+create unique index if not exists idx_users_email_lower on users (lower(email)) where email is not null and email <> '';
 
 create table if not exists sessions (
   id uuid primary key default gen_random_uuid(),
@@ -29,6 +31,17 @@ create table if not exists sessions (
   created_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now()
 );
+
+create table if not exists password_reset_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_password_reset_tokens_user on password_reset_tokens(user_id);
 
 create table if not exists teams (
   id uuid primary key default gen_random_uuid(),

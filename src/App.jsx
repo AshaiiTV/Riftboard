@@ -19,6 +19,7 @@ import {
   Loader2,
   Lock,
   LogOut,
+  Mail,
   Menu,
   Pencil,
   Plus,
@@ -58,7 +59,7 @@ const AUTH_ROUTES = {
   "/inscription": "register",
 };
 
-const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/mentions-legales", "/confidentialite", "/conditions"];
+const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/mentions-legales", "/confidentialite", "/conditions"];
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 
 function normalizePath(pathname = "/") {
@@ -499,7 +500,7 @@ const LEGAL_PAGES = {
     title: "Politique de confidentialité",
     intro: "Cette page explique quelles données RiftBoard traite et pourquoi. L’objectif est de garder l’outil utile sans exposer inutilement les comptes ou les clés API.",
     sections: [
-      ["Données de compte", "RiftBoard stocke un identifiant privé, un pseudo public, un mot de passe haché, les sessions de connexion et les informations nécessaires au fonctionnement du compte."],
+      ["Données de compte", "RiftBoard stocke un identifiant privé, un e-mail de récupération, un pseudo public, un mot de passe haché, les sessions de connexion et les informations nécessaires au fonctionnement du compte."],
       ["Données d’équipe", "L’application peut stocker les équipes, rôles, profils joueurs, Riot IDs, liens OP.GG, champion pools, compositions types, rapports de review, codes tournoi et matchs importés."],
       ["Données Riot", "Les appels Riot sont effectués côté serveur. La clé API Riot n’est jamais envoyée au navigateur. Les données de match importées servent uniquement à afficher des statistiques et à lier des reviews."],
       ["Cookies et session", "RiftBoard utilise un cookie HttpOnly pour maintenir la session de connexion. Ce cookie sert à l’authentification et n’est pas destiné au suivi publicitaire."],
@@ -630,6 +631,31 @@ function NotFoundPage({ navigate }) {
 }
 
 function ForgotPasswordPage({ navigate }) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function submit(event) {
+    event.preventDefault();
+    setLoading(true);
+    setMessage("");
+    setError("");
+    try {
+      await apiFetch("auth-request-password-reset", { method: "POST", body: JSON.stringify({ email }) });
+      setMessage("Si cet e-mail correspond à un compte RiftBoard, un lien de réinitialisation vient d’être envoyé. Il expire dans 30 minutes.");
+      setEmail("");
+    } catch (err) {
+      if (err?.code === "EMAIL_NOT_CONFIGURED") {
+        setError("L’envoi d’e-mail n’est pas encore configuré sur Netlify. Ajoute RESEND_API_KEY et RESET_EMAIL_FROM.");
+      } else {
+        setError(err.message || "Demande impossible.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
@@ -642,11 +668,13 @@ function ForgotPasswordPage({ navigate }) {
         <Surface glow className="mx-auto w-full max-w-2xl">
           <Badge tone="yellow">Sécurité du compte</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">Mot de passe oublié</h1>
-          <div className="mt-5 space-y-4 text-base font-semibold leading-8 text-slate-200">
-            <p>Pour l’instant, RiftBoard n’envoie pas d’e-mail et n’a pas encore d’administration globale. Donc il n’y a pas de réinitialisation automatique sécurisée.</p>
-            <p>Je préfère afficher cette limite clairement plutôt que créer un bouton qui permettrait de prendre le contrôle d’un compte avec seulement un pseudo.</p>
-            <p>Si tu connais encore ton mot de passe actuel, connecte-toi puis change-le dans Paramètres. Sinon, il faudra ajouter une vraie vérification plus tard : e-mail, admin global, ou autre preuve forte.</p>
-          </div>
+          <p className="mt-5 text-base font-semibold leading-8 text-slate-200">Entre l’e-mail de ton compte. RiftBoard t’envoie un lien temporaire pour choisir un nouveau mot de passe.</p>
+          <form onSubmit={submit} className="mt-6 space-y-4">
+            <TextInput label="E-mail du compte" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
+            {message && <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-100">{message}</div>}
+            {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
+            <Button type="submit" disabled={loading || !email.trim()} icon={loading ?Loader2 : Mail} className="w-full py-4">{loading ?"Envoi..." : "Envoyer le lien"}</Button>
+          </form>
           <div className="mt-7 flex flex-wrap gap-3">
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Retour connexion</LinkButton>
             <LinkButton href="/creer-un-compte" navigate={navigate} variant="ghost" icon={UserPlus}>Créer un compte</LinkButton>
@@ -658,9 +686,67 @@ function ForgotPasswordPage({ navigate }) {
   );
 }
 
+function ResetPasswordPage({ navigate }) {
+  const token = new URLSearchParams(window.location.search).get("token") || "";
+  const [form, setForm] = useState({ nextPassword: "", confirmPassword: "" });
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(event) {
+    event.preventDefault();
+    setError("");
+    if (form.nextPassword !== form.confirmPassword) {
+      setError("La confirmation ne correspond pas.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await apiFetch("auth-reset-password", { method: "POST", body: JSON.stringify({ token, nextPassword: form.nextPassword }) });
+      setDone(true);
+      setForm({ nextPassword: "", confirmPassword: "" });
+    } catch (err) {
+      setError(err.message || "Réinitialisation impossible.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <AmbientBackground />
+      <SiteHeader navigate={navigate}>
+        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Connexion</LinkButton>
+      </SiteHeader>
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] max-w-4xl items-center px-5 pb-16">
+        <Surface glow className="mx-auto w-full max-w-2xl">
+          <Badge tone="green">Nouveau mot de passe</Badge>
+          <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">Réinitialiser le mot de passe</h1>
+          {!token ? (
+            <div className="mt-6 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm font-bold text-rose-100">Lien invalide : aucun token de réinitialisation.</div>
+          ) : done ? (
+            <div className="mt-6 space-y-4">
+              <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-100">Mot de passe mis à jour. Tu peux te reconnecter.</div>
+              <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Retour connexion</LinkButton>
+            </div>
+          ) : (
+            <form onSubmit={submit} className="mt-6 space-y-4">
+              <TextInput label="Nouveau mot de passe" value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} />
+              <TextInput label="Confirmer" value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
+              {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
+              <Button type="submit" disabled={loading || !form.nextPassword || !form.confirmPassword} icon={loading ?Loader2 : Shield} className="w-full py-4">{loading ?"Mise à jour..." : "Changer le mot de passe"}</Button>
+            </form>
+          )}
+        </Surface>
+      </main>
+      <LegalLinks navigate={navigate} />
+    </div>
+  );
+}
+
 function AuthPage({ mode, onAuth, pushToast, navigate }) {
   const isRegister = mode === "register";
-  const [form, setForm] = useState({ accountName: "", displayName: "", password: "" });
+  const [form, setForm] = useState({ accountName: "", email: "", displayName: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const querySuffix = window.location.search || "";
@@ -673,7 +759,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
     setError("");
     try {
       const endpoint = isRegister ?"auth-register" : "auth-login";
-      const body = { accountName: form.accountName, displayName: form.displayName, password: form.password };
+      const body = { accountName: form.accountName, email: form.email, displayName: form.displayName, password: form.password };
       const result = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(body) });
       pushToast({ type: "green", title: isRegister ?"Compte créé" : "Connexion réussie", text: "Bienvenue sur RiftBoard." });
       const params = new URLSearchParams(window.location.search);
@@ -717,7 +803,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
           </h1>
           <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">
             {isRegister
-              ?"Crée ton identifiant privé, choisis ton pseudo public, puis lance ton espace équipe."
+              ?"Ajoute ton e-mail de récupération, crée ton identifiant privé, puis lance ton espace équipe."
               : "Connecte-toi pour retrouver tes teams, tes imports, tes rapports et tes réglages."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -727,13 +813,14 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
 
         <Surface glow className="mx-auto w-full max-w-xl">
           <h2 className="text-3xl font-black text-white">{isRegister ?"Créer un compte" : "Connexion"}</h2>
-          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton identifiant privé sert à te connecter. Ton pseudo public est visible par les autres." : "Entre ton identifiant privé et ton mot de passe pour accéder au tableau de bord."}</p>
+          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton e-mail servira à récupérer ton compte. Ton pseudo public reste séparé." : "Entre ton identifiant privé, ton e-mail et ton mot de passe pour accéder au tableau de bord."}</p>
           <div className="mt-5 flex rounded-2xl border border-white/10 bg-black/[0.18] p-1">
             <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Connexion</a>
             <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Créer un compte</a>
           </div>
           <form onSubmit={submit} className="mt-5 space-y-4">
-            <TextInput label="Identifiant privé" value={form.accountName} onChange={(v) => patch("accountName", v)} placeholder="Ex : ashaii.compte" required icon={Users} />
+            <TextInput label={isRegister ?"Identifiant privé" : "Identifiant ou e-mail"} value={form.accountName} onChange={(v) => patch("accountName", v)} placeholder={isRegister ?"Ex : ashaii.compte" : "ashaii.compte ou joueur@exemple.com"} required icon={Users} />
+            {isRegister && <TextInput label="E-mail de récupération" value={form.email} onChange={(v) => patch("email", v)} placeholder="joueur@exemple.com" type="email" required icon={Mail} />}
             {isRegister && <TextInput label="Pseudo public" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Ashaii Top" required icon={UserPlus} />}
             <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
             {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
@@ -2360,14 +2447,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 }
 
 function SettingsPage({ user, onUserUpdate, pushToast }) {
-  const [profileForm, setProfileForm] = useState({ name: user?.name || "" });
+  const [profileForm, setProfileForm] = useState({ name: user?.name || "", email: user?.email || "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
-    setProfileForm({ name: user?.name || "" });
-  }, [user?.name]);
+    setProfileForm({ name: user?.name || "", email: user?.email || "" });
+  }, [user?.name, user?.email]);
 
   async function saveProfile(event) {
     event.preventDefault();
@@ -2401,7 +2488,7 @@ function SettingsPage({ user, onUserUpdate, pushToast }) {
     }
   }
 
-  return <div><PageHeader eyebrow="Compte" title="Paramètres" subtitle="Gère ce que les autres voient, et garde ton identifiant de connexion séparé." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Pseudo public</h3><p className="mt-2 text-sm leading-6 text-slate-400">Ce nom est visible dans RiftBoard. Il doit être différent de ton identifiant privé, pour éviter qu’un pseudo public devienne aussi ton indice de connexion.</p><form onSubmit={saveProfile} className="mt-5 space-y-4"><TextInput label="Identifiant privé" value={user?.account_name || ""} onChange={() => {}} disabled placeholder="Identifiant privé" icon={Lock} /><TextInput label="Pseudo public" value={profileForm.name} onChange={(name) => setProfileForm({ name })} placeholder="Pseudo visible" required icon={Users} /><Button type="submit" icon={savingProfile ?Loader2 : Check} disabled={savingProfile || !profileForm.name.trim()}>{savingProfile ?"Enregistrement..." : "Enregistrer"}</Button></form></Surface><Surface glow><h3 className="text-xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm leading-6 text-slate-400">Le changement vérifie ton mot de passe actuel avant d’accepter le nouveau.</p><form onSubmit={savePassword} className="mt-5 space-y-4"><TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} /><TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} /><TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} /><Button type="submit" icon={savingPassword ?Loader2 : Shield} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ?"Mise à jour..." : "Changer le mot de passe"}</Button></form></Surface><Surface><h3 className="text-xl font-black text-white">Pourquoi les séparer ?</h3><div className="mt-4 space-y-3 text-sm leading-6 text-slate-400"><p><span className="font-black text-white">Identifiant privé.</span> C’est ton nom de connexion. Il reste à toi et ne doit pas servir de pseudo visible.</p><p><span className="font-black text-white">Pseudo public.</span> C’est le nom affiché aux autres joueurs et au staff. Tu peux le changer quand tu veux.</p><p><span className="font-black text-white">Séparation obligatoire.</span> Si les deux sont identiques, quelqu’un qui voit ton pseudo connaît déjà une partie de tes identifiants. Les séparer rend ton compte moins devinable.</p></div></Surface></div></div>;
+  return <div><PageHeader eyebrow="Compte" title="Paramètres" subtitle="Gère ce que les autres voient, et garde ton identifiant de connexion séparé." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Compte</h3><p className="mt-2 text-sm leading-6 text-slate-400">L’e-mail sert uniquement à récupérer ton compte. Ton pseudo public reste ce que les autres voient.</p><form onSubmit={saveProfile} className="mt-5 space-y-4"><TextInput label="Identifiant privé" value={user?.account_name || ""} onChange={() => {}} disabled placeholder="Identifiant privé" icon={Lock} /><TextInput label="E-mail de récupération" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} /><TextInput label="Pseudo public" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Pseudo visible" required icon={Users} /><Button type="submit" icon={savingProfile ?Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim()}>{savingProfile ?"Enregistrement..." : "Enregistrer"}</Button></form></Surface><Surface glow><h3 className="text-xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm leading-6 text-slate-400">Le changement vérifie ton mot de passe actuel avant d’accepter le nouveau.</p><form onSubmit={savePassword} className="mt-5 space-y-4"><TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} /><TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} /><TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} /><Button type="submit" icon={savingPassword ?Loader2 : Shield} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ?"Mise à jour..." : "Changer le mot de passe"}</Button></form></Surface><Surface><h3 className="text-xl font-black text-white">Pourquoi les séparer ?</h3><div className="mt-4 space-y-3 text-sm leading-6 text-slate-400"><p><span className="font-black text-white">E-mail.</span> Il sert à recevoir le lien de mot de passe oublié.</p><p><span className="font-black text-white">Identifiant privé.</span> C’est ton nom de connexion. Il reste à toi et ne doit pas servir de pseudo visible.</p><p><span className="font-black text-white">Pseudo public.</span> C’est le nom affiché aux autres joueurs et au staff. Tu peux le changer quand tu veux.</p></div></Surface></div></div>;
 }
 
 function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
@@ -2500,6 +2587,7 @@ export default function RiftBoard() {
       "/creer-un-compte": "Créer un compte — RiftBoard",
       "/inscription": "Créer un compte — RiftBoard",
       "/mot-de-passe-oublie": "Mot de passe oublié — RiftBoard",
+      "/reinitialiser-mot-de-passe": "Réinitialiser le mot de passe — RiftBoard",
       "/mentions-legales": "Mentions légales — RiftBoard",
       "/confidentialite": "Confidentialité — RiftBoard",
       "/conditions": "Conditions — RiftBoard",
@@ -2535,6 +2623,8 @@ export default function RiftBoard() {
       ?<MainApp user={user} onLogout={() => setUser(null)} onUserUpdate={setUser} pushToast={pushToast} navigate={navigate} route={route} />
       : route.path === "/mot-de-passe-oublie"
         ?<ForgotPasswordPage navigate={navigate} />
+      : route.path === "/reinitialiser-mot-de-passe"
+        ?<ResetPasswordPage navigate={navigate} />
       : LEGAL_PAGES[route.path]
         ?<LegalPage route={route} navigate={navigate} />
       : mode

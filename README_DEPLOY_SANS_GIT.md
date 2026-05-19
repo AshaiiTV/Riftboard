@@ -44,7 +44,12 @@ DATABASE_URL=postgresql://...
 RIOT_API_KEY=RGAPI-...
 SESSION_SECRET=une_phrase_longue_random
 APP_ENV=production
+PUBLIC_SITE_URL=https://ton-site.netlify.app
+RESEND_API_KEY=re_...
+RESET_EMAIL_FROM=RiftBoard <noreply@ton-domaine.fr>
 ```
+
+Les trois variables `PUBLIC_SITE_URL`, `RESEND_API_KEY` et `RESET_EMAIL_FROM` servent aux e-mails de mot de passe oublié. Le domaine de l'adresse `RESET_EMAIL_FROM` doit être validé dans Resend.
 
 ## Neon
 
