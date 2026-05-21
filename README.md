@@ -1,4 +1,4 @@
-# RiftBoard — Netlify + Neon
+# NXT5 — Netlify + Neon
 
 Dashboard premium d'analyse LoL pour équipes semi-pro.
 
@@ -21,7 +21,7 @@ npm run dev
 
 ## Passage à GitHub
 
-Lis `README_GIT.md` si tu veux connecter RiftBoard à GitHub puis à Netlify.
+Lis `README_GIT.md` si tu veux connecter NXT5 à GitHub puis à Netlify.
 Le dépôt est préparé pour éviter d'envoyer les secrets (`.env`, clés Riot, URL Neon).
 
 ## Déploiement Netlify
@@ -50,14 +50,14 @@ APP_ENV=production
 RIOT_PROFILE_SYNC_MAX_MATCHES=300
 PUBLIC_SITE_URL=https://ton-site.netlify.app
 RESEND_API_KEY=re_...
-RESET_EMAIL_FROM=RiftBoard <noreply@ton-domaine.fr>
+RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 ```
 
 `DATABASE_URL` vient de Neon. Prends l'URL poolée si Neon la propose.
 `RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton "Analyser profils" recalcule les champions joués sur la saison courante.
 `RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
 
-Pour générer des codes tournoi directement depuis RiftBoard, ajoute aussi au choix :
+Pour générer des codes tournoi directement depuis NXT5, ajoute aussi au choix :
 
 ```txt
 RIOT_TOURNAMENT_ID=...
@@ -67,7 +67,7 @@ ou :
 
 ```txt
 RIOT_TOURNAMENT_CALLBACK_URL=https://ton-site.netlify.app/.netlify/functions/riot-tournament-callback
-RIOT_TOURNAMENT_NAME=RiftBoard Scrims
+RIOT_TOURNAMENT_NAME=NXT5 Scrims
 ```
 
 Sans ces variables Tournament-V5, la page Codes Tournoi fonctionne quand même en ajout manuel de codes.
@@ -97,4 +97,4 @@ Le front ne stocke aucune donnée métier en localStorage. Les données importan
 
 ## Connexion à la base de données
 
-Pour créer un compte, Netlify doit avoir la variable d’environnement `DATABASE_URL`, et le fichier `database/schema.sql` doit avoir été exécuté dans Neon. Sans ça, RiftBoard ne stocke rien en local et l’inscription restera désactivée.
+Pour créer un compte, Netlify doit avoir la variable d’environnement `DATABASE_URL`, et le fichier `database/schema.sql` doit avoir été exécuté dans Neon. Sans ça, NXT5 ne stocke rien en local et l’inscription restera désactivée.

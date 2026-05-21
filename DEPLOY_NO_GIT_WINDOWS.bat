@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 echo.
 echo ========================================
-echo   RiftBoard - Deploy Netlify SANS GIT
+echo   NXT5 - Deploy Netlify SANS GIT
  echo ========================================
 echo.
 

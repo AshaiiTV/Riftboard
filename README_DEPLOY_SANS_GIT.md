@@ -1,11 +1,11 @@
-# RiftBoard — Déploiement Netlify sans Git
+# NXT5 — Déploiement Netlify sans Git
 
 Tu n'as pas besoin de GitHub.
 
 ## Méthode Windows simple
 
 1. Dézippe le dossier.
-2. Ouvre le dossier `riftboard-netlify`.
+2. Ouvre le dossier `nxt5-netlify`.
 3. Double-clique sur :
 
 ```txt
@@ -46,7 +46,7 @@ SESSION_SECRET=une_phrase_longue_random
 APP_ENV=production
 PUBLIC_SITE_URL=https://ton-site.netlify.app
 RESEND_API_KEY=re_...
-RESET_EMAIL_FROM=RiftBoard <noreply@ton-domaine.fr>
+RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 ```
 
 Les trois variables `PUBLIC_SITE_URL`, `RESEND_API_KEY` et `RESET_EMAIL_FROM` servent aux e-mails de mot de passe oublié. Le domaine de l'adresse `RESET_EMAIL_FROM` doit être validé dans Resend.
@@ -61,7 +61,7 @@ database/schema.sql
 
 ## Important
 
-Le drag & drop Netlify n'est pas adapté pour cette version complète, parce que RiftBoard utilise :
+Le drag & drop Netlify n'est pas adapté pour cette version complète, parce que NXT5 utilise :
 
 ```txt
 - React/Vite à build
@@ -112,4 +112,4 @@ Si le formulaire affiche que la création de compte n’est pas encore active, c
 4. Relance un déploiement Netlify.
 5. Dans Neon, exécute `database/schema.sql` une fois.
 
-Sans `DATABASE_URL`, le site ne peut pas créer de compte, car RiftBoard ne stocke rien en local.
+Sans `DATABASE_URL`, le site ne peut pas créer de compte, car NXT5 ne stocke rien en local.

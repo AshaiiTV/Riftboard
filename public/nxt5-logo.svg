@@ -1,0 +1,31 @@
+<svg width="1180" height="320" viewBox="0 0 1180 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nxt5-word" x1="350" y1="64" x2="860" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.34" stop-color="#FFE0A6"/>
+      <stop offset="0.7" stop-color="#FF7A21"/>
+      <stop offset="1" stop-color="#8EFFF0"/>
+    </linearGradient>
+    <linearGradient id="nxt5-line" x1="367" y1="214" x2="936" y2="182" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7A21"/>
+      <stop offset="0.54" stop-color="#EF2F75"/>
+      <stop offset="1" stop-color="#1FE2C8"/>
+    </linearGradient>
+    <filter id="nxt5-word-glow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="11" stdDeviation="13" flood-color="#02030A" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#FF6A1F" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+  <image href="/nxt5-mark.svg" x="28" y="18" width="284" height="284"/>
+  <g filter="url(#nxt5-word-glow)">
+    <text x="350" y="191"
+      font-family="Arial Black, Inter, Arial, sans-serif"
+      font-size="126" font-weight="900" letter-spacing="-10"
+      fill="url(#nxt5-word)">NXT5</text>
+    <text x="360" y="242"
+      font-family="Inter, Arial, sans-serif"
+      font-size="30" font-weight="800" letter-spacing="1"
+      fill="#F8D7B2">Team tools for the next five.</text>
+  </g>
+  <path d="M370 216C498 237 642 232 764 204C830 189 901 184 974 198" stroke="url(#nxt5-line)" stroke-width="8" stroke-linecap="round" stroke-opacity="0.72"/>
+</svg>

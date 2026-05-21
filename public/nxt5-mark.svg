@@ -1,0 +1,39 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nxt5-shell" x1="91" y1="77" x2="433" y2="437" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF4DB"/>
+      <stop offset="0.25" stop-color="#FFB347"/>
+      <stop offset="0.57" stop-color="#FF5A1F"/>
+      <stop offset="0.82" stop-color="#EF2F75"/>
+      <stop offset="1" stop-color="#1FE2C8"/>
+    </linearGradient>
+    <linearGradient id="nxt5-type" x1="150" y1="152" x2="356" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.44" stop-color="#FFE0A6"/>
+      <stop offset="1" stop-color="#8EFFF0"/>
+    </linearGradient>
+    <radialGradient id="nxt5-core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(244 229) rotate(75) scale(236 246)">
+      <stop stop-color="#1D243A"/>
+      <stop offset="0.56" stop-color="#090D1A"/>
+      <stop offset="1" stop-color="#03040A"/>
+    </radialGradient>
+    <filter id="nxt5-glow" x="-28%" y="-28%" width="156%" height="156%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#02030A" flood-opacity="0.62"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="24" flood-color="#FF6A1F" flood-opacity="0.45"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="13" flood-color="#1FE2C8" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <path d="M66 286C45 202 88 111 171 76C253 41 361 66 418 143C476 220 468 334 394 401C321 468 204 470 127 411C86 380 77 331 66 286Z" fill="url(#nxt5-shell)" filter="url(#nxt5-glow)"/>
+  <path d="M99 278C84 215 117 145 180 118C244 90 327 110 373 171C418 232 411 323 352 376C294 428 202 430 141 384C109 359 106 313 99 278Z" fill="url(#nxt5-core)"/>
+  <path d="M112 193C152 132 223 107 291 119C351 129 393 169 410 220" stroke="#FFF4DB" stroke-width="14" stroke-linecap="round" stroke-opacity="0.28"/>
+  <path d="M87 327C139 359 211 360 278 325C336 294 380 284 432 301" stroke="#FF7A21" stroke-width="18" stroke-linecap="round" stroke-opacity="0.9"/>
+  <path d="M121 359C192 395 286 383 368 316" stroke="#1FE2C8" stroke-width="10" stroke-linecap="round" stroke-opacity="0.72"/>
+  <path d="M381 101L424 91L404 128L451 135L409 157L426 198L387 176L358 218L362 169L317 151L363 140L381 101Z" fill="#FFF4DB" fill-opacity="0.95"/>
+  <g transform="skewX(-10)">
+    <text x="286" y="329" text-anchor="middle"
+      font-family="Arial Black, Inter, Arial, sans-serif"
+      font-size="178" font-weight="900" letter-spacing="-24"
+      fill="url(#nxt5-type)">N5</text>
+  </g>
+  <path d="M166 235C216 204 280 203 334 233" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-opacity="0.14"/>
+</svg>

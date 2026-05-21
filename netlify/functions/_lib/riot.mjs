@@ -141,7 +141,7 @@ export async function createTournamentProvider({ platform = 'EUW1', callbackUrl 
   });
 }
 
-export async function createTournament({ providerId, platform = 'EUW1', name = process.env.RIOT_TOURNAMENT_NAME || 'RiftBoard Scrims' } = {}) {
+export async function createTournament({ providerId, platform = 'EUW1', name = process.env.RIOT_TOURNAMENT_NAME || 'NXT5 Scrims' } = {}) {
   if (!providerId) throw Object.assign(new Error('Provider Riot manquant.'), { status: 400 });
   const host = platformFromRegion(platform).toLowerCase();
   const url = `https://${host}.api.riotgames.com/lol/tournament/v5/tournaments`;

@@ -1,4 +1,4 @@
-# RiftBoard - Passage a GitHub
+# NXT5 - Passage a GitHub
 
 Ce dossier peut etre suivi par Git sans ajouter les fichiers sensibles.
 
@@ -10,14 +10,14 @@ Ce dossier peut etre suivi par Git sans ajouter les fichiers sensibles.
 4. Selectionne ce dossier :
 
 ```txt
-C:\Users\sacha\Documents\Codex\2026-04-26\files-mentioned-by-the-user-riftboard\riftboard-homepage-logo-v21-fast-deploy
+C:\Users\sacha\Documents\Codex\NXT5
 ```
 
 5. Si GitHub Desktop propose de creer un repository, accepte.
 6. Fais le premier commit avec le message :
 
 ```txt
-Initial RiftBoard Netlify app
+Initial NXT5 Netlify app
 ```
 
 7. Clique sur `Publish repository`.
@@ -31,8 +31,8 @@ Depuis ce dossier :
 git init
 git branch -M main
 git add .
-git commit -m "Initial RiftBoard Netlify app"
-git remote add origin https://github.com/TON_COMPTE/riftboard.git
+git commit -m "Initial NXT5 Netlify app"
+git remote add origin https://github.com/TON_COMPTE/nxt5.git
 git push -u origin main
 ```
 
@@ -65,7 +65,7 @@ APP_ENV=production
 Une fois le depot publie :
 
 1. Va sur Netlify.
-2. Ouvre ton site RiftBoard.
+2. Ouvre ton site NXT5.
 3. Va dans `Site configuration > Build & deploy`.
 4. Connecte le site au repository GitHub.
 5. Verifie les reglages :

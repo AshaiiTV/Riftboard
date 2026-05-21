@@ -4,7 +4,7 @@ chcp 65001 >nul
 
 echo.
 echo ========================================
-echo   RiftBoard - Initialisation Git
+echo   NXT5 - Initialisation Git
 echo ========================================
 echo.
 
@@ -33,7 +33,7 @@ git branch -M main
 git add .
 if %ERRORLEVEL% NEQ 0 goto error
 
-git commit -m "Initial RiftBoard Netlify app"
+git commit -m "Initial NXT5 Netlify app"
 if %ERRORLEVEL% NEQ 0 goto error
 
 echo.
@@ -44,7 +44,7 @@ echo 1. Cree un repo vide sur GitHub.
 echo 2. Copie l'URL HTTPS du repo.
 echo 3. Lance :
 echo.
-echo    git remote add origin https://github.com/TON_COMPTE/riftboard.git
+echo    git remote add origin https://github.com/TON_COMPTE/nxt5.git
 echo    git push -u origin main
 echo.
 pause

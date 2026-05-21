@@ -41,7 +41,7 @@ export default async function handler(request, context) {
     let code = cleanTournamentText(body.code, 128).toUpperCase();
     let sourceAction = 'tournament_codes.create';
     if (action === 'generate') {
-      const generated = await createTournamentCode({ platform, metadata: JSON.stringify({ teamId, label, opponent, app: 'RiftBoard' }) });
+      const generated = await createTournamentCode({ platform, metadata: JSON.stringify({ teamId, label, opponent, app: 'NXT5' }) });
       code = String(Array.isArray(generated) ? generated[0] : generated || '').trim().toUpperCase();
       sourceAction = 'tournament_codes.generate';
     }

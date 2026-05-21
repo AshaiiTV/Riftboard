@@ -12,7 +12,7 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
   }
 
   const from = process.env.RESET_EMAIL_FROM;
-  const subject = 'Réinitialisation de ton mot de passe RiftBoard';
+  const subject = 'Réinitialisation de ton mot de passe NXT5';
   const safeName = name || 'joueur';
   const htmlName = escapeHtml(safeName);
   const htmlResetUrl = escapeHtml(resetUrl);
@@ -27,10 +27,10 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
       from,
       to,
       subject,
-      text: `Salut ${safeName},\n\nTu as demandé à réinitialiser ton mot de passe RiftBoard.\n\nOuvre ce lien dans les 30 prochaines minutes :\n${resetUrl}\n\nSi tu n'es pas à l'origine de cette demande, ignore simplement cet e-mail.`,
+      text: `Salut ${safeName},\n\nTu as demandé à réinitialiser ton mot de passe NXT5.\n\nOuvre ce lien dans les 30 prochaines minutes :\n${resetUrl}\n\nSi tu n'es pas à l'origine de cette demande, ignore simplement cet e-mail.`,
       html: `
         <div style="font-family:Inter,Arial,sans-serif;background:#070a13;color:#f8fafc;padding:32px;border-radius:18px">
-          <h1 style="margin:0 0 14px;font-size:24px">Réinitialisation RiftBoard</h1>
+          <h1 style="margin:0 0 14px;font-size:24px">Réinitialisation NXT5</h1>
           <p>Salut ${htmlName},</p>
           <p>Tu as demandé à réinitialiser ton mot de passe.</p>
           <p><a href="${htmlResetUrl}" style="display:inline-block;background:#f97316;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:800">Changer mon mot de passe</a></p>
