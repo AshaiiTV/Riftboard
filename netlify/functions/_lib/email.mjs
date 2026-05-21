@@ -33,7 +33,7 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
           <h1 style="margin:0 0 14px;font-size:24px">Réinitialisation NXT5</h1>
           <p>Salut ${htmlName},</p>
           <p>Tu as demandé à réinitialiser ton mot de passe.</p>
-          <p><a href="${htmlResetUrl}" style="display:inline-block;background:#f97316;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:800">Changer mon mot de passe</a></p>
+          <p><a href="${htmlResetUrl}" style="display:inline-block;background:#00d8ff;color:#020511;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:800">Changer mon mot de passe</a></p>
           <p style="color:#94a3b8;font-size:13px">Ce lien expire dans 30 minutes. Si tu n'es pas à l'origine de cette demande, ignore cet e-mail.</p>
         </div>
       `

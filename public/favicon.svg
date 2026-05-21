@@ -1,30 +1,23 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="ring" x1="70" y1="66" x2="447" y2="444" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFF5D8"/>
-      <stop offset="0.18" stop-color="#FF8A13"/>
-      <stop offset="0.53" stop-color="#FF3D00"/>
-      <stop offset="0.78" stop-color="#F000FF"/>
-      <stop offset="1" stop-color="#00F0FF"/>
-    </linearGradient>
-    <linearGradient id="letters" x1="150" y1="152" x2="356" y2="370" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="0.42" stop-color="#FFE2A1"/>
-      <stop offset="1" stop-color="#7AFCFF"/>
+    <linearGradient id="five" x1="136" y1="78" x2="380" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00F2FF"/>
+      <stop offset="0.44" stop-color="#1979FF"/>
+      <stop offset="0.72" stop-color="#D300FF"/>
+      <stop offset="1" stop-color="#FF3CC9"/>
     </linearGradient>
     <filter id="glow" x="-28%" y="-28%" width="156%" height="156%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#02030A" flood-opacity="0.72"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="20" flood-color="#FF5E00" flood-opacity="0.62"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="15" flood-color="#00D8FF" flood-opacity="0.62"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#D900FF" flood-opacity="0.52"/>
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#00030B" flood-opacity="0.82"/>
     </filter>
   </defs>
-  <path d="M88 72H339L453 182L414 424H165L61 320L88 72Z" fill="url(#ring)" filter="url(#glow)"/>
-  <path d="M121 111H322L407 194L378 383H180L105 304L121 111Z" fill="#070A14"/>
-  <path d="M104 330L255 284L442 307" stroke="#FF650E" stroke-width="20" stroke-linecap="square"/>
-  <path d="M122 371L277 326L382 338" stroke="#00ECFF" stroke-width="10" stroke-linecap="square"/>
-  <g transform="skewX(-10)">
-    <text x="286" y="329" text-anchor="middle"
-      font-family="Arial Black, Inter, Arial, sans-serif"
-      font-size="178" font-weight="900"
-      fill="url(#letters)">N5</text>
+  <rect width="512" height="512" rx="76" fill="#020511"/>
+  <path d="M94 220C112 122 181 68 276 68C344 68 396 96 424 142" stroke="#00D8FF" stroke-width="12" stroke-linecap="square" opacity="0.82"/>
+  <path d="M418 292C394 384 328 436 236 436C166 436 112 404 84 350" stroke="#D900FF" stroke-width="12" stroke-linecap="square" opacity="0.82"/>
+  <g filter="url(#glow)">
+    <path d="M178 86H394L360 154H238L228 206H328L390 260L358 370L290 420H116L150 348H278L298 332L310 286H204L160 238L178 86Z" fill="url(#five)" stroke="#84F6FF" stroke-width="7"/>
+    <path d="M204 110L356 72" stroke="#00E5FF" stroke-width="5" stroke-linecap="square"/>
+    <path d="M282 422L390 390" stroke="#FF3CC9" stroke-width="5" stroke-linecap="square"/>
   </g>
 </svg>
