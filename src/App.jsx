@@ -30,6 +30,7 @@ import {
   Shield,
   Sparkles,
   Swords,
+  CalendarDays,
   Target,
   Trash2,
   Trophy,
@@ -48,6 +49,7 @@ const NAV = [
   { id: "matches", label: "Reviews", icon: Swords, shortcut: "M", path: "/reviews" },
   { id: "tournaments", label: "Codes Tournoi", icon: Trophy, shortcut: "O", path: "/codes-tournoi" },
   { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
+  { id: "planning", label: "Planning", icon: CalendarDays, shortcut: "L", path: "/planning" },
   { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
   { id: "reports", label: "Rapports", icon: FileText, shortcut: "R", path: "/rapports" },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
@@ -63,6 +65,16 @@ const AUTH_ROUTES = {
 const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/mentions-legales", "/confidentialite", "/conditions"];
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
+const PLANNING_DAYS = [
+  ["MON", "Lun"],
+  ["TUE", "Mar"],
+  ["WED", "Mer"],
+  ["THU", "Jeu"],
+  ["FRI", "Ven"],
+  ["SAT", "Sam"],
+  ["SUN", "Dim"],
+];
+const PLANNING_TIMES = ["18:00", "19:00", "20:00", "21:00", "22:00", "23:00"];
 
 function normalizePath(pathname = "/") {
   if (!pathname || pathname === "/") return "/";
@@ -109,6 +121,7 @@ const DEFAULT_DATA = {
   teams: [],
   teamMembers: [],
   players: [],
+  availability: [],
   matches: [],
   championPool: [],
   compositions: [],
@@ -893,7 +906,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
         <div className={cx("mb-6 flex items-center", collapsed ?"justify-center" : "justify-between")}>
-          <div className="flex items-center gap-3"><img src="/assets/nxt5-logo.png" alt="NXT5" className={cx("h-12 object-contain object-left drop-shadow-[0_0_24px_rgba(34,211,238,.32)]", collapsed ?"w-14" : "w-36")} /><div className={cx("transition lg:block", collapsed && "lg:hidden")}><p className="nxt5-wordmark text-[0.76rem] uppercase">Next Five</p></div></div>
+          <div className="flex items-center gap-3"><img src="/assets/nxt5-logo.png" alt="NXT5" className={cx("h-16 object-contain object-left drop-shadow-[0_0_24px_rgba(34,211,238,.32)]", collapsed ?"w-16" : "w-48")} /><div className={cx("transition lg:block", collapsed && "lg:hidden")}><p className="nxt5-wordmark text-[0.76rem] uppercase">Next Five</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-lg shadow-cyan-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
@@ -2218,6 +2231,14 @@ function jsonList(value) {
   return [];
 }
 
+function availabilitySlots(value) {
+  if (!value) return {};
+  if (typeof value === "string") {
+    try { return JSON.parse(value) || {}; } catch { return {}; }
+  }
+  return typeof value === "object" ? value : {};
+}
+
 function compositionMastery(slots, rows) {
   const picked = Object.values(compositionSlots(slots)).map((slot) => rows.find((row) => row.id === slot.poolId)).filter(Boolean);
   if (!picked.length) return { label: "À remplir", tone: "slate", score: 0 };
@@ -2309,6 +2330,195 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 
   const mastery = compositionMastery(form.slots, rows);
   return <div><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate de la maîtrise poste par poste." />{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><h3 className="text-2xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Chaque slot pioche dans le Pool dynamique du joueur du poste.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[1fr_1.4fr]"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><TextInput label="Note" value={form.notes} onChange={(notes) => setForm((current) => ({ ...current, notes }))} placeholder="Plan, condition de fight, bans à protéger..." icon={Clipboard} /></div><div className="mt-4 flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-500 hover:text-white")}>{tagLabel(tag)}</button>)}</div><div className="mt-5 grid gap-2 xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canManage || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 grid gap-3">{compositions.length ? compositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={canManage} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
+}
+
+function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
+  const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
+  const availability = (data.availability || []).filter((item) => item.team_id === selectedTeamId);
+  const canManageAll = ["owner", "captain", "coach"].includes(String(currentMember?.role || "").toLowerCase());
+  const linkedPlayer = players.find((player) => player.user_id && player.user_id === user?.id);
+  const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [draftSlots, setDraftSlots] = useState({});
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fallback = canManageAll ? players[0]?.id : linkedPlayer?.id || players[0]?.id;
+    if (!selectedPlayerId || !players.some((player) => player.id === selectedPlayerId)) setSelectedPlayerId(fallback || "");
+  }, [canManageAll, linkedPlayer?.id, players.map((player) => player.id).join("|"), selectedPlayerId]);
+
+  const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || null;
+  const selectedAvailability = availability.find((item) => item.player_id === selectedPlayerId) || null;
+  const canEditSelected = Boolean(selectedPlayer && (canManageAll || selectedPlayer.user_id === user?.id));
+
+  useEffect(() => {
+    setDraftSlots(availabilitySlots(selectedAvailability?.slots));
+    setNotes(selectedAvailability?.notes || "");
+  }, [selectedAvailability?.id, selectedAvailability?.updated_at, selectedPlayerId]);
+
+  function slotList(playerId, day) {
+    const row = availability.find((item) => item.player_id === playerId);
+    return availabilitySlots(row?.slots)[day] || [];
+  }
+
+  function toggleSlot(day, time) {
+    if (!canEditSelected) return;
+    setDraftSlots((current) => {
+      const list = Array.isArray(current[day]) ? current[day] : [];
+      const nextList = list.includes(time) ? list.filter((item) => item !== time) : [...list, time].sort();
+      return { ...current, [day]: nextList };
+    });
+  }
+
+  async function saveAvailability() {
+    if (!selectedPlayer || !selectedTeamId || !canEditSelected) return;
+    setSaving(true);
+    try {
+      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, slots: draftSlots, notes }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Planning mis à jour", text: "Les dispos du profil sont enregistrées." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const totalPlayers = players.length || 1;
+  const bestCells = PLANNING_DAYS.flatMap(([day]) => PLANNING_TIMES.map((time) => ({
+    day,
+    time,
+    count: players.filter((player) => slotList(player.id, day).includes(time)).length,
+  }))).sort((a, b) => b.count - a.count).slice(0, 3);
+
+  if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
+  if (!players.length) return <EmptyState icon={Users} title="Aucun profil joueur" text="Ajoute des profils joueurs pour construire le planning de team." />;
+
+  return (
+    <div>
+      <PageHeader eyebrow="Organisation" title="Planning" subtitle="Chaque joueur renseigne ses dispos, puis la vue globale montre immédiatement les créneaux jouables pour l’équipe.">
+        {bestCells[0]?.count > 0 && <Badge tone="cyan">Meilleur créneau : {bestCells[0].count}/{players.length}</Badge>}
+      </PageHeader>
+
+      <div className="grid gap-5 xl:grid-cols-[0.9fr_1.45fr]">
+        <div className="space-y-5">
+          <Surface glow>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-2xl font-black text-white">Profils</h3>
+                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">Sélectionne un profil pour consulter ou modifier ses disponibilités.</p>
+              </div>
+              <Badge tone={canManageAll ? "purple" : "slate"}>{canManageAll ? "Staff" : "Joueur"}</Badge>
+            </div>
+            <div className="mt-5 grid gap-2">
+              {players.map((player) => {
+                const selected = player.id === selectedPlayerId;
+                const filled = PLANNING_DAYS.reduce((sum, [day]) => sum + slotList(player.id, day).length, 0);
+                return (
+                  <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("flex items-center justify-between gap-3 rounded-2xl border p-3 text-left transition", selected ? "border-cyan-300/35 bg-cyan-400/10 text-white shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/18 hover:bg-white/[0.06] hover:text-white")}>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <RoleIcon role={player.role} className="h-6 w-6 shrink-0" />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-black">{player.name}</span>
+                        <span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-500">{roleLabel(player.role)}{player.user_id === user?.id ? " · Moi" : ""}</span>
+                      </span>
+                    </span>
+                    <Badge tone={filled ? "cyan" : "slate"}>{filled} slots</Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </Surface>
+
+          <Surface>
+            <h3 className="text-xl font-black text-white">Créneaux forts</h3>
+            <div className="mt-4 grid gap-2">
+              {bestCells.map((cell) => (
+                <div key={`${cell.day}-${cell.time}`} className={cx("flex items-center justify-between rounded-2xl border p-3", cell.count === players.length ? tone("green") : cell.count > 0 ? tone("cyan") : tone("slate"))}>
+                  <span className="font-black">{PLANNING_DAYS.find(([day]) => day === cell.day)?.[1]} · {cell.time}</span>
+                  <span className="text-sm font-black">{cell.count}/{players.length}</span>
+                </div>
+              ))}
+            </div>
+          </Surface>
+        </div>
+
+        <div className="space-y-5">
+          <Surface glow className="p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-white">{selectedPlayer?.name || "Profil"}</h3>
+                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">{canEditSelected ? "Clique sur les slots pour activer ou retirer une disponibilité." : "Lecture seule : seul le joueur, le capitaine ou le coach peut modifier ce profil."}</p>
+              </div>
+              {selectedPlayer && <Badge tone="blue">{roleLabel(selectedPlayer.role)}</Badge>}
+            </div>
+            <div className="mt-5 overflow-x-auto pb-2">
+              <div className="min-w-[760px]">
+                <div className="grid grid-cols-[5.5rem_repeat(7,minmax(5.5rem,1fr))] gap-2">
+                  <div />
+                  {PLANNING_DAYS.map(([day, label]) => <div key={day} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-300">{label}</div>)}
+                  {PLANNING_TIMES.map((time) => (
+                    <React.Fragment key={time}>
+                      <div className="flex items-center rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm font-black text-white">{time}</div>
+                      {PLANNING_DAYS.map(([day]) => {
+                        const activeSlot = (draftSlots[day] || []).includes(time);
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} className={cx("min-h-12 rounded-xl border text-xs font-black transition", activeSlot ? "border-cyan-200/45 bg-cyan-300/18 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-600 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}>{activeSlot ? "DISPO" : "OFF"}</button>;
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="mt-5">
+              <TextAreaInput label="Note" value={notes} onChange={setNotes} placeholder="Ex: dispo après 20h30, pas le vendredi cette semaine..." rows={3} icon={Clipboard} />
+            </div>
+            <div className="mt-5 flex justify-end">
+              <Button type="button" icon={saving ? Loader2 : Check} disabled={!canEditSelected || saving} onClick={saveAvailability}>{saving ? "Enregistrement..." : "Enregistrer les dispos"}</Button>
+            </div>
+          </Surface>
+
+          <Surface>
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-white">Planning général</h3>
+                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">Vue team complète : plus la case brille, plus le créneau est bon.</p>
+              </div>
+              <Badge tone="purple">{players.length} profils</Badge>
+            </div>
+            <div className="mt-5 overflow-x-auto pb-2">
+              <div className="min-w-[860px]">
+                <div className="grid grid-cols-[5.5rem_repeat(7,minmax(6.2rem,1fr))] gap-2">
+                  <div />
+                  {PLANNING_DAYS.map(([day, label]) => <div key={day} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-300">{label}</div>)}
+                  {PLANNING_TIMES.map((time) => (
+                    <React.Fragment key={time}>
+                      <div className="flex items-center rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm font-black text-white">{time}</div>
+                      {PLANNING_DAYS.map(([day]) => {
+                        const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
+                        const ratio = availablePlayers.length / totalPlayers;
+                        const cellTone = availablePlayers.length === players.length ? "border-emerald-200/35 bg-emerald-400/14 text-emerald-50" : ratio >= 0.6 ? "border-cyan-200/35 bg-cyan-400/12 text-cyan-50" : availablePlayers.length ? "border-violet-200/25 bg-violet-400/10 text-violet-50" : "border-white/10 bg-white/[0.025] text-slate-600";
+                        return (
+                          <div key={`${day}-${time}`} className={cx("min-h-[4.4rem] rounded-xl border p-2", cellTone)}>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-black">{availablePlayers.length}/{players.length}</span>
+                              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/30"><span className="block h-full rounded-full bg-current" style={{ width: `${Math.round(ratio * 100)}%` }} /></span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {availablePlayers.map((player) => <span key={player.id} title={player.name} className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-black/25"><RoleIcon role={player.role} className="h-4 w-4" /></span>)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Surface>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function DraftPickCard({ pick, label }) {
@@ -2617,6 +2827,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} />;
     if (active === "tournaments") return <TournamentCodes data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
+    if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "settings") return <SettingsPage user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
@@ -2702,14 +2913,14 @@ export default function NXT5() {
   const unknownRoute = !isKnownPath(route.path);
   const view = unknownRoute
     ?<NotFoundPage navigate={navigate} />
+      : LEGAL_PAGES[route.path]
+      ?<LegalPage route={route} navigate={navigate} />
       : user
       ?<MainApp user={user} onLogout={() => setUser(null)} onUserUpdate={setUser} pushToast={pushToast} navigate={navigate} route={route} />
       : route.path === "/mot-de-passe-oublie"
         ?<ForgotPasswordPage navigate={navigate} />
       : route.path === "/reinitialiser-mot-de-passe"
         ?<ResetPasswordPage navigate={navigate} />
-      : LEGAL_PAGES[route.path]
-        ?<LegalPage route={route} navigate={navigate} />
       : mode
         ?<AuthPage mode={mode} onAuth={handleAuth} pushToast={pushToast} navigate={navigate} />
         : routeIsPrivate

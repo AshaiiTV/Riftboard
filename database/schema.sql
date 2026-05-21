@@ -223,6 +223,18 @@ create table if not exists tournament_codes (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists player_availability (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  player_id uuid not null references players(id) on delete cascade,
+  slots jsonb not null default '{}'::jsonb,
+  notes text,
+  updated_by uuid references users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(team_id, player_id)
+);
+
 create table if not exists audit_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete set null,
@@ -255,6 +267,7 @@ alter table composition_types add column if not exists tags jsonb not null defau
 create index if not exists idx_composition_types_team on composition_types(team_id, created_at desc);
 create index if not exists idx_tournament_codes_team on tournament_codes(team_id, created_at desc);
 create unique index if not exists idx_tournament_codes_team_code on tournament_codes(team_id, code);
+create index if not exists idx_player_availability_team on player_availability(team_id);
 
 create or replace function set_updated_at()
 returns trigger as $$
@@ -278,6 +291,10 @@ for each row execute function set_updated_at();
 
 drop trigger if exists trg_composition_types_updated_at on composition_types;
 create trigger trg_composition_types_updated_at before update on composition_types
+for each row execute function set_updated_at();
+
+drop trigger if exists trg_player_availability_updated_at on player_availability;
+create trigger trg_player_availability_updated_at before update on player_availability
 for each row execute function set_updated_at();
 
 drop trigger if exists trg_reports_updated_at on reports;

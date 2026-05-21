@@ -37,6 +37,20 @@ async function loadTournamentCodes(teamIds) {
   }
 }
 
+async function loadAvailability(teamIds) {
+  try {
+    return await sql`
+      select player_availability.*
+      from player_availability
+      where player_availability.team_id = any(${teamIds})
+      order by player_availability.updated_at desc
+    `;
+  } catch (err) {
+    if (err?.code === '42P01') return [];
+    throw err;
+  }
+}
+
 export default async function handler(request, context) {
   try {
     const user = await requireAuth(request, context);
@@ -50,7 +64,7 @@ export default async function handler(request, context) {
     const teamIds = teams.map((t) => t.id);
 
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], tournamentCodes: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], tournamentCodes: [], availability: [] });
     }
 
     const [
@@ -61,7 +75,8 @@ export default async function handler(request, context) {
       improvements,
       compositions,
       reports,
-      tournamentCodes
+      tournamentCodes,
+      availability
     ] = await Promise.all([
       sql`select * from players where team_id = any(${teamIds}) order by created_at asc`,
       sql`
@@ -86,7 +101,8 @@ export default async function handler(request, context) {
         order by reports.created_at desc
         limit 50
       `,
-      loadTournamentCodes(teamIds)
+      loadTournamentCodes(teamIds),
+      loadAvailability(teamIds)
     ]);
     const matchIds = matches.map((m) => m.id);
     const participants = matchIds.length ? await sql`select * from match_participants where match_id = any(${matchIds}) order by team_key asc, role asc` : [];
@@ -99,7 +115,7 @@ export default async function handler(request, context) {
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, tournamentCodes });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, tournamentCodes, availability });
   } catch (err) {
     return handleError(err);
   }
