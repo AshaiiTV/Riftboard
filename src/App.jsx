@@ -157,15 +157,15 @@ function cx(...classes) {
 
 function tone(t) {
   return {
-    slate: "border-white/10 bg-white/[0.045] text-slate-200",
-    cyan: "border-cyan-300/25 bg-cyan-400/10 text-cyan-100 shadow-cyan-500/10",
-    purple: "border-violet-300/25 bg-violet-500/10 text-violet-100 shadow-violet-500/10",
-    pink: "border-fuchsia-300/25 bg-fuchsia-500/10 text-fuchsia-100 shadow-fuchsia-500/10",
-    orange: "border-orange-300/30 bg-orange-500/12 text-orange-100 shadow-orange-500/10",
-    green: "border-emerald-300/25 bg-emerald-500/10 text-emerald-100 shadow-emerald-500/10",
-    yellow: "border-orange-300/25 bg-orange-500/10 text-orange-100 shadow-orange-500/10",
-    red: "border-rose-300/25 bg-rose-500/10 text-rose-100 shadow-rose-500/10",
-    blue: "border-sky-300/25 bg-sky-500/10 text-sky-100 shadow-sky-500/10",
+    slate: "border-white/14 bg-white/[0.06] text-slate-100",
+    cyan: "border-cyan-200/40 bg-cyan-300/14 text-cyan-50 shadow-cyan-400/20",
+    purple: "border-violet-200/35 bg-violet-400/14 text-violet-50 shadow-violet-400/18",
+    pink: "border-fuchsia-200/38 bg-fuchsia-400/14 text-fuchsia-50 shadow-fuchsia-400/18",
+    orange: "border-orange-200/45 bg-orange-400/16 text-orange-50 shadow-orange-400/22",
+    green: "border-emerald-200/32 bg-emerald-400/12 text-emerald-50 shadow-emerald-400/16",
+    yellow: "border-amber-200/40 bg-amber-300/14 text-amber-50 shadow-amber-400/18",
+    red: "border-rose-200/35 bg-rose-400/12 text-rose-50 shadow-rose-400/16",
+    blue: "border-sky-200/38 bg-sky-400/14 text-sky-50 shadow-sky-400/18",
   }[t || "slate"];
 }
 
@@ -191,7 +191,7 @@ function profileStatusTone(member) {
 
 function Badge({ children, tone: t = "slate", pulse = false }) {
   return (
-    <span className={cx("inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] shadow-sm", tone(t))}>
+    <span className={cx("inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] shadow-[0_0_18px_rgba(255,255,255,.06)]", tone(t))}>
       {pulse && <span className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_12px_currentColor]" />}
       {children}
     </span>
@@ -200,14 +200,14 @@ function Badge({ children, tone: t = "slate", pulse = false }) {
 
 function AmbientBackground() {
   return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[#050711]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(249,115,22,.30),transparent_28%),radial-gradient(circle_at_86%_15%,rgba(34,211,238,.22),transparent_30%),radial-gradient(circle_at_55%_92%,rgba(124,58,237,.20),transparent_38%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.034)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.034)_1px,transparent_1px)] bg-[size:48px_48px] opacity-[0.18]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0,rgba(0,0,0,.20)_72%)]" />
-      <motion.div animate={{ x: [0, 34, -24, 0], y: [0, -26, 18, 0], scale: [1, 1.08, 0.96, 1] }} transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }} className="absolute left-[8%] top-[12%] h-80 w-80 rounded-full bg-orange-500/18 blur-3xl" />
-      <motion.div animate={{ x: [0, -30, 20, 0], y: [0, 20, -18, 0], scale: [1, 0.96, 1.1, 1] }} transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }} className="absolute right-[5%] top-[18%] h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="absolute bottom-[8%] right-[18%] h-72 w-72 rounded-full bg-violet-500/12 blur-3xl" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
+    <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[#03040c]">
+      <div className="absolute inset-0 bg-[linear-gradient(118deg,rgba(255,70,18,.24)_0%,transparent_21%,transparent_67%,rgba(0,238,255,.18)_100%),linear-gradient(42deg,transparent_0%,rgba(217,70,239,.10)_48%,transparent_68%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.05)_1px,transparent_1px)] bg-[size:56px_56px] opacity-[0.24]" />
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(123deg,transparent_0,transparent_140px,rgba(255,106,0,.14)_141px,transparent_144px),repeating-linear-gradient(123deg,transparent_0,transparent_220px,rgba(0,238,255,.12)_221px,transparent_224px)]" />
+      <motion.div animate={{ x: ["-14%", "118%"] }} transition={{ duration: 7.2, repeat: Infinity, repeatDelay: 2.8, ease: "easeInOut" }} className="absolute top-[17%] h-px w-[42vw] rotate-[-13deg] bg-gradient-to-r from-transparent via-orange-200 to-transparent shadow-[0_0_34px_rgba(255,110,22,.9)]" />
+      <motion.div animate={{ x: ["118%", "-18%"] }} transition={{ duration: 8.6, repeat: Infinity, repeatDelay: 3.6, ease: "easeInOut" }} className="absolute top-[61%] h-px w-[48vw] rotate-[-13deg] bg-gradient-to-r from-transparent via-cyan-100 to-transparent shadow-[0_0_34px_rgba(34,211,238,.86)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(3,4,12,.08)_42%,rgba(3,4,12,.92)_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-100/80 to-cyan-100/70" />
     </div>
   );
 }
@@ -219,9 +219,9 @@ function Surface({ children, className = "", delay = 0, glow = false }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.34, delay, ease: "easeOut" }}
       className={cx(
-        "group relative overflow-hidden rounded-[1.65rem] border border-white/10 bg-[#0b1020]/72 p-5 shadow-2xl shadow-black/25 backdrop-blur-2xl",
-        "before:pointer-events-none before:absolute before:inset-0 before:rounded-[1.65rem] before:bg-gradient-to-br before:from-white/[0.075] before:via-transparent before:to-transparent before:opacity-80",
-        glow && "after:pointer-events-none after:absolute after:-inset-px after:rounded-[1.65rem] after:bg-gradient-to-r after:from-orange-400/24 after:via-cyan-300/12 after:to-violet-400/18 after:opacity-0 after:blur-xl after:transition after:duration-500 group-hover:after:opacity-100",
+        "group relative overflow-hidden rounded-[1.15rem] border border-white/14 bg-[#080c1b]/82 p-5 shadow-2xl shadow-black/35 backdrop-blur-2xl",
+        "before:pointer-events-none before:absolute before:inset-0 before:rounded-[1.15rem] before:bg-[linear-gradient(135deg,rgba(255,255,255,.11),transparent_34%,transparent_74%,rgba(34,211,238,.07))] before:opacity-90",
+        glow && "after:pointer-events-none after:absolute after:-inset-px after:rounded-[1.15rem] after:bg-gradient-to-r after:from-orange-300/38 after:via-fuchsia-300/18 after:to-cyan-200/32 after:opacity-0 after:blur-xl after:transition after:duration-500 group-hover:after:opacity-100",
         className
       )}
     >
@@ -231,10 +231,10 @@ function Surface({ children, className = "", delay = 0, glow = false }) {
 }
 
 function Button({ children, icon: Icon, variant = "primary", className = "", disabled = false, ...props }) {
-  const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
+  const base = "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
-    primary: "bg-gradient-to-r from-orange-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-orange-950/35 hover:-translate-y-0.5 hover:shadow-orange-950/45",
-    ghost: "border border-white/10 bg-white/[0.045] text-slate-100 hover:-translate-y-0.5 hover:border-orange-300/35 hover:bg-orange-400/[0.075]",
+    primary: "border border-orange-100/25 bg-gradient-to-r from-orange-500 via-fuchsia-500 to-cyan-300 text-white shadow-[0_0_26px_rgba(249,115,22,.28)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_38px_rgba(34,211,238,.24)]",
+    ghost: "border border-white/14 bg-white/[0.055] text-slate-100 hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-300/[0.10]",
     danger: "border border-rose-300/25 bg-rose-500/10 text-rose-100 hover:-translate-y-0.5 hover:bg-rose-500/15",
   };
   return (
@@ -317,7 +317,7 @@ function ToastStack({ toasts, removeToast }) {
 function EmptyState({ icon: Icon = BarChart3, title, text, action }) {
   return (
     <div className="relative flex min-h-[260px] flex-col items-center justify-center overflow-hidden rounded-[1.5rem] border border-dashed border-white/12 bg-white/[0.025] p-8 text-center">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,.08),transparent_42%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(126deg,rgba(34,211,238,.10),transparent_38%,rgba(249,115,22,.06))]" />
       <div className="relative rounded-[1.35rem] border border-white/10 bg-white/[0.055] p-4 text-cyan-100 shadow-2xl shadow-cyan-950/20"><Icon className="h-8 w-8" /></div>
       <h3 className="relative mt-4 text-xl font-black text-white">{title}</h3>
       <p className="relative mt-2 max-w-xl text-sm leading-6 text-slate-400">{text}</p>
@@ -349,7 +349,7 @@ function BrandLogo({ compact = false, className = "" }) {
         src={compact ?"/nxt5-mark.svg" : "/nxt5-logo.svg"}
         alt="NXT5"
         className={cx(
-          "object-contain drop-shadow-[0_0_22px_rgba(249,115,22,.30)]",
+          "object-contain drop-shadow-[0_0_28px_rgba(34,211,238,.34)]",
           compact ?"h-12 w-12" : "h-14 w-auto max-w-[180px] sm:max-w-[245px]"
         )}
       />
@@ -369,9 +369,9 @@ function MarketingPreview() {
 
   return (
     <motion.div initial={{ opacity: 0, x: 28, rotateY: -9 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} transition={{ duration: 0.75, delay: 0.1 }} className="relative hidden lg:block">
-      <div className="absolute -inset-6 rounded-[2.6rem] bg-gradient-to-r from-orange-500/24 via-fuchsia-500/12 to-cyan-400/20 blur-2xl" />
-      <div className="relative overflow-hidden rounded-[2rem] border border-orange-300/22 bg-[#07101f]/88 p-5 shadow-2xl shadow-orange-950/25 backdrop-blur-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_5%,rgba(249,115,22,.23),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(34,211,238,.15),transparent_34%)]" />
+      <div className="absolute -inset-6 rounded-[1.6rem] bg-gradient-to-r from-orange-500/34 via-fuchsia-500/18 to-cyan-300/30 blur-2xl" />
+      <div className="relative overflow-hidden rounded-[1.35rem] border border-orange-200/30 bg-[#060a18]/92 p-5 shadow-2xl shadow-orange-950/30 backdrop-blur-2xl">
+        <div className="absolute inset-0 bg-[linear-gradient(124deg,rgba(255,96,25,.19),transparent_28%,transparent_67%,rgba(34,211,238,.16)),repeating-linear-gradient(124deg,transparent_0,transparent_88px,rgba(255,255,255,.05)_89px,transparent_91px)]" />
         <div className="relative z-10 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
           <BrandLogo compact />
           <p className="text-sm font-black text-white">Aperçu du tableau de bord</p>
@@ -444,10 +444,10 @@ function StatStrip() {
 }
 
 function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
-  const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0";
+  const base = "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0";
   const variants = {
-    primary: "bg-gradient-to-r from-orange-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-orange-950/35 hover:-translate-y-0.5 hover:shadow-orange-950/45",
-    ghost: "border border-white/10 bg-white/[0.045] text-slate-100 hover:-translate-y-0.5 hover:border-orange-300/35 hover:bg-orange-400/[0.075]",
+    primary: "border border-orange-100/25 bg-gradient-to-r from-orange-500 via-fuchsia-500 to-cyan-300 text-white shadow-[0_0_26px_rgba(249,115,22,.28)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_38px_rgba(34,211,238,.24)]",
+    ghost: "border border-white/14 bg-white/[0.055] text-slate-100 hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-300/[0.10]",
   };
 
   function go(event) {
@@ -553,7 +553,7 @@ function HomeScreen({ navigate }) {
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_28%,rgba(249,115,22,.18),transparent_26%),radial-gradient(circle_at_85%_22%,rgba(34,211,238,.12),transparent_28%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(255,92,18,.20),transparent_24%,transparent_70%,rgba(34,211,238,.15)),linear-gradient(180deg,transparent_0%,rgba(3,4,12,.42)_78%)]" />
       <SiteHeader navigate={navigate}>
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
         <LinkButton href="/creer-un-compte" navigate={navigate} className="px-3 py-2.5 sm:px-4">Créer un compte</LinkButton>
@@ -564,7 +564,7 @@ function HomeScreen({ navigate }) {
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
             <Badge tone="orange" pulse>Team tools for the next five</Badge>
             <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
-              Passe ton <span className="bg-gradient-to-r from-orange-300 via-amber-300 to-fuchsia-400 bg-clip-text text-transparent">cinq</span> au <span className="bg-gradient-to-r from-orange-400 via-fuchsia-400 to-cyan-300 bg-clip-text text-transparent">niveau suivant</span>.
+              Passe ton <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(249,115,22,.32)]">cinq</span> au <span className="bg-gradient-to-r from-orange-300 via-fuchsia-300 to-cyan-200 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(34,211,238,.24)]">niveau suivant</span>.
             </h1>
             <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">NXT5 centralise reviews, Champion Pools, Compos Types et rapports pour que ta team prépare mieux le prochain scrim.</p>
             <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
@@ -582,7 +582,7 @@ function HomeScreen({ navigate }) {
           ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
         </section>
 
-        <section id="analytics" className="mt-14 rounded-[2rem] border border-white/10 bg-white/[0.025] p-6 md:p-9">
+        <section id="analytics" className="mt-14 rounded-[1.35rem] border border-white/14 bg-[#060a18]/70 p-6 shadow-2xl shadow-black/25 md:p-9">
           <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">Du match à la review</h2><p className="mt-3 text-base font-semibold text-slate-300">NXT5 met les données au clair pour que joueurs, coachs et capitaines fassent leur propre lecture.</p></div>
           <div className="grid gap-5 md:grid-cols-4">
             {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review finit sur une priorité claire pour progresser en tournoi, scrim ou entraînement."]].map(([n, Icon, title, text]) => <div key={n} className="relative rounded-3xl border border-white/10 bg-black/[0.22] p-6"><Badge tone={n === "1" ?"orange" : "purple"}>{n}</Badge><div className="mt-5 flex h-16 w-16 items-center justify-center rounded-full border border-orange-300/25 bg-orange-400/10 text-orange-100"><Icon className="h-7 w-7" /></div><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-2 text-base font-medium leading-7 text-slate-300">{text}</p></div>)}
@@ -659,7 +659,7 @@ function ForgotPasswordPage({ navigate }) {
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_28%,rgba(139,92,246,.16),transparent_26%),radial-gradient(circle_at_85%_22%,rgba(34,211,238,.12),transparent_28%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(217,70,239,.14),transparent_28%,transparent_67%,rgba(34,211,238,.12))]" />
       <SiteHeader navigate={navigate}>
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Connexion</LinkButton>
       </SiteHeader>
@@ -788,7 +788,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_28%,rgba(139,92,246,.16),transparent_26%),radial-gradient(circle_at_85%_22%,rgba(34,211,238,.12),transparent_28%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(217,70,239,.14),transparent_28%,transparent_67%,rgba(34,211,238,.12))]" />
       <SiteHeader navigate={navigate}>
         <LinkButton href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate} variant="ghost" className="hidden md:inline-flex">
           {isRegister ?"J’ai déjà un compte" : "Créer un compte"}
