@@ -163,10 +163,65 @@ async function apiFetch(path, options = {}) {
     error.status = response.status;
     error.code = payload?.code || null;
     error.retryAfter = payload?.retryAfter || null;
+    error.riotStatus = payload?.riotStatus || null;
+    error.missing = payload?.missing || null;
+    error.details = payload?.details || null;
     throw error;
   }
 
   return payload;
+}
+
+function formatRetryAfter(seconds) {
+  const value = Number(seconds || 0);
+  if (!Number.isFinite(value) || value <= 0) return "quelques instants";
+  if (value < 60) return `${Math.ceil(value)} seconde${value > 1 ? "s" : ""}`;
+  const minutes = Math.ceil(value / 60);
+  return `${minutes} minute${minutes > 1 ? "s" : ""}`;
+}
+
+function errorDetailsLine(err) {
+  const details = Array.isArray(err?.details) ? err.details.filter(Boolean) : [];
+  if (!details.length) return "";
+  const clean = details
+    .map((detail) => String(detail).replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 2);
+  return clean.length ? ` Détail Riot: ${clean.join(" | ")}` : "";
+}
+
+function preciseErrorText(err, context = "generic") {
+  const message = String(err?.message || "").trim();
+  const code = err?.code;
+  const missing = Array.isArray(err?.missing) ? err.missing.join(", ") : "";
+  const status = Number(err?.status || 0);
+
+  if (code === "RIOT_KEY_MISSING") return "RIOT_API_KEY manque dans Netlify. Ajoute la variable dans Site configuration > Environment variables, puis redeploy le site.";
+  if (code === "RIOT_KEY_REJECTED") return `La clé Riot est refusée${err?.riotStatus ? ` (Riot ${err.riotStatus})` : ""}. Remplace RIOT_API_KEY par une clé valide, vérifie qu’elle n’est pas expirée, puis redeploy.`;
+  if (code === "RIOT_RATE_LIMIT") return `Riot bloque temporairement les requêtes. Réessaie dans ${formatRetryAfter(err?.retryAfter)}; si ça revient souvent, attends avant de relancer toute la team.`;
+  if (code === "RIOT_TOURNAMENT_NOT_CONFIGURED") return `La génération Riot n’est pas configurée. À vérifier dans Netlify: ${missing || "RIOT_API_KEY, RIOT_TOURNAMENT_ID ou RIOT_TOURNAMENT_CALLBACK_URL"}.`;
+  if (code === "RIOT_TOURNAMENT_ACCESS_MISSING") return `La clé Riot peut lire certains matchs, mais pas ce code tournoi. Il faut l’accès Tournament API / Match by tournament code sur la clé, ou importer avec le Game ID Riot si tu l’as.${errorDetailsLine(err)}`;
+  if (code === "RIOT_TOURNAMENT_MATCH_NOT_FOUND") return `Aucune game terminée trouvée pour ce code tournoi. Vérifie le serveur sélectionné, que la partie est finie, et que le code exact a bien été utilisé pour cette game.${errorDetailsLine(err)}`;
+  if (code === "RIOT_API_ERROR") return `Riot renvoie une erreur API${err?.riotStatus ? ` ${err.riotStatus}` : ""}. Vérifie la région, la clé et réessaie après quelques minutes. Message brut: ${message || "non fourni"}`;
+
+  if (/Format Game ID invalide/i.test(message)) return "Format Game ID invalide. Mets un ID du type EUW1_7123456789. Si tu colles un code tournoi, choisis le serveur dans le menu et colle uniquement le code.";
+  if (/Game ID ou code tournoi requis/i.test(message)) return "Colle soit un Game ID Riot, soit un code tournoi avant d’importer.";
+  if (/Team ID requis|Team introuvable/i.test(message)) return "Aucune équipe active n’est reliée à cet import. Sélectionne ou crée une équipe, puis réessaie.";
+  if (/roster avant d.importer/i.test(message)) return "Ajoute au moins un profil joueur dans la page Équipe avant d’importer une game.";
+  if (/Aucun joueur du roster/i.test(message)) return "La game a été trouvée, mais aucun participant ne correspond au roster. Corrige les Riot IDs des profils dans Équipe, puis relance l’import.";
+  if (/Code tournoi requis/i.test(message)) return "Le code tournoi est vide. Colle le code complet généré par Riot ou reçu pour le tournoi.";
+  if (/Nom du code requis/i.test(message)) return "Donne un nom au code tournoi avant de l’enregistrer, par exemple Scrim vs Vitality ou Round 1.";
+
+  if (context === "match-import" && status === 404) return "Riot ne trouve pas cette game. Vérifie le Game ID, la région du préfixe (EUW1, NA1, KR...) ou attends quelques minutes après la fin de la partie.";
+  if (context === "match-import" && status === 403) return "Ton compte n’a pas accès à cette équipe pour importer une game. Vérifie que tu es bien membre de la team.";
+  if (context === "tournament-code" && status === 403) return "Tu n’as pas les droits pour gérer les codes tournoi. Seuls l’owner, un capitaine ou un coach peuvent le faire.";
+  if (status === 502 || status === 503) return `${message || "Service temporairement indisponible."} Vérifie les variables Netlify et redeploy si tu viens de les modifier.`;
+
+  return message || "Erreur inconnue. Réessaie, puis vérifie les variables Netlify si le problème revient.";
+}
+
+function errorToast(err, title, context) {
+  return { type: "red", title, text: preciseErrorText(err, context) };
 }
 
 function cx(...classes) {
@@ -356,7 +411,7 @@ function ToastStack({ toasts, removeToast }) {
           <motion.div key={toast.id} initial={{ opacity: 0, y: 20, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.96 }} className={cx("w-[min(92vw,380px)] rounded-3xl border p-4 shadow-2xl backdrop-blur-xl", tone(toast.type || "cyan"))}>
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-2xl bg-white/10 p-2">{toast.type === "red" ?<AlertTriangle className="h-4 w-4" /> : <Check className="h-4 w-4" />}</div>
-              <div className="min-w-0 flex-1"><p className="font-black">{toast.title}</p>{toast.text && <p className="mt-1 text-sm leading-5 opacity-80">{toast.text}</p>}</div>
+              <div className="min-w-0 flex-1"><p className="font-black">{toast.title}</p>{toast.text && <p className="mt-1 whitespace-pre-line text-sm leading-5 opacity-80">{toast.text}</p>}</div>
               <button onClick={() => removeToast(toast.id)} className="rounded-xl p-1.5 opacity-70 hover:bg-white/10 hover:opacity-100"><X className="h-4 w-4" /></button>
             </div>
           </motion.div>
@@ -1796,7 +1851,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       await refreshAll();
       pushToast({ type: "green", title: action === "generate" ? "Code généré" : "Code enregistré", text: "Il est prêt dans Review." });
     } catch (err) {
-      pushToast({ type: "red", title: action === "generate" ? "Génération impossible" : "Code impossible", text: err.message });
+      pushToast(errorToast(err, action === "generate" ? "Génération impossible" : "Code impossible", "tournament-code"));
     } finally {
       setSavingCode(false);
     }
@@ -1837,7 +1892,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       await refreshAll();
       pushToast({ type: "green", title: "Game importée", text: "Match analysé, participants lus et rapport prêt." });
     } catch (err) {
-      pushToast({ type: "red", title: "Import impossible", text: err.message });
+      pushToast(errorToast(err, "Import impossible", "match-import"));
     } finally {
       setImporting(false);
     }

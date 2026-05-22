@@ -33,5 +33,8 @@ export function handleError(err) {
   const payload = { error: err.message || 'Erreur serveur.' };
   if (err.code) payload.code = err.code;
   if (err.retryAfter) payload.retryAfter = err.retryAfter;
+  if (err.riotStatus) payload.riotStatus = err.riotStatus;
+  if (err.missing) payload.missing = err.missing;
+  if (err.details) payload.details = err.details;
   return json(payload, err.status || 500);
 }
