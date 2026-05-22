@@ -15,6 +15,8 @@ export default async function handler(request, context) {
     const tournamentCode = cleanTournamentText(body.tournamentCode, 128).toUpperCase();
     const platform = platformFromRegion(body.platform || 'EUW1');
     const teamId = String(body.teamId || '').trim();
+    const label = cleanTournamentText(body.label, 120);
+    const opponent = cleanTournamentText(body.opponent, 120);
 
     if (!gameId && !tournamentCode) throw Object.assign(new Error('Game ID ou code tournoi requis.'), { status: 400 });
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
@@ -37,6 +39,17 @@ export default async function handler(request, context) {
     if (tournamentCode) {
       try {
         await ensureTournamentCodesTable();
+        if (label || opponent) {
+          await sql`
+            insert into tournament_codes (team_id, created_by, label, opponent, code, platform, status)
+            values (${teamId}, ${user.id}, ${label || 'Import tournoi'}, ${opponent || null}, ${tournamentCode}, ${platform}, 'ready')
+            on conflict (team_id, code)
+            do update set label = excluded.label,
+                          opponent = excluded.opponent,
+                          platform = excluded.platform,
+                          updated_at = now()
+          `;
+        }
         const storedCodes = await sql`
           select imported_game_id
           from tournament_codes
@@ -52,7 +65,16 @@ export default async function handler(request, context) {
     }
 
     const match = await fetchRiotMatch(gameId);
-    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id });
+    let savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id });
+    if (opponent || label) {
+      const named = await sql`
+        update matches
+        set opponent = ${opponent || label}
+        where id = ${savedMatch.id}
+        returning *
+      `;
+      savedMatch = named[0] || savedMatch;
+    }
 
     if (tournamentCode) {
       try {
