@@ -71,6 +71,17 @@ set invite_code = 'RIFT-' || upper(substr(encode(gen_random_bytes(5), 'hex'), 1,
 where invite_code is null;
 create unique index if not exists idx_teams_invite_code on teams(invite_code);
 
+create table if not exists team_invite_codes (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  created_by uuid references users(id) on delete set null,
+  code text not null unique,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_team_invite_codes_team on team_invite_codes(team_id, expires_at desc);
+
 create table if not exists team_members (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references teams(id) on delete cascade,

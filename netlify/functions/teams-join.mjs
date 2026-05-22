@@ -27,12 +27,24 @@ export default async function handler(request, context) {
 
     if (!inviteCode) throw Object.assign(new Error('Code d’invitation requis.'), { status: 400 });
     await sql`alter table teams add column if not exists invite_expires_at timestamptz`;
+    await sql`
+      create table if not exists team_invite_codes (
+        id uuid primary key default gen_random_uuid(),
+        team_id uuid not null references teams(id) on delete cascade,
+        created_by uuid references users(id) on delete set null,
+        code text not null unique,
+        expires_at timestamptz not null,
+        created_at timestamptz not null default now()
+      )
+    `;
+    await sql`delete from team_invite_codes where expires_at <= now()`;
 
     const teams = await sql`
-      select * from teams
-      where upper(invite_code) = ${inviteCode}
-        and invite_expires_at is not null
-        and invite_expires_at > now()
+      select teams.*
+      from team_invite_codes
+      join teams on teams.id = team_invite_codes.team_id
+      where upper(team_invite_codes.code) = ${inviteCode}
+        and team_invite_codes.expires_at > now()
       limit 1
     `;
     const team = teams[0];

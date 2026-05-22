@@ -13,6 +13,17 @@ function makeInviteCode() {
 
 async function ensureInviteExpiryColumn() {
   await sql`alter table teams add column if not exists invite_expires_at timestamptz`;
+  await sql`
+    create table if not exists team_invite_codes (
+      id uuid primary key default gen_random_uuid(),
+      team_id uuid not null references teams(id) on delete cascade,
+      created_by uuid references users(id) on delete set null,
+      code text not null unique,
+      expires_at timestamptz not null,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create index if not exists idx_team_invite_codes_team on team_invite_codes(team_id, expires_at desc)`;
 }
 
 export default async function handler(request, context) {
@@ -35,32 +46,48 @@ export default async function handler(request, context) {
     `;
     if (!allowed[0]) throw Object.assign(new Error('Tu ne peux pas générer de code pour cette team.'), { status: 403 });
 
-    let team = null;
+    await sql`delete from team_invite_codes where expires_at <= now()`;
+
+    let invite = null;
     for (let i = 0; i < 6; i += 1) {
       const code = makeInviteCode();
       try {
         const rows = await sql`
-          update teams
-          set invite_code = ${code},
-              invite_expires_at = now() + interval '1 hour',
-              updated_at = now()
-          where id = ${teamId}
-          returning id, invite_code, invite_expires_at
+          insert into team_invite_codes (team_id, created_by, code, expires_at)
+          values (${teamId}, ${user.id}, ${code}, now() + interval '1 hour')
+          returning *
         `;
-        team = rows[0];
+        invite = rows[0];
         break;
       } catch (err) {
         if (!String(err.message || '').includes('invite')) throw err;
       }
     }
-    if (!team) throw Object.assign(new Error('Impossible de générer un code unique.'), { status: 500 });
+    if (!invite) throw Object.assign(new Error('Impossible de générer un code unique.'), { status: 500 });
+
+    await sql`
+      update teams
+      set invite_code = ${invite.code},
+          invite_expires_at = ${invite.expires_at},
+          updated_at = now()
+      where id = ${teamId}
+    `;
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'team.invite_code', 'team', ${teamId}, ${JSON.stringify({ expiresAt: team.invite_expires_at })}::jsonb)
+      values (${user.id}, 'team.invite_code', 'team', ${teamId}, ${JSON.stringify({ code: invite.code, expiresAt: invite.expires_at })}::jsonb)
     `;
 
-    return json({ code: team.invite_code, expiresAt: team.invite_expires_at });
+    const activeCodes = await sql`
+      select team_invite_codes.*, users.name as created_by_name
+      from team_invite_codes
+      left join users on users.id = team_invite_codes.created_by
+      where team_invite_codes.team_id = ${teamId}
+        and team_invite_codes.expires_at > now()
+      order by team_invite_codes.expires_at asc
+    `;
+
+    return json({ code: invite.code, expiresAt: invite.expires_at, inviteCodes: activeCodes });
   } catch (err) {
     return handleError(err);
   }
