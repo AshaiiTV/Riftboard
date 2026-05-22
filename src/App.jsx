@@ -2877,6 +2877,27 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
   );
 }
 
+function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden text-white">
+      <AmbientBackground />
+      <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative z-10 w-[min(92vw,460px)] rounded-[1.6rem] border border-cyan-200/16 bg-[#050914]/86 p-7 text-center shadow-[0_0_70px_rgba(34,211,238,0.18)] backdrop-blur-2xl">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-cyan-200/18 bg-cyan-400/8 shadow-[0_0_34px_rgba(34,211,238,0.18)]">
+          <img src="/assets/nxt5-mark.png" alt="NXT5" className="h-16 w-16 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)]" />
+        </div>
+        <p className="nxt5-wordmark mt-5 text-2xl uppercase leading-none">NEXT FIVE</p>
+        <div className="mx-auto mt-5 flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-black/24 px-4 py-3">
+          <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
+          <span className="text-sm font-black text-slate-200">{label}</span>
+        </div>
+        <div className="mt-6 h-1 overflow-hidden rounded-full bg-white/8">
+          <motion.div className="h-full w-1/2 rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" animate={{ x: ["-110%", "220%"] }} transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }} />
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
@@ -2885,6 +2906,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const [data, setData] = useState(DEFAULT_DATA);
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
   const [apiError, setApiError] = useState("");
 
   function setActive(pageId) {
@@ -2904,8 +2926,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   async function refreshAll() {
     setLoading(true); setApiError("");
     try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); }
-    catch (err) { setApiError(err.message || "Impossible de charger les données."); setData(DEFAULT_DATA); }
-    finally { setLoading(false); }
+    catch (err) { setApiError(err.message || "Impossible de charger les données."); if (!bootstrapped) setData(DEFAULT_DATA); }
+    finally { setLoading(false); setBootstrapped(true); }
   }
   async function logout() { try { await apiFetch("auth-logout", { method: "POST" }); } catch {} pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." }); navigate("/connexion", { replace: true }); onLogout(); }
   useEffect(() => { refreshAll(); }, []);
@@ -2927,6 +2949,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast, user, onUserUpdate]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
+  if (!bootstrapped) return <AppLoadingScreen label="Synchronisation de ta team…" />;
   return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[21rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="w-full px-4 py-7 lg:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
 }
 
@@ -2997,7 +3020,7 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  if (checkingSession) return <div className="relative flex min-h-screen items-center justify-center text-white"><AmbientBackground /><motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 flex items-center gap-3 rounded-3xl border border-white/10 bg-[#090d1a]/82 px-6 py-5 shadow-2xl backdrop-blur-2xl"><Loader2 className="h-5 w-5 animate-spin text-cyan-300" /><span className="text-sm font-black text-slate-200">Vérification de session…</span></motion.div></div>;
+  if (checkingSession) return <AppLoadingScreen label="Vérification de session…" />;
 
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
