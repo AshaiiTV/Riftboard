@@ -906,7 +906,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
         <div className={cx("mb-7 flex items-center", collapsed ?"justify-center" : "justify-between")}>
-          <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-3")}><img src="/assets/nxt5-mark.png" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-16 w-16" : "h-20 w-20")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><p className="nxt5-wordmark block w-full text-center text-[1.42rem] uppercase leading-none">NEXT FIVE</p><p className="mt-1 text-center text-[0.58rem] font-black uppercase tracking-[0.24em] text-cyan-100/55">Draft Tools</p></div></div>
+          <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-3")}><img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-16 w-16" : "h-20 w-20")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><p className="nxt5-wordmark block w-full text-center text-[1.42rem] uppercase leading-none">NEXT FIVE</p><p className="mt-1 text-center text-[0.58rem] font-black uppercase tracking-[0.24em] text-cyan-100/55">Draft Tools</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-lg shadow-cyan-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
@@ -2883,7 +2883,7 @@ function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
       <AmbientBackground />
       <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative z-10 w-[min(92vw,460px)] rounded-[1.6rem] border border-cyan-200/16 bg-[#050914]/86 p-7 text-center shadow-[0_0_70px_rgba(34,211,238,0.18)] backdrop-blur-2xl">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-cyan-200/18 bg-cyan-400/8 shadow-[0_0_34px_rgba(34,211,238,0.18)]">
-          <img src="/assets/nxt5-mark.png" alt="NXT5" className="h-16 w-16 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)]" />
+          <img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-16 w-16 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)]" />
         </div>
         <p className="nxt5-wordmark mt-5 text-2xl uppercase leading-none">NEXT FIVE</p>
         <div className="mx-auto mt-5 flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-black/24 px-4 py-3">
