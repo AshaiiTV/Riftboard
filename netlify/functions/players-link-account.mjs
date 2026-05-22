@@ -35,20 +35,25 @@ export default async function handler(request, context) {
     `;
     if (!player[0]) throw Object.assign(new Error('Joueur introuvable dans cette team.'), { status: 404 });
 
+    let linkedUser = null;
     if (userId) {
       const member = await sql`
-        select user_id
+        select team_members.user_id, users.name
         from team_members
+        join users on users.id = team_members.user_id
         where team_id = ${teamId}
-          and user_id = ${userId}
+          and team_members.user_id = ${userId}
         limit 1
       `;
       if (!member[0]) throw Object.assign(new Error('Ce compte ne fait pas partie de la team.'), { status: 400 });
+      linkedUser = member[0];
     }
 
+    const linkedName = linkedUser?.name || null;
     const rows = await sql`
       update players
       set user_id = ${userId},
+          name = coalesce(${linkedName}, name),
           updated_at = now()
       where id = ${playerId}
         and team_id = ${teamId}
