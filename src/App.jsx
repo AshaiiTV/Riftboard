@@ -340,7 +340,7 @@ function PageHeader({ eyebrow, title, subtitle, children }) {
     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div>
         <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">{eyebrow}</p></div>
-        <h2 className="nxt5-metal-text max-w-4xl text-3xl font-black tracking-tight md:text-5xl">{title}</h2>
+        <h2 className="nxt5-metal-text max-w-4xl py-1 text-3xl font-black leading-[1.14] tracking-tight md:text-5xl">{title}</h2>
         {subtitle && <p className="mt-3 max-w-3xl text-base font-medium leading-7 text-slate-300">{subtitle}</p>}
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
