@@ -1968,9 +1968,33 @@ function itemIconUrl(itemId) {
   return itemId ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/item/" + itemId + ".png" : "";
 }
 
+const SUMMONER_SPELLS = {
+  1: "SummonerBoost",
+  3: "SummonerExhaust",
+  4: "SummonerFlash",
+  6: "SummonerHaste",
+  7: "SummonerHeal",
+  11: "SummonerSmite",
+  12: "SummonerTeleport",
+  13: "SummonerMana",
+  14: "SummonerDot",
+  21: "SummonerBarrier",
+  32: "SummonerSnowball",
+};
+
+function summonerSpellIconUrl(spellId) {
+  const name = SUMMONER_SPELLS[Number(spellId || 0)];
+  return name ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/spell/" + name + ".png" : "";
+}
+
 function itemIds(row) {
   const raw = row?.raw || {};
   return [0, 1, 2, 3, 4, 5, 6].map((index) => Number(raw[`item${index}`] || 0)).filter(Boolean);
+}
+
+function summonerSpellIds(row) {
+  const raw = row?.raw || {};
+  return [raw.summoner1Id, raw.summoner2Id].map((id) => Number(id || 0)).filter(Boolean);
 }
 
 function parsePercent(value) {
@@ -1998,11 +2022,41 @@ function objectiveValue(match, name) {
   return Number(rawTeam?.objectives?.[name]?.kills || 0);
 }
 
+function roleScore(row) {
+  const kda = (statValue(row, "kills") + statValue(row, "assists")) / Math.max(1, statValue(row, "deaths"));
+  const kp = parsePercent(row.kill_participation || row.kp);
+  return statValue(row, "damage") / 1000 + statValue(row, "gold") / 1000 + statValue(row, "vision") * 0.4 + kda * 6 + kp * 0.2;
+}
+
+function diffTone(value) {
+  return Number(value || 0) >= 0 ? "green" : "red";
+}
+
+function GameCoachSignals({ match }) {
+  const ally = teamRows(match, "ALLY");
+  const enemy = teamRows(match, "ENEMY");
+  const strongest = ally.slice().sort((a, b) => roleScore(b) - roleScore(a))[0];
+  const exposed = ally.slice().sort((a, b) => statValue(b, "deaths") - statValue(a, "deaths"))[0];
+  const damageLead = ally.slice().sort((a, b) => statValue(b, "damage") - statValue(a, "damage"))[0];
+  const visionLead = ally.slice().sort((a, b) => statValue(b, "vision") - statValue(a, "vision"))[0];
+  const csDiff = sumRows(ally, "cs") - sumRows(enemy, "cs");
+  const deaths = sumRows(ally, "deaths");
+  const enemyDeaths = sumRows(enemy, "deaths");
+  const cards = [
+    [Crown, "MVP data", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda}` : "Aucune donnée", "cyan"],
+    [AlertTriangle, "Zone à review", exposed, exposed ? `${exposed.deaths || 0} morts · ${championDisplayName(exposed.champion)}` : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
+    [Flame, "Carry damage", damageLead, damageLead ? formatPoints(damageLead.damage) + " dégâts" : "Aucune donnée", "purple"],
+    [Eye, "Vision lead", visionLead, visionLead ? `${visionLead.vision || 0} vision score` : "Aucune donnée", "green"],
+  ];
+  return <div className="mt-5 grid gap-3 xl:grid-cols-[1.15fr_.85fr]"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-600">{label}</p><div className={cx("rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-3 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{detail}</p></div>)}</div><div className="rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/10 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-fuchsia-100/70">Lecture coach rapide</p><div className="mt-3 grid gap-2 text-sm font-bold text-white"><div className="flex items-center justify-between gap-3"><span>CS diff équipe</span><Badge tone={diffTone(csDiff)}>{(csDiff >= 0 ? "+" : "") + formatPoints(csDiff)}</Badge></div><div className="flex items-center justify-between gap-3"><span>Morts alliées vs ennemies</span><Badge tone={deaths <= enemyDeaths ? "green" : "red"}>{deaths} / {enemyDeaths}</Badge></div><div className="flex items-center justify-between gap-3"><span>Objectif principal</span><Badge tone="cyan">{match?.primary_focus || "Review complète"}</Badge></div></div></div></div>;
+}
+
 function PlayerDetailRow({ row, maxDamage, maxGold }) {
   const items = itemIds(row);
+  const spells = summonerSpellIds(row);
   const kda = `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`;
   const kp = parsePercent(row.kill_participation || row.kp);
-  return <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(220px,1.25fr)_1fr_1fr_1.2fr] xl:items-center"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><img src={championIconUrl(row) || championLoadingUrl(row.champion)} alt={row.champion} className="h-full w-full object-cover" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge><Badge tone="slate">{row.grade || "Grade ?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-500">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KDA</p><p className="mt-1 font-black text-white">{kda}</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={formatPoints(row.damage)} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={formatPoints(row.gold)} tone="orange" /></div><div><p className="mb-2 text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">Build</p><div className="flex flex-wrap gap-1.5">{items.length ? items.map((item, index) => <div key={`${row.id}-${item}-${index}`} className="h-9 w-9 overflow-hidden rounded-lg border border-white/10 bg-black/35"><img src={itemIconUrl(item)} alt={`Item ${item}`} className="h-full w-full object-cover" /></div>) : <Badge tone="slate">Aucun item lu</Badge>}</div></div></div>;
+  return <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(220px,1.25fr)_1fr_1fr_1.2fr] xl:items-center"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><img src={championIconUrl(row) || championLoadingUrl(row.champion)} alt={row.champion} className="h-full w-full object-cover" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge><Badge tone="slate">{row.grade || "Grade ?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-500">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KDA</p><p className="mt-1 font-black text-white">{kda}</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={formatPoints(row.damage)} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={formatPoints(row.gold)} tone="orange" /></div><div><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">Build</p><div className="flex gap-1">{spells.map((spell) => <div key={`${row.id}-spell-${spell}`} className="h-6 w-6 overflow-hidden rounded-md border border-white/10 bg-black/35">{summonerSpellIconUrl(spell) ? <img src={summonerSpellIconUrl(spell)} alt={`Spell ${spell}`} className="h-full w-full object-cover" /> : null}</div>)}</div></div><div className="flex flex-wrap gap-1.5">{items.length ? items.map((item, index) => <div key={`${row.id}-${item}-${index}`} className="h-9 w-9 overflow-hidden rounded-lg border border-white/10 bg-black/35"><img src={itemIconUrl(item)} alt={`Item ${item}`} className="h-full w-full object-cover" /></div>) : <Badge tone="slate">Aucun item lu</Badge>}</div></div></div>;
 }
 
 function MatchDataPanel({ match }) {
@@ -2020,7 +2074,7 @@ function MatchDataPanel({ match }) {
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
   const objectives = [["Dragons", objectiveValue(match, "dragon")], ["Barons", objectiveValue(match, "baron")], ["Tours", objectiveValue(match, "tower")], ["Inhibs", objectiveValue(match, "inhibitor")]];
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{match.opponent || match.game_id}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{match.game_id} · {match.duration || "--:--"} · {match.primary_focus || "Focus à définir"}</p></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{objectives.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-3 text-center"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">{label}</p><p className="mt-1 text-xl font-black text-white">{value}</p></div>)}</div></div><div className="mt-5 grid gap-3 lg:grid-cols-4"><MetricCard icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><div className="mt-5 grid gap-4 2xl:grid-cols-2"><div><div className="mb-3 flex items-center gap-2"><Badge tone="cyan">Alliés</Badge><p className="text-sm font-black text-white">Détails joueurs et builds</p></div><div className="space-y-2">{ally.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div><div><div className="mb-3 flex items-center gap-2"><Badge tone="red">Adversaires</Badge><p className="text-sm font-black text-white">Lecture comparative</p></div><div className="space-y-2">{enemy.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div></div></Surface>;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{match.opponent || match.game_id}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{match.game_id} · {match.duration || "--:--"} · {match.primary_focus || "Focus à définir"}</p></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{objectives.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-3 text-center"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">{label}</p><p className="mt-1 text-xl font-black text-white">{value}</p></div>)}</div></div><div className="mt-5 grid gap-3 lg:grid-cols-4"><MetricCard icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameCoachSignals match={match} /><div className="mt-5 grid gap-4 2xl:grid-cols-2"><div><div className="mb-3 flex items-center gap-2"><Badge tone="cyan">Alliés</Badge><p className="text-sm font-black text-white">Détails joueurs et builds</p></div><div className="space-y-2">{ally.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div><div><div className="mb-3 flex items-center gap-2"><Badge tone="red">Adversaires</Badge><p className="text-sm font-black text-white">Lecture comparative</p></div><div className="space-y-2">{enemy.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div></div></Surface>;
 }
 
 function Statistics({ data, selectedTeamId }) {
