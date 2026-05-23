@@ -1,7 +1,8 @@
 const http = require('node:http');
 const { exec } = require('node:child_process');
 
-const PORT = Number(process.env.PORT || 5315);
+const DEFAULT_PORT = Number(process.env.PORT || 5315);
+const MAX_PORT_TRIES = 12;
 
 function send(res, status, body, headers = {}) {
   res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', ...headers });
@@ -129,17 +130,32 @@ async function handleExport(req, res) {
   res.end(JSON.stringify(payload, null, 2));
 }
 
-const server = http.createServer(async (req, res) => {
-  try {
-    if (req.method === 'POST' && req.url === '/export') return await handleExport(req, res);
-    return send(res, 200, html());
-  } catch (err) {
-    return send(res, 500, html(err.message || 'Erreur locale inconnue.'));
-  }
-});
+function createServer() {
+  return http.createServer(async (req, res) => {
+    try {
+      if (req.method === 'POST' && req.url === '/export') return await handleExport(req, res);
+      return send(res, 200, html());
+    } catch (err) {
+      return send(res, 500, html(err.message || 'Erreur locale inconnue.'));
+    }
+  });
+}
 
-server.listen(PORT, '127.0.0.1', () => {
-  const url = `http://127.0.0.1:${PORT}`;
-  console.log(`NXT5 Importer: ${url}`);
-  openBrowser(url);
-});
+function startServer(port = DEFAULT_PORT, attempt = 0) {
+  const server = createServer();
+  server.on('error', (err) => {
+    if (err?.code === 'EADDRINUSE' && attempt < MAX_PORT_TRIES) {
+      startServer(port + 1, attempt + 1);
+      return;
+    }
+    console.error(`Impossible de lancer NXT5 Importer: ${err?.message || err}`);
+    process.exit(1);
+  });
+  server.listen(port, '127.0.0.1', () => {
+    const url = `http://127.0.0.1:${port}`;
+    console.log(`NXT5 Importer: ${url}`);
+    openBrowser(url);
+  });
+}
+
+startServer();
