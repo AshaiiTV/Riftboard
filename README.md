@@ -92,7 +92,7 @@ Il crée toutes les tables nécessaires : users, sessions, teams, players, match
 
 ## Import local NXT5
 
-Si tu veux préparer un import sans coller de clé Riot dans un outil local, tu peux générer un petit fichier JSON depuis un Game ID.
+Si tu veux préparer un import sans coller de clé Riot dans un outil local, tu peux générer un JSON complet depuis un Game ID.
 
 ```txt
 npm run local-importer
@@ -104,11 +104,11 @@ Ouvre ensuite :
 http://127.0.0.1:5315
 ```
 
-Colle un Game ID du type `EUW1_7123456789`. L'outil génère uniquement un fichier `nxt5-...json` avec les infos d'import. Il ne demande aucune clé Riot.
+Colle un Game ID du type `EUW1_7123456789`. L'outil demande les données à NXT5 côté serveur et génère un fichier `nxt5-...json` contenant le match Riot complet. Il ne demande aucune clé Riot.
 
 Dans NXT5 : Intégration → Importer un fichier NXT5 local → Choisir le JSON.
 
-NXT5 finalise ensuite l'import côté serveur avec la configuration Netlify. Un code tournoi seul ne suffit pas dans ce mode : il faut l'accès Riot `Match by tournament code`, ou le Game ID final.
+NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot. Un code tournoi seul ne suffit pas dans ce mode : il faut l'accès Riot `Match by tournament code`, ou le Game ID final.
 
 ## Application NXT5 Importer
 
@@ -127,7 +127,7 @@ L'utilisation est simple :
 1. Ouvre `NXT5 Importer`.
 2. Colle le Game ID, exemple `EUW1_7123456789`.
 3. Ajoute un nom d'import ou un adversaire si besoin.
-4. Clique sur `Générer le fichier NXT5`.
+4. Clique sur `Générer le JSON complet`.
 5. Dans NXT5, va dans `Intégration` puis `Importer un fichier NXT5 local`.
 
 ## Important

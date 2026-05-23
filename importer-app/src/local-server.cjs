@@ -3,6 +3,7 @@ const { exec } = require('node:child_process');
 
 const DEFAULT_PORT = Number(process.env.PORT || 5315);
 const MAX_PORT_TRIES = 12;
+const NXT5_SITE_URL = String(process.env.NXT5_SITE_URL || 'https://nxt5.netlify.app').replace(/\/+$/, '');
 
 function send(res, status, body, headers = {}) {
   res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', ...headers });
@@ -66,14 +67,16 @@ function html(error = '') {
     .chip { border: 1px solid rgba(255,255,255,.12); border-radius: 999px; padding: 8px 10px; background: rgba(255,255,255,.045); color: #dff9ff; font-size: 11px; font-weight: 1000; letter-spacing: .13em; text-transform: uppercase; }
     label { display: block; margin-top: 16px; }
     label span { display: block; margin-bottom: 8px; color: #b9c6d8; font-size: 11px; font-weight: 1000; letter-spacing: .22em; text-transform: uppercase; }
-    input { width: 100%; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; padding: 16px 17px; color: white; background: rgba(2,6,23,.58); outline: none; font-size: 15px; font-weight: 850; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
-    input:focus { border-color: rgba(34,211,238,.72); box-shadow: 0 0 0 4px rgba(34,211,238,.12), 0 0 28px rgba(34,211,238,.12); }
+    input, select { width: 100%; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; padding: 16px 17px; color: white; background: rgba(2,6,23,.58); outline: none; font-size: 15px; font-weight: 850; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+    select { appearance: none; cursor: pointer; }
+    input:focus, select:focus { border-color: rgba(34,211,238,.72); box-shadow: 0 0 0 4px rgba(34,211,238,.12), 0 0 28px rgba(34,211,238,.12); }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .game-grid { display: grid; grid-template-columns: 1fr 150px; gap: 14px; }
     button { width: 100%; margin-top: 22px; border: 1px solid rgba(255,255,255,.18); border-radius: 18px; padding: 18px; color: #fff; background: linear-gradient(135deg, #06b6d4, #2563eb 45%, #d946ef); font-weight: 1000; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; box-shadow: 0 0 36px rgba(34,211,238,.28); transition: transform .18s ease, filter .18s ease, box-shadow .18s ease; }
     button:hover { transform: translateY(-2px); filter: saturate(1.28); box-shadow: 0 0 52px rgba(217,70,239,.26); }
     .error { margin-top: 18px; border: 1px solid rgba(251,113,133,.34); border-radius: 18px; padding: 15px 16px; color: #ffe4e6; background: rgba(244,63,94,.14); font-weight: 900; line-height: 1.5; }
     code { color: #67e8f9; }
-    @media (max-width: 680px) { body { overflow: auto; } .top, .grid { display: block; } .mark { width: 88px; height: 88px; font-size: 56px; } main { padding: 24px; } }
+    @media (max-width: 680px) { body { overflow: auto; } .top, .grid, .game-grid { display: block; } .mark { width: 88px; height: 88px; font-size: 56px; } main { padding: 24px; } }
   </style>
 </head>
 <body>
@@ -82,18 +85,21 @@ function html(error = '') {
       <div class="top">
         <div>
           <h1>NXT5 Importer</h1>
-          <p>Colle un Game ID Riot, puis génère un fichier JSON prêt à importer dans NXT5. Aucune clé Riot n'est demandée ici.</p>
-          <div class="chips"><span class="chip">No key</span><span class="chip">Game ID</span><span class="chip">Next Five</span></div>
+          <p>Colle un Game ID Riot. L'importer récupère les données complètes via NXT5 et télécharge un JSON prêt à importer.</p>
+          <div class="chips"><span class="chip">No key</span><span class="chip">Full match</span><span class="chip">Next Five</span></div>
         </div>
         <div class="mark">5</div>
       </div>
       <form method="post" action="/export">
-        <label><span>Game ID Riot</span><input name="gameId" placeholder="EUW1_7123456789" required /></label>
+        <div class="game-grid">
+          <label><span>Game ID Riot</span><input name="gameId" placeholder="7861632138 ou EUW1_7861632138" required /></label>
+          <label><span>Serveur</span><select name="platform"><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></select></label>
+        </div>
         <div class="grid">
           <label><span>Nom de l'import</span><input name="label" placeholder="Scrim, tournoi, round..." /></label>
           <label><span>Adversaire</span><input name="opponent" placeholder="Equipe adverse" /></label>
         </div>
-        <button type="submit">Générer le fichier NXT5</button>
+        <button type="submit">Générer le JSON complet</button>
       </form>
       ${error ? `<div class="error">${escapeHtml(error)}</div>` : ''}
       <p>Ensuite : NXT5 → Intégration → <code>Importer un fichier NXT5 local</code>.</p>
@@ -107,13 +113,29 @@ async function handleExport(req, res) {
   const raw = await readBody(req);
   const params = new URLSearchParams(raw);
   const value = String(params.get('gameId') || '').trim();
-  const gameId = value.toUpperCase();
+  const platform = String(params.get('platform') || 'EUW1').trim().toUpperCase();
+  const gameId = value.includes('_') ? value.toUpperCase() : `${platform}_${value}`;
   const label = String(params.get('label') || '').trim();
   const opponent = String(params.get('opponent') || '').trim();
-  const isGameId = /^([A-Z0-9]+)_\d+$/i.test(value);
+  const isGameId = /^([A-Z0-9]+)_\d+$/i.test(gameId);
 
   if (!value) return send(res, 400, html('Colle un Game ID avant de générer le fichier.'));
-  if (!isGameId) return send(res, 400, html('Ce champ attend un Game ID Riot du type EUW1_7123456789. Un code tournoi seul ne contient pas la game et ne peut pas être importé sans l’accès Riot Match by tournament code côté serveur.'));
+  if (!isGameId) return send(res, 400, html('Ce champ attend un Game ID Riot numérique comme 7861632138, ou complet comme EUW1_7861632138.'));
+  const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?gameId=${encodeURIComponent(gameId)}`;
+  const response = await fetch(exportUrl);
+  let exported = null;
+  try {
+    exported = await response.json();
+  } catch {
+    exported = null;
+  }
+  if (!response.ok) {
+    const message = exported?.error || `NXT5 refuse l'export (${response.status}). Vérifie le Game ID ou la clé Riot côté Netlify.`;
+    return send(res, response.status, html(message));
+  }
+  if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
+    return send(res, 502, html('NXT5 a répondu, mais le JSON Riot est incomplet. Réessaie dans quelques instants.'));
+  }
   const payload = {
     source: 'nxt5-importer-exe',
     version: 1,
@@ -121,7 +143,8 @@ async function handleExport(req, res) {
     platform: gameId.split('_')[0].toUpperCase(),
     label,
     opponent,
-    exportedAt: new Date().toISOString()
+    exportedAt: new Date().toISOString(),
+    match: exported.match
   };
   res.writeHead(200, {
     'Content-Type': 'application/json; charset=utf-8',
