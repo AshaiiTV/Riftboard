@@ -94,16 +94,6 @@ Il crée toutes les tables nécessaires : users, sessions, teams, players, match
 
 Si tu veux préparer un import sans coller de clé Riot dans un outil local, tu peux générer un JSON complet depuis un Game ID.
 
-```txt
-npm run local-importer
-```
-
-Ouvre ensuite :
-
-```txt
-http://127.0.0.1:5315
-```
-
 Colle un Game ID du type `EUW1_7123456789`. L'outil demande les données à NXT5 côté serveur et génère un fichier `nxt5-...json` contenant le match Riot complet. Il ne demande aucune clé Riot.
 
 Dans NXT5 : Intégration → Importer un fichier NXT5 local → Choisir le JSON.
@@ -112,20 +102,20 @@ NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot. Un code tou
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient une petite application locale qui ouvre une fenêtre navigateur sur ta machine et télécharge un JSON NXT5.
+Le dossier `importer-app` contient une vraie application desktop NXT5 Importer qui génère un JSON complet depuis un Game ID.
 
 À chaque push qui modifie `importer-app`, GitHub Actions lance `Build NXT5 Importer` et génère les fichiers Windows et Mac :
 
 ```txt
-NXT5-Importer.exe
-NXT5-Importer-mac.zip
-NXT5-Importer-mac-arm64.zip
+NXT5-Importer-Windows-0.1.0.exe
+NXT5-Importer-Mac-x64-0.1.0.zip
+NXT5-Importer-Mac-arm64-0.1.0.zip
 ```
 
 L'utilisation est simple :
 
 1. Ouvre `NXT5 Importer`.
-2. Colle le Game ID, exemple `EUW1_7123456789`.
+2. Colle le Game ID, exemple `7861632138`, puis choisis la région.
 3. Ajoute un nom d'import ou un adversaire si besoin.
 4. Clique sur `Générer le JSON complet`.
 5. Dans NXT5, va dans `Intégration` puis `Importer un fichier NXT5 local`.

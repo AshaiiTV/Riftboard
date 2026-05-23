@@ -53,7 +53,9 @@
           ]
         }
       ],
-      "artifactName": "NXT5-Importer-Mac-${arch}-${version}.${ext}"
+      "artifactName": "NXT5-Importer-Mac-${arch}-${version}.${ext}",
+      "identity": "-",
+      "hardenedRuntime": false
     }
   }
 }

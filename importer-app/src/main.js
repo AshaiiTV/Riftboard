@@ -49,7 +49,11 @@ ipcMain.handle('generate-import', async (_event, form) => {
   }
 
   if (!response.ok) {
-    throw new Error(exported?.error || `NXT5 refuse l'export (${response.status}). Verifie le Game ID ou la cle Riot cote Netlify.`);
+    const rawMessage = exported?.error || exported?.detail || exported?.message || '';
+    const message = rawMessage && rawMessage !== 'Bad Request'
+      ? rawMessage
+      : `NXT5 refuse l'export (${response.status}). Verifie le Game ID, la region et la cle Riot cote Netlify.`;
+    throw new Error(message);
   }
   if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
     throw new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
