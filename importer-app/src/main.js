@@ -16,6 +16,10 @@ function normalizeGameId(value, platform = 'EUW1') {
   return gameId;
 }
 
+function isNumericGameId(value) {
+  return /^\d+$/.test(String(value || '').trim());
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1040,
@@ -37,10 +41,11 @@ function createWindow() {
 
 ipcMain.handle('generate-import', async (_event, form) => {
   const gameId = normalizeGameId(form?.gameId, form?.platform);
+  const numericOnly = isNumericGameId(form?.gameId);
   const label = String(form?.label || '').trim().slice(0, 120);
   const opponent = String(form?.opponent || '').trim().slice(0, 120);
   const platform = gameId.split('_')[0];
-  const params = new URLSearchParams({ gameId, platform });
+  const params = new URLSearchParams({ gameId, platform, fallback: numericOnly ? '1' : '0' });
   const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?${params.toString()}`;
   const response = await fetch(exportUrl);
   let exported = null;

@@ -9,7 +9,7 @@ function normalizePlatform(value) {
   return aliases[platform] || platform || 'EUW1';
 }
 
-function readGameId(value, platform = 'EUW1') {
+function readGameId(value, platform = 'EUW1', fallback = false) {
   const raw = String(value || '').trim().toUpperCase();
   const gameId = raw.includes('_') ? raw : `${normalizePlatform(platform)}_${raw}`;
   if (!/^([A-Z0-9]+)_\d+$/.test(gameId)) {
@@ -18,7 +18,7 @@ function readGameId(value, platform = 'EUW1') {
       code: 'NXT5_EXPORT_GAME_ID_INVALID'
     });
   }
-  return { gameId, rawNumericId: raw.includes('_') ? gameId.split('_')[1] : raw, wasNumericOnly: !raw.includes('_') };
+  return { gameId, rawNumericId: raw.includes('_') ? gameId.split('_')[1] : raw, wasNumericOnly: !raw.includes('_') || fallback };
 }
 
 function candidateGameIds({ gameId, rawNumericId, wasNumericOnly }) {
@@ -59,7 +59,8 @@ export default async function handler(request) {
 
     const url = new URL(request.url);
     const body = request.method === 'POST' ? await readJson(request) : {};
-    const input = readGameId(url.searchParams.get('gameId') || body.gameId, url.searchParams.get('platform') || body.platform);
+    const shouldFallback = url.searchParams.get('fallback') === '1' || body.fallback === true;
+    const input = readGameId(url.searchParams.get('gameId') || body.gameId, url.searchParams.get('platform') || body.platform, shouldFallback);
     const { gameId, match } = await fetchFirstAvailableMatch(input);
 
     return json({
