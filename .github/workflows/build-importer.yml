@@ -8,6 +8,9 @@ on:
       - ".github/workflows/build-importer.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     name: Windows exe
@@ -23,8 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: importer-app/package-lock.json
 
       - name: Install dependencies
         run: npm install
@@ -37,3 +38,13 @@ jobs:
         with:
           name: NXT5-Importer-Windows
           path: importer-app/release/*
+
+      - name: Publish latest importer release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nxt5-importer-latest
+          name: NXT5 Importer latest
+          body: "Dernière version Windows de NXT5 Importer."
+          make_latest: true
+          overwrite_files: true
+          files: importer-app/release/*.exe
