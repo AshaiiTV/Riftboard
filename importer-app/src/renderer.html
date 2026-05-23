@@ -9,29 +9,38 @@
 <body>
   <main class="shell">
     <section class="hero">
-      <div>
-        <p class="eyebrow">NXT5 Local Tool</p>
-        <h1>Importer une game sans code tournoi</h1>
-        <p class="lead">Colle un Game ID Riot, ajoute ta clé Riot temporaire, puis génère un fichier JSON prêt à importer dans NXT5.</p>
+      <div class="brand-card">
+        <img src="../assets/nxt5-logo.png" alt="NXT5" />
       </div>
-      <div class="mark">5</div>
+      <div class="hero-copy">
+        <p class="eyebrow">NXT5 Match Export</p>
+        <h1>Importer une game LoL</h1>
+        <p class="lead">Colle l'ID numerique donne par League of Legends, choisis la region, puis genere un JSON complet pret pour NXT5.</p>
+        <div class="chips"><span>No key</span><span>Full JSON</span><span>Match-V5</span></div>
+      </div>
     </section>
 
     <form id="form" class="panel">
-      <label>
-        <span>Game ID</span>
-        <input id="gameId" name="gameId" placeholder="EUW1_7123456789" autocomplete="off" required />
-      </label>
-
-      <label>
-        <span>Clé Riot API</span>
-        <input id="apiKey" name="apiKey" placeholder="RGAPI-..." autocomplete="off" required />
-      </label>
+      <div class="game-grid">
+        <label>
+          <span>Game ID</span>
+          <input id="gameId" name="gameId" placeholder="7861632138 ou EUW1_7861632138" autocomplete="off" required />
+        </label>
+        <label>
+          <span>Region</span>
+          <select id="platform" name="platform">
+            <option value="EUW1">EUW</option>
+            <option value="EUN1">EUNE</option>
+            <option value="NA1">NA</option>
+            <option value="KR">KR</option>
+          </select>
+        </label>
+      </div>
 
       <div class="grid">
         <label>
           <span>Nom de l'import</span>
-          <input id="label" name="label" placeholder="Scrim, tournoi, round..." autocomplete="off" />
+          <input id="label" name="label" placeholder="Game 3, Scrim vs..." autocomplete="off" />
         </label>
         <label>
           <span>Adversaire</span>
@@ -39,8 +48,8 @@
         </label>
       </div>
 
-      <button id="submit" type="submit">Générer le fichier NXT5</button>
-      <p class="hint">Après génération : NXT5 → Intégration → Importer un fichier NXT5 local.</p>
+      <button id="submit" type="submit">Generer le JSON complet</button>
+      <p class="hint">Ensuite : NXT5 -> Integration -> Importer un fichier NXT5 local.</p>
     </form>
 
     <div id="status" class="status" hidden></div>

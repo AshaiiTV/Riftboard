@@ -4,41 +4,29 @@ import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const NXT5_SITE_URL = String(process.env.NXT5_SITE_URL || 'https://nxt5.netlify.app').replace(/\/+$/, '');
 
-const ROUTES = {
-  EUW1: 'EUROPE',
-  EUN1: 'EUROPE',
-  TR1: 'EUROPE',
-  RU: 'EUROPE',
-  NA1: 'AMERICAS',
-  BR1: 'AMERICAS',
-  LA1: 'AMERICAS',
-  LA2: 'AMERICAS',
-  KR: 'ASIA',
-  JP1: 'ASIA',
-  OC1: 'SEA',
-  PH2: 'SEA',
-  SG2: 'SEA',
-  TH2: 'SEA',
-  TW2: 'SEA',
-  VN2: 'SEA'
-};
-
-function regionalFromMatchId(matchId) {
-  const platform = String(matchId || '').split('_')[0]?.toUpperCase();
-  return ROUTES[platform] || 'EUROPE';
+function normalizeGameId(value, platform = 'EUW1') {
+  const raw = String(value || '').trim().toUpperCase();
+  const normalizedPlatform = String(platform || 'EUW1').trim().toUpperCase();
+  const gameId = raw.includes('_') ? raw : `${normalizedPlatform}_${raw}`;
+  if (!/^([A-Z0-9]+)_\d+$/.test(gameId)) {
+    throw new Error('Game ID invalide. Mets un ID numerique comme 7861632138, ou complet comme EUW1_7861632138.');
+  }
+  return gameId;
 }
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 980,
-    height: 720,
-    minWidth: 820,
-    minHeight: 620,
+    width: 1040,
+    height: 760,
+    minWidth: 880,
+    minHeight: 660,
     title: 'NXT5 Importer',
-    backgroundColor: '#050814',
+    backgroundColor: '#030713',
+    icon: path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.icns'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false
     }
@@ -48,50 +36,38 @@ function createWindow() {
 }
 
 ipcMain.handle('generate-import', async (_event, form) => {
-  const gameId = String(form?.gameId || '').trim().toUpperCase();
-  const apiKey = String(form?.apiKey || '').trim();
+  const gameId = normalizeGameId(form?.gameId, form?.platform);
   const label = String(form?.label || '').trim().slice(0, 120);
   const opponent = String(form?.opponent || '').trim().slice(0, 120);
-
-  if (!/^([A-Z0-9]+)_\d+$/.test(gameId)) {
-    throw new Error('Game ID invalide. Format attendu : EUW1_7123456789.');
-  }
-  if (!apiKey.startsWith('RGAPI-')) {
-    throw new Error('Clé Riot invalide. Elle doit commencer par RGAPI-.');
-  }
-
-  const regional = regionalFromMatchId(gameId).toLowerCase();
-  const riotResponse = await fetch(`https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(gameId)}`, {
-    headers: { 'X-Riot-Token': apiKey }
-  });
-
-  if (!riotResponse.ok) {
-    let detail = '';
-    try {
-      const payload = await riotResponse.json();
-      detail = payload?.status?.message || payload?.message || '';
-    } catch {
-      detail = await riotResponse.text().catch(() => '');
-    }
-    if (riotResponse.status === 401 || riotResponse.status === 403) throw new Error('Riot refuse la clé API. Vérifie qu’elle est valide et pas expirée.');
-    if (riotResponse.status === 404) throw new Error('Game introuvable. Vérifie le Game ID et son préfixe serveur.');
-    if (riotResponse.status === 429) throw new Error('Rate limit Riot atteint. Attends un peu avant de réessayer.');
-    throw new Error(`Erreur Riot ${riotResponse.status}. ${detail}`.trim());
+  const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?gameId=${encodeURIComponent(gameId)}`;
+  const response = await fetch(exportUrl);
+  let exported = null;
+  try {
+    exported = await response.json();
+  } catch {
+    exported = null;
   }
 
-  const match = await riotResponse.json();
+  if (!response.ok) {
+    throw new Error(exported?.error || `NXT5 refuse l'export (${response.status}). Verifie le Game ID ou la cle Riot cote Netlify.`);
+  }
+  if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
+    throw new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
+  }
+
   const payload = {
-    source: 'nxt5-importer-exe',
-    version: 1,
+    source: 'nxt5-importer-app',
+    version: 2,
     gameId,
+    platform: gameId.split('_')[0],
     label,
     opponent,
     exportedAt: new Date().toISOString(),
-    match
+    match: exported.match
   };
 
   const { canceled, filePath } = await dialog.showSaveDialog({
-    title: 'Enregistrer le fichier NXT5',
+    title: 'Enregistrer le JSON NXT5',
     defaultPath: `nxt5-${gameId}.json`,
     filters: [{ name: 'NXT5 JSON', extensions: ['json'] }]
   });
@@ -101,6 +77,7 @@ ipcMain.handle('generate-import', async (_event, form) => {
   return { canceled: false, filePath, gameId };
 });
 
+app.setName('NXT5 Importer');
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

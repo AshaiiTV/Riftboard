@@ -3,14 +3,57 @@
   "version": "0.1.0",
   "private": true,
   "description": "NXT5 local match importer",
-  "main": "src/local-server.cjs",
+  "main": "src/main.js",
   "scripts": {
-    "start": "node src/local-server.cjs",
-    "dist:win": "pkg src/local-server.cjs --targets node18-win-x64 --output release/NXT5-Importer.exe",
-    "dist:mac": "pkg src/local-server.cjs --targets node18-macos-x64 --output release/NXT5-Importer-mac",
-    "dist:mac:arm": "pkg src/local-server.cjs --targets node18-macos-arm64 --output release/NXT5-Importer-mac-arm64"
+    "start": "electron .",
+    "dist:win": "electron-builder --win portable --x64",
+    "dist:mac": "electron-builder --mac zip --x64",
+    "dist:mac:arm": "electron-builder --mac zip --arm64"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.3.2"
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "type": "module",
+  "build": {
+    "appId": "app.nxt5.importer",
+    "productName": "NXT5 Importer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "src/main.js"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "NXT5-Importer-Windows-${version}.${ext}"
+    },
+    "mac": {
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.sports",
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "NXT5-Importer-Mac-${arch}-${version}.${ext}"
+    }
   }
 }

@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-windows:
-    name: Windows exe
+    name: Windows app
     runs-on: windows-latest
     defaults:
       run:
@@ -30,14 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build exe
+      - name: Build Windows app
         run: npm run dist:win
 
-      - name: Upload exe
+      - name: Upload Windows app
         uses: actions/upload-artifact@v4
         with:
           name: NXT5-Importer-Windows
-          path: importer-app/release/*
+          path: importer-app/release/*.exe
 
       - name: Publish latest importer release
         uses: softprops/action-gh-release@v2
@@ -67,13 +67,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build mac binaries
+      - name: Build mac app
         run: |
           npm run dist:mac
           npm run dist:mac:arm
-          chmod +x release/NXT5-Importer-mac release/NXT5-Importer-mac-arm64
-          ditto -c -k --sequesterRsrc --keepParent release/NXT5-Importer-mac release/NXT5-Importer-mac.zip
-          ditto -c -k --sequesterRsrc --keepParent release/NXT5-Importer-mac-arm64 release/NXT5-Importer-mac-arm64.zip
 
       - name: Upload mac app
         uses: actions/upload-artifact@v4
