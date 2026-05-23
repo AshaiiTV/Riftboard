@@ -2,9 +2,12 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
+import os from 'node:os';
+import https from 'node:https';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NXT5_SITE_URL = String(process.env.NXT5_SITE_URL || 'https://nxt5.netlify.app').replace(/\/+$/, '');
+const championNameCache = new Map();
 
 function normalizeGameId(value, platform = 'EUW1') {
   const raw = String(value || '').trim().toUpperCase();
@@ -18,6 +21,169 @@ function normalizeGameId(value, platform = 'EUW1') {
 
 function isNumericGameId(value) {
   return /^\d+$/.test(String(value || '').trim());
+}
+
+function extractGameInput(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  const full = raw.match(/\b([A-Z0-9]{2,5})[_-](\d{6,})\b/);
+  if (full) return `${full[1]}_${full[2]}`;
+  const numeric = raw.match(/\b(\d{6,})\b/);
+  return numeric ? numeric[1] : raw;
+}
+
+function lockfileCandidates() {
+  const home = os.homedir();
+  const candidates = [
+    process.env.LEAGUE_LOCKFILE,
+    '/Applications/League of Legends.app/Contents/LoL/lockfile',
+    path.join(home, 'Applications/League of Legends.app/Contents/LoL/lockfile'),
+    'C:\\Riot Games\\League of Legends\\lockfile',
+    'C:\\Program Files\\Riot Games\\League of Legends\\lockfile',
+    'C:\\Program Files (x86)\\Riot Games\\League of Legends\\lockfile'
+  ];
+  return candidates.filter(Boolean);
+}
+
+async function readLeagueLockfile() {
+  for (const filePath of lockfileCandidates()) {
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      const [, , port, password, protocol] = content.trim().split(':');
+      if (port && password) return { port, password, protocol: protocol || 'https' };
+    } catch {
+      // Try next common install path.
+    }
+  }
+  throw new Error('Client LoL local introuvable. Ouvre League of Legends, puis relance l’import.');
+}
+
+async function lcuGet(endpoint) {
+  const lockfile = await readLeagueLockfile();
+  return new Promise((resolve, reject) => {
+    const request = https.request({
+      hostname: '127.0.0.1',
+      port: lockfile.port,
+      path: endpoint,
+      method: 'GET',
+      rejectUnauthorized: false,
+      headers: {
+        Authorization: `Basic ${Buffer.from(`riot:${lockfile.password}`).toString('base64')}`
+      }
+    }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => { body += chunk; });
+      response.on('end', () => {
+        let payload = null;
+        try {
+          payload = body ? JSON.parse(body) : null;
+        } catch {
+          payload = body;
+        }
+        if (response.statusCode >= 200 && response.statusCode < 300) resolve(payload);
+        else reject(new Error(`Client LoL: ${response.statusCode} sur ${endpoint}`));
+      });
+    });
+    request.on('error', reject);
+    request.end();
+  });
+}
+
+async function championNameById(championId) {
+  const key = String(championId || '');
+  if (!key) return 'Unknown';
+  if (championNameCache.has(key)) return championNameCache.get(key);
+  const versions = await fetch('https://ddragon.leagueoflegends.com/api/versions.json').then((res) => res.json());
+  const version = versions?.[0];
+  const data = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`).then((res) => res.json());
+  for (const champion of Object.values(data?.data || {})) {
+    championNameCache.set(String(champion.key), champion.name);
+  }
+  return championNameCache.get(key) || `Champion ${key}`;
+}
+
+function lcuWinValue(team) {
+  if (typeof team?.win === 'boolean') return team.win;
+  return String(team?.win || '').toLowerCase() === 'win';
+}
+
+async function lcuToRiotMatch(lcuGame, fallbackGameId) {
+  const participants = await Promise.all((lcuGame.participants || []).map(async (participant, index) => {
+    const identity = (lcuGame.participantIdentities || []).find((item) => item.participantId === participant.participantId);
+    const player = identity?.player || {};
+    const stats = participant.stats || {};
+    const timeline = participant.timeline || {};
+    const championName = participant.championName || await championNameById(participant.championId);
+    const riotName = player.gameName || player.summonerName || player.displayName || `Player ${index + 1}`;
+    const riotTag = player.tagLine || player.tagline || '';
+    return {
+      participantId: participant.participantId,
+      teamId: participant.teamId,
+      summonerName: player.summonerName || riotName,
+      riotIdGameName: riotName,
+      riotIdTagline: riotTag,
+      championId: participant.championId,
+      championName,
+      teamPosition: String(timeline.lane || participant.teamPosition || '').toUpperCase(),
+      individualPosition: String(timeline.lane || participant.individualPosition || '').toUpperCase(),
+      lane: String(timeline.lane || participant.lane || 'UNKNOWN').toUpperCase(),
+      kills: Number(stats.kills || 0),
+      deaths: Number(stats.deaths || 0),
+      assists: Number(stats.assists || 0),
+      totalMinionsKilled: Number(stats.totalMinionsKilled || stats.minionsKilled || 0),
+      neutralMinionsKilled: Number(stats.neutralMinionsKilled || 0),
+      goldEarned: Number(stats.goldEarned || 0),
+      totalDamageDealtToChampions: Number(stats.totalDamageDealtToChampions || 0),
+      visionScore: Number(stats.visionScore || 0),
+      win: Boolean(stats.win)
+    };
+  }));
+
+  return {
+    metadata: {
+      matchId: fallbackGameId,
+      source: 'lcu-match-history'
+    },
+    info: {
+      gameCreation: lcuGame.gameCreation || lcuGame.gameCreationDate || 0,
+      gameDuration: Math.round(Number(lcuGame.gameDuration || 0) / (Number(lcuGame.gameDuration || 0) > 10000 ? 1000 : 1)),
+      gameId: lcuGame.gameId || fallbackGameId,
+      gameMode: lcuGame.gameMode || 'CLASSIC',
+      gameType: lcuGame.gameType || 'CUSTOM_GAME',
+      gameVersion: lcuGame.gameVersion || '',
+      mapId: lcuGame.mapId || 11,
+      participants,
+      teams: (lcuGame.teams || []).map((team) => ({
+        teamId: team.teamId,
+        win: lcuWinValue(team),
+        objectives: {
+          baron: { kills: Number(team.baronKills || 0) },
+          champion: { kills: Number(team.championKills || 0) },
+          dragon: { kills: Number(team.dragonKills || 0) },
+          inhibitor: { kills: Number(team.inhibitorKills || 0) },
+          tower: { kills: Number(team.towerKills || 0) }
+        }
+      }))
+    }
+  };
+}
+
+async function fetchLocalClientMatch(numericGameId, fullGameId) {
+  const endpoints = [
+    `/lol-match-history/v1/games/${encodeURIComponent(numericGameId)}`,
+    `/lol-match-history/v1/game/${encodeURIComponent(numericGameId)}`
+  ];
+  const errors = [];
+  for (const endpoint of endpoints) {
+    try {
+      const game = await lcuGet(endpoint);
+      if (game?.participants?.length) return lcuToRiotMatch(game, fullGameId);
+      errors.push(`${endpoint}: réponse sans participants`);
+    } catch (err) {
+      errors.push(`${endpoint}: ${err.message}`);
+    }
+  }
+  throw new Error(`Impossible de lire cette partie dans le client LoL local. Ouvre l’historique de match dans le client, puis réessaie. Détails: ${errors.join(' | ')}`);
 }
 
 function createWindow() {
@@ -40,40 +206,56 @@ function createWindow() {
 }
 
 ipcMain.handle('generate-import', async (_event, form) => {
-  const gameId = normalizeGameId(form?.gameId, form?.platform);
-  const numericOnly = isNumericGameId(form?.gameId);
+  const extractedInput = extractGameInput(form?.gameId);
+  const gameId = normalizeGameId(extractedInput, form?.platform);
+  const numericOnly = isNumericGameId(extractedInput);
   const label = String(form?.label || '').trim().slice(0, 120);
   const opponent = String(form?.opponent || '').trim().slice(0, 120);
   const platform = gameId.split('_')[0];
   const params = new URLSearchParams({ gameId, platform, fallback: numericOnly ? '1' : '0' });
   const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?${params.toString()}`;
-  const response = await fetch(exportUrl);
   let exported = null;
+  let riotError = null;
   try {
-    exported = await response.json();
-  } catch {
-    exported = null;
+    const response = await fetch(exportUrl);
+    try {
+      exported = await response.json();
+    } catch {
+      exported = null;
+    }
+
+    if (!response.ok) {
+      const rawMessage = exported?.error || exported?.detail || exported?.message || '';
+      const message = rawMessage && rawMessage !== 'Bad Request'
+        ? rawMessage
+        : `NXT5 refuse l'export (${response.status}). Verifie le Game ID, la region et la cle Riot cote Netlify.`;
+      throw new Error(message);
+    }
+  } catch (err) {
+    riotError = err;
   }
 
-  if (!response.ok) {
-    const rawMessage = exported?.error || exported?.detail || exported?.message || '';
-    const message = rawMessage && rawMessage !== 'Bad Request'
-      ? rawMessage
-      : `NXT5 refuse l'export (${response.status}). Verifie le Game ID, la region et la cle Riot cote Netlify.`;
-    throw new Error(message);
+  if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
+    if (!numericOnly) {
+      throw riotError || new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
+    }
+    const localMatch = await fetchLocalClientMatch(extractedInput, gameId);
+    exported = { match: localMatch, source: 'nxt5-lcu-importer' };
   }
+
   if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
     throw new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
   }
 
   const payload = {
     source: 'nxt5-importer-app',
-    version: 2,
+    version: 3,
     gameId,
     platform,
     label,
     opponent,
     exportedAt: new Date().toISOString(),
+    importerSource: exported.source || 'riot-match-v5',
     match: exported.match
   };
 

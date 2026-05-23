@@ -107,15 +107,15 @@ Le dossier `importer-app` contient une vraie application desktop NXT5 Importer q
 À chaque push qui modifie `importer-app`, GitHub Actions lance `Build NXT5 Importer` et génère les fichiers Windows et Mac :
 
 ```txt
-NXT5-Importer-Windows-0.1.1.exe
-NXT5-Importer-Mac-x64-0.1.1.zip
-NXT5-Importer-Mac-arm64-0.1.1.zip
+NXT5-Importer-Windows-0.1.2.exe
+NXT5-Importer-Mac-x64-0.1.2.zip
+NXT5-Importer-Mac-arm64-0.1.2.zip
 ```
 
 L'utilisation est simple :
 
 1. Sur Mac, ouvre `Ouvrir NXT5 Importer.command` dans le zip. Sur Windows, lance le `.exe`.
-2. Colle le Game ID, exemple `7861632138`, puis choisis la région.
+2. Colle le Game ID, exemple `7861632138`, ou le code brut copié depuis l’historique du client LoL, puis choisis la région.
 3. Ajoute un nom d'import ou un adversaire si besoin.
 4. Clique sur `Générer le JSON complet`.
 5. Dans NXT5, va dans `Intégration` puis `Importer un fichier NXT5 local`.
