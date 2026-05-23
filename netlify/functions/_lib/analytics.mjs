@@ -13,6 +13,17 @@ function normalizeRiotId(value) {
   return String(value || '').toLowerCase().replace(/\s+/g, '').replace('#', '-');
 }
 
+function normalizeRole(value, participantId = 0) {
+  const roleRaw = String(value || '').toUpperCase();
+  if (roleRaw === 'JUNGLE') return 'JGL';
+  if (roleRaw === 'MIDDLE') return 'MID';
+  if (roleRaw === 'BOTTOM') return 'ADC';
+  if (roleRaw === 'UTILITY' || roleRaw === 'SUPPORT') return 'SUP';
+  if (['TOP', 'JGL', 'MID', 'ADC', 'SUP'].includes(roleRaw)) return roleRaw;
+  const index = ((Number(participantId || 1) - 1) % 5) + 1;
+  return ['TOP', 'JGL', 'MID', 'ADC', 'SUP'][index - 1] || 'UNKNOWN';
+}
+
 function participantRiotId(p) {
   const gameName = p.riotIdGameName || p.summonerName || '';
   const tag = p.riotIdTagline || '';
@@ -53,7 +64,7 @@ function teamKills(match, teamId) {
 }
 
 function detectAllyTeam(match, roster) {
-  const normalizedRoster = new Set(roster.map((p) => normalizeRiotId(p.riot_id)));
+  const normalizedRoster = new Set(roster.map((p) => normalizeRiotId(p.riot_id)).filter(Boolean));
 
   for (const participant of match.info.participants) {
     const rid = normalizeRiotId(participantRiotId(participant));
@@ -77,8 +88,7 @@ function buildParticipants(match, allyTeamId, roster) {
     .slice()
     .sort((a, b) => (a.teamId - b.teamId) || ((ROLE_ORDER[a.teamPosition] || 99) - (ROLE_ORDER[b.teamPosition] || 99)))
     .map((p) => {
-      const roleRaw = p.teamPosition || p.individualPosition || p.lane || 'UNKNOWN';
-      const role = roleRaw === 'JUNGLE' ? 'JGL' : roleRaw === 'MIDDLE' ? 'MID' : roleRaw === 'BOTTOM' ? 'ADC' : roleRaw === 'UTILITY' ? 'SUP' : roleRaw;
+      const role = normalizeRole(p.teamPosition || p.individualPosition || p.lane, p.participantId);
       const kills = Number(p.kills || 0);
       const deaths = Number(p.deaths || 0);
       const assists = Number(p.assists || 0);

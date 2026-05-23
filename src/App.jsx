@@ -2006,12 +2006,21 @@ function statValue(row, key, fallback = 0) {
   return Number(row?.[key] ?? row?.raw?.[key] ?? fallback) || 0;
 }
 
+function statPerMinute(row, key) {
+  const duration = Number(row?.matchDuration || row?.raw?.timePlayed || row?.raw?.gameDuration || 0) / 60;
+  return duration > 0 ? statValue(row, key) / duration : 0;
+}
+
 function teamRows(match, team = "ALLY") {
   return (match?.participants || []).filter((row) => row.team_key === team);
 }
 
 function sumRows(rows, key) {
   return rows.reduce((total, row) => total + statValue(row, key), 0);
+}
+
+function shareOfTeam(row, rows, key) {
+  return (statValue(row, key) / Math.max(1, sumRows(rows, key))) * 100;
 }
 
 function objectiveValue(match, name) {
@@ -2056,7 +2065,7 @@ function PlayerDetailRow({ row, maxDamage, maxGold }) {
   const spells = summonerSpellIds(row);
   const kda = `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`;
   const kp = parsePercent(row.kill_participation || row.kp);
-  return <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(220px,1.25fr)_1fr_1fr_1.2fr] xl:items-center"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><img src={championIconUrl(row) || championLoadingUrl(row.champion)} alt={row.champion} className="h-full w-full object-cover" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge><Badge tone="slate">{row.grade || "Grade ?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-500">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KDA</p><p className="mt-1 font-black text-white">{kda}</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={formatPoints(row.damage)} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={formatPoints(row.gold)} tone="orange" /></div><div><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">Build</p><div className="flex gap-1">{spells.map((spell) => <div key={`${row.id}-spell-${spell}`} className="h-6 w-6 overflow-hidden rounded-md border border-white/10 bg-black/35">{summonerSpellIconUrl(spell) ? <img src={summonerSpellIconUrl(spell)} alt={`Spell ${spell}`} className="h-full w-full object-cover" /> : null}</div>)}</div></div><div className="flex flex-wrap gap-1.5">{items.length ? items.map((item, index) => <div key={`${row.id}-${item}-${index}`} className="h-9 w-9 overflow-hidden rounded-lg border border-white/10 bg-black/35"><img src={itemIconUrl(item)} alt={`Item ${item}`} className="h-full w-full object-cover" /></div>) : <Badge tone="slate">Aucun item lu</Badge>}</div></div></div>;
+  return <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(220px,1.15fr)_1fr_1fr_1.15fr] xl:items-center"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><img src={championIconUrl(row) || championLoadingUrl(row.champion)} alt={row.champion} className="h-full w-full object-cover" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge><Badge tone="slate">{row.grade || "Grade ?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-500">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KDA</p><p className="mt-1 font-black text-white">{kda}</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={`${formatPoints(row.damage)} · ${formatPoints(statPerMinute(row, "totalDamageDealtToChampions") || statPerMinute(row, "damage"))}/min`} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={`${formatPoints(row.gold)} · ${formatPoints(row.gold_per_min || statPerMinute(row, "goldEarned") || statPerMinute(row, "gold"))}/min`} tone="orange" /></div><div><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">Build</p><div className="flex gap-1">{spells.map((spell) => <div key={`${row.id}-spell-${spell}`} className="h-6 w-6 overflow-hidden rounded-md border border-white/10 bg-black/35">{summonerSpellIconUrl(spell) ? <img src={summonerSpellIconUrl(spell)} alt={`Spell ${spell}`} className="h-full w-full object-cover" /> : null}</div>)}</div></div><div className="flex flex-wrap gap-1.5">{items.length ? items.map((item, index) => <div key={`${row.id}-${item}-${index}`} className="h-9 w-9 overflow-hidden rounded-lg border border-white/10 bg-black/35"><img src={itemIconUrl(item)} alt={`Item ${item}`} className="h-full w-full object-cover" /></div>) : <Badge tone="slate">Aucun item lu</Badge>}</div></div></div>;
 }
 
 function MatchDataPanel({ match }) {
@@ -2096,7 +2105,7 @@ function Statistics({ data, selectedTeamId }) {
     current.damage += Number(row.damage || 0);
     current.vision += Number(row.vision || 0);
     current.gold += Number(row.gold || 0);
-    current.kp += Number(row.kill_participation || row.kp || 0);
+    current.kp += parsePercent(row.kill_participation || row.kp || 0);
     current.csPerMin += Number(row.cs_per_min || 0);
     current.champions.set(row.champion, (current.champions.get(row.champion) || 0) + 1);
     current.winrate = Math.round((current.wins / Math.max(1, current.games)) * 100);
