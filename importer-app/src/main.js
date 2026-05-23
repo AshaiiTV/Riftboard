@@ -39,7 +39,9 @@ ipcMain.handle('generate-import', async (_event, form) => {
   const gameId = normalizeGameId(form?.gameId, form?.platform);
   const label = String(form?.label || '').trim().slice(0, 120);
   const opponent = String(form?.opponent || '').trim().slice(0, 120);
-  const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?gameId=${encodeURIComponent(gameId)}`;
+  const platform = gameId.split('_')[0];
+  const params = new URLSearchParams({ gameId, platform });
+  const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?${params.toString()}`;
   const response = await fetch(exportUrl);
   let exported = null;
   try {
@@ -63,7 +65,7 @@ ipcMain.handle('generate-import', async (_event, form) => {
     source: 'nxt5-importer-app',
     version: 2,
     gameId,
-    platform: gameId.split('_')[0],
+    platform,
     label,
     opponent,
     exportedAt: new Date().toISOString(),
