@@ -167,6 +167,28 @@ create table if not exists match_participants (
   raw jsonb not null default '{}'::jsonb
 );
 
+create table if not exists match_raw_archives (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  match_id uuid references matches(id) on delete cascade,
+  game_id text not null,
+  source text not null default 'import',
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique(team_id, game_id)
+);
+
+create table if not exists match_archives (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  created_by uuid references users(id) on delete set null,
+  name text not null,
+  description text,
+  match_ids jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists champion_pool (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references teams(id) on delete cascade,
@@ -266,6 +288,8 @@ create index if not exists idx_team_members_team on team_members(team_id);
 create index if not exists idx_players_team on players(team_id);
 create index if not exists idx_matches_team on matches(team_id, created_at desc);
 create index if not exists idx_participants_match on match_participants(match_id);
+create index if not exists idx_match_raw_archives_team on match_raw_archives(team_id, created_at desc);
+create index if not exists idx_match_archives_team on match_archives(team_id, created_at desc);
 alter table champion_pool add column if not exists role text;
 alter table champion_pool add column if not exists status text not null default 'work';
 alter table champion_pool add column if not exists notes text;
@@ -316,6 +340,10 @@ for each row execute function set_updated_at();
 
 drop trigger if exists trg_reports_updated_at on reports;
 create trigger trg_reports_updated_at before update on reports
+for each row execute function set_updated_at();
+
+drop trigger if exists trg_match_archives_updated_at on match_archives;
+create trigger trg_match_archives_updated_at before update on match_archives
 for each row execute function set_updated_at();
 
 drop trigger if exists trg_tournament_codes_updated_at on tournament_codes;

@@ -132,6 +132,7 @@ const DEFAULT_DATA = {
   compositions: [],
   improvements: [],
   reports: [],
+  matchArchives: [],
   tournamentCodes: [],
   inviteCodes: [],
 };
@@ -2086,19 +2087,46 @@ function MatchDataPanel({ match }) {
   return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{match.opponent || match.game_id}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{match.game_id} · {match.duration || "--:--"} · {match.primary_focus || "Focus à définir"}</p></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{objectives.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-3 text-center"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">{label}</p><p className="mt-1 text-xl font-black text-white">{value}</p></div>)}</div></div><div className="mt-5 grid gap-3 lg:grid-cols-4"><MetricCard icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameCoachSignals match={match} /><div className="mt-5 grid gap-4 2xl:grid-cols-2"><div><div className="mb-3 flex items-center gap-2"><Badge tone="cyan">Alliés</Badge><p className="text-sm font-black text-white">Détails joueurs et builds</p></div><div className="space-y-2">{ally.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div><div><div className="mb-3 flex items-center gap-2"><Badge tone="red">Adversaires</Badge><p className="text-sm font-black text-white">Lecture comparative</p></div><div className="space-y-2">{enemy.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div></div></Surface>;
 }
 
-function Statistics({ data, selectedTeamId }) {
+function archiveMatchIds(archive) {
+  return Array.isArray(archive?.match_ids) ? archive.match_ids : [];
+}
+
+function ScrimArchiveSummary({ matches }) {
+  const rows = matches.flatMap((match) => match.participants || []);
+  const ally = rows.filter((row) => row.team_key === "ALLY");
+  const enemy = rows.filter((row) => row.team_key === "ENEMY");
+  const wins = matches.filter((match) => match.result === "Victoire").length;
+  const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
+  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
+  const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
+  const deaths = sumRows(ally, "deaths");
+  const enemyDeaths = sumRows(enemy, "deaths");
+  if (!matches.length) return null;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Analyse de groupe</Badge><Badge tone="slate">{matches.length} game{matches.length > 1 ? "s" : ""}</Badge></div><h3 className="mt-3 text-2xl font-black text-white">Lecture scrim complète</h3><p className="mt-1 text-sm font-semibold text-slate-500">Agrégation des games sélectionnées : série, volume, écarts et signaux communs.</p></div><Badge tone={wins >= matches.length / 2 ? "green" : "red"}>{wins}W / {matches.length - wins}L</Badge></div><div className="mt-5 grid gap-3 lg:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} /><MetricCard icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} /><MetricCard icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} /></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{matches.map((match) => <div key={match.id} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge></div><p className="mt-3 truncate font-black text-white">{match.opponent || match.game_id}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{match.primary_focus || match.main_issue || "Review à compléter"}</p></div>)}</div></Surface>;
+}
+
+function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
   const [selectedMatchId, setSelectedMatchId] = useState(matches[0]?.id || "");
+  const [selectedArchiveId, setSelectedArchiveId] = useState("");
+  const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
+  const [savingArchive, setSavingArchive] = useState(false);
   useEffect(() => {
     if (matches.length && !matches.some((match) => match.id === selectedMatchId)) setSelectedMatchId(matches[0].id);
   }, [matches, selectedMatchId]);
+  useEffect(() => {
+    if (archives.length && selectedArchiveId && !archives.some((archive) => archive.id === selectedArchiveId)) setSelectedArchiveId("");
+  }, [archives, selectedArchiveId]);
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) || matches[0];
-  const rows = matches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY"));
+  const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
+  const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
+  const rows = scopedMatches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY"));
   const stats = Array.from(rows.reduce((map, row) => {
     const key = row.player_id || row.riot_id || row.summoner_name || `${row.role}-${row.champion}`;
     const current = map.get(key) || { key, name: row.summoner_name || row.riot_id || "Profil", role: row.role || "ROLE", games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map() };
     current.games += 1;
-    current.wins += matches.find((match) => match.id === row.match_id)?.result === "Victoire" ? 1 : 0;
+    current.wins += scopedMatches.find((match) => match.id === row.match_id)?.result === "Victoire" ? 1 : 0;
     current.kills += Number(row.kills || 0);
     current.deaths += Number(row.deaths || 0);
     current.assists += Number(row.assists || 0);
@@ -2115,8 +2143,42 @@ function Statistics({ data, selectedTeamId }) {
   const maxDamage = Math.max(1, ...stats.map((stat) => stat.damage / Math.max(1, stat.games)));
   const maxVision = Math.max(1, ...stats.map((stat) => stat.vision / Math.max(1, stat.games)));
   const maxGold = Math.max(1, ...stats.map((stat) => stat.gold / Math.max(1, stat.games)));
-  const wins = matches.filter((match) => match.result === "Victoire").length;
-  return <div><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Lis les performances profil par profil à partir des games importées dans NXT5." />{matches.length ? <><div className="grid gap-3 md:grid-cols-4"><MetricCard icon={Swords} label="Games importées" value={matches.length} hint="Base statistique" tone="cyan" /><MetricCard icon={Trophy} label="Winrate team" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""}`} tone="green" /><MetricCard icon={Users} label="Profils lus" value={stats.length} hint="Joueurs détectés" tone="purple" /><MetricCard icon={BarChart3} label="Lignes data" value={rows.length} hint="Participants alliés" tone="yellow" /></div><Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Analyse détaillée par game</h3><p className="mt-1 text-sm font-semibold text-slate-500">KDA, builds, objectifs, gold, dégâts, vision et lecture adversaire.</p></div><SelectInput label="Game analysée" value={selectedMatch?.id || ""} onChange={setSelectedMatchId}>{matches.map((match) => <option key={match.id} value={match.id}>{match.opponent || match.game_id} · {match.result || "Analyse"} · {match.duration || "--:--"}</option>)}</SelectInput></div></Surface><MatchDataPanel match={selectedMatch} /><div className="mt-5 grid gap-5 xl:grid-cols-2">{stats.map((stat) => <PlayerStatCard key={stat.key} stat={stat} maxDamage={maxDamage} maxVision={maxVision} maxGold={maxGold} />)}</div></> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
+  const wins = scopedMatches.filter((match) => match.result === "Victoire").length;
+  const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : [...current.matchIds, matchId] }));
+  const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
+  const editArchive = (archive) => {
+    setArchiveForm({ id: archive.id, name: archive.name || "", description: archive.description || "", matchIds: archiveMatchIds(archive) });
+    setSelectedArchiveId(archive.id);
+  };
+  async function saveArchive(event) {
+    event.preventDefault();
+    setSavingArchive(true);
+    try {
+      await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: archiveForm.id ? "update" : "create", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
+      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe de games est prêt dans les statistiques." });
+      resetArchiveForm();
+      await refreshAll?.();
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Archive impossible", text: err.message });
+    } finally {
+      setSavingArchive(false);
+    }
+  }
+  async function deleteArchive(archive) {
+    if (!archive || !window.confirm(`Supprimer l’archive "${archive.name}" ?`)) return;
+    setSavingArchive(true);
+    try {
+      await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, archiveId: archive.id }) });
+      if (selectedArchiveId === archive.id) setSelectedArchiveId("");
+      pushToast?.({ type: "green", title: "Archive supprimée", text: "Le groupe a été retiré." });
+      await refreshAll?.();
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Suppression impossible", text: err.message });
+    } finally {
+      setSavingArchive(false);
+    }
+  }
+  return <div><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Lis les performances profil par profil à partir des games importées dans NXT5." />{matches.length ? <><div className="grid gap-3 md:grid-cols-4"><MetricCard icon={Swords} label="Games analysées" value={scopedMatches.length} hint={selectedArchive ? "Groupe actif" : "Base complète"} tone="cyan" /><MetricCard icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""}`} tone="green" /><MetricCard icon={Users} label="Profils lus" value={stats.length} hint="Joueurs détectés" tone="purple" /><MetricCard icon={BarChart3} label="Lignes data" value={rows.length} hint="Participants alliés" tone="yellow" /></div><Surface glow className="mt-5"><div className="grid gap-5 xl:grid-cols-[.92fr_1.08fr]"><div><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-500">Crée une archive de scrim et analyse uniquement les games choisies.</p></div><Button type="button" variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")} disabled={!selectedArchiveId}>Tout voir</Button></div><div className="mt-4 max-h-72 space-y-2 overflow-auto pr-1">{archives.length ? archives.map((archive) => { const count = archiveMatchIds(archive).length; const selected = selectedArchiveId === archive.id; return <div key={archive.id} className={cx("rounded-2xl border p-3 transition", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}><button type="button" onClick={() => setSelectedArchiveId(archive.id)} className="w-full text-left"><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">{archive.description || `Créée par ${archive.created_by_name || "NXT5"}`}</p></button><div className="mt-3 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-500">Aucun groupe. Crée ton premier bloc de scrim à droite.</p>}</div></div><form onSubmit={saveArchive} className="space-y-3"><div className="grid gap-3 lg:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Games à inclure</p><div className="grid max-h-64 gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => <button key={match.id} type="button" onClick={() => toggleArchiveMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", archiveForm.matchIds.includes(match.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{match.opponent || match.game_id}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p></button>)}</div></div><div className="flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div></form></div></Surface>{selectedArchive && <ScrimArchiveSummary matches={scopedMatches} />}<Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Analyse détaillée par game</h3><p className="mt-1 text-sm font-semibold text-slate-500">KDA, builds, objectifs, gold, dégâts, vision et lecture adversaire.</p></div><SelectInput label="Game analysée" value={selectedMatch?.id || ""} onChange={setSelectedMatchId}>{matches.map((match) => <option key={match.id} value={match.id}>{match.opponent || match.game_id} · {match.result || "Analyse"} · {match.duration || "--:--"}</option>)}</SelectInput></div></Surface><MatchDataPanel match={selectedMatch} /><div className="mt-5 grid gap-5 xl:grid-cols-2">{stats.map((stat) => <PlayerStatCard key={stat.key} stat={stat} maxDamage={maxDamage} maxVision={maxVision} maxGold={maxGold} />)}</div></> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
 }
 
 function ReviewSignalPanel({ match, rows }) {
@@ -3225,7 +3287,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} currentMember={currentMember} user={user} />;
-    if (active === "stats") return <Statistics data={data} selectedTeamId={selectedTeamId} />;
+    if (active === "stats") return <Statistics data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;

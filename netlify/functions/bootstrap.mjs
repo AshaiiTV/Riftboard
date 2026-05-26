@@ -68,6 +68,34 @@ async function loadInviteCodes(teamIds) {
   }
 }
 
+async function loadMatchArchives(teamIds) {
+  try {
+    await sql`
+      create table if not exists match_archives (
+        id uuid primary key default gen_random_uuid(),
+        team_id uuid not null references teams(id) on delete cascade,
+        created_by uuid references users(id) on delete set null,
+        name text not null,
+        description text,
+        match_ids jsonb not null default '[]'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      )
+    `;
+    return await sql`
+      select match_archives.*, users.name as created_by_name
+      from match_archives
+      left join users on users.id = match_archives.created_by
+      where match_archives.team_id = any(${teamIds})
+      order by match_archives.created_at desc
+      limit 100
+    `;
+  } catch (err) {
+    if (err?.code === '42P01') return [];
+    throw err;
+  }
+}
+
 export default async function handler(request, context) {
   try {
     const user = await requireAuth(request, context);
@@ -81,7 +109,7 @@ export default async function handler(request, context) {
     const teamIds = teams.map((t) => t.id);
 
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], tournamentCodes: [], inviteCodes: [], availability: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], tournamentCodes: [], inviteCodes: [], availability: [] });
     }
 
     const [
@@ -92,6 +120,7 @@ export default async function handler(request, context) {
       improvements,
       compositions,
       reports,
+      matchArchives,
       tournamentCodes,
       inviteCodes,
       availability
@@ -126,6 +155,7 @@ export default async function handler(request, context) {
         order by reports.created_at desc
         limit 50
       `,
+      loadMatchArchives(teamIds),
       loadTournamentCodes(teamIds),
       loadInviteCodes(teamIds),
       loadAvailability(teamIds)
@@ -141,7 +171,7 @@ export default async function handler(request, context) {
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, tournamentCodes, inviteCodes, availability });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, tournamentCodes, inviteCodes, availability });
   } catch (err) {
     return handleError(err);
   }

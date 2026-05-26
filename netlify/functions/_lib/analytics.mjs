@@ -254,6 +254,30 @@ async function rebuildImprovements(teamId) {
   }
 }
 
+async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'import' }) {
+  await sql`
+    create table if not exists match_raw_archives (
+      id uuid primary key default gen_random_uuid(),
+      team_id uuid not null references teams(id) on delete cascade,
+      match_id uuid references matches(id) on delete cascade,
+      game_id text not null,
+      source text not null default 'import',
+      payload jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      unique(team_id, game_id)
+    )
+  `;
+  await sql`
+    insert into match_raw_archives (team_id, match_id, game_id, source, payload)
+    values (${teamId}, ${matchId}, ${gameId}, ${source}, ${JSON.stringify(match)}::jsonb)
+    on conflict (team_id, game_id)
+    do update set
+      match_id = excluded.match_id,
+      source = excluded.source,
+      payload = excluded.payload
+  `;
+}
+
 export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null }) {
   const allyTeamId = detectAllyTeam(match, roster);
   const participants = buildParticipants(match, allyTeamId, roster);
@@ -288,6 +312,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   `;
 
   const savedMatch = inserted[0];
+  await archiveRawMatch({ teamId: team.id, matchId: savedMatch.id, gameId, match, source: match?.metadata?.source || 'import' });
   await sql`delete from match_participants where match_id = ${savedMatch.id}`;
 
   for (const p of participants) {
