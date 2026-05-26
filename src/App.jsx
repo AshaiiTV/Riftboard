@@ -28,6 +28,7 @@ import {
   Search,
   Settings,
   Shield,
+  ShieldCheck,
   Sparkles,
   Swords,
   CalendarDays,
@@ -1199,7 +1200,9 @@ function championIconUrl(row) {
 }
 
 function ChampionPortrait({ champion, row, alt, className = "h-full w-full object-cover" }) {
-  return <img src={championSquareUrl(row || champion)} alt={alt || champion || "Champion"} className={className} />;
+  const source = championSquareUrl(row) || championSquareUrl(champion) || championLoadingUrl(champion || row?.champion);
+  if (!source) return <div className={cx("flex items-center justify-center bg-black/35 text-[0.6rem] font-black text-slate-500", className)}>?</div>;
+  return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" />;
 }
 
 function ChampionBackdrop({ champion }) {
@@ -1951,7 +1954,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   function updateLaneAssignment(role, value) {
     setLaneAssignments((current) => ({ ...current, [role]: value }));
   }
-function updatePlayerAssignment(role, value) {
+  function updatePlayerAssignment(role, value) {
     setPlayerAssignments((current) => ({ ...current, [role]: value }));
   }
   function rosterAssignmentsByRole() {
