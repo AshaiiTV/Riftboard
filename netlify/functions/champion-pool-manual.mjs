@@ -94,7 +94,7 @@ export default async function handler(request, context) {
       : status === 'pocket'
         ? 'Pocket pick.'
         : status === 'danger'
-          ? 'Pick à retravailler.'
+          ? 'Volume élevé, WR faible.'
           : 'Pick à valider.';
 
     if (poolId) {
@@ -141,12 +141,12 @@ export default async function handler(request, context) {
       do update set
         player_name = excluded.player_name,
         role = excluded.role,
-        games = excluded.games,
-        wins = excluded.wins,
-        losses = excluded.losses,
-        winrate = excluded.winrate,
-        kda = excluded.kda,
-        cs_per_min = excluded.cs_per_min,
+        games = champion_pool.games,
+        wins = champion_pool.wins,
+        losses = champion_pool.losses,
+        winrate = champion_pool.winrate,
+        kda = champion_pool.kda,
+        cs_per_min = champion_pool.cs_per_min,
         status = excluded.status,
         notes = excluded.notes,
         source = case when champion_pool.source = 'riot' then 'riot_manual' else 'manual' end,

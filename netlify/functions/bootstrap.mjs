@@ -13,11 +13,11 @@ function buildDashboard(matches, improvements) {
     recentWinrate: winrate === null ? '—' : `${winrate}%`,
     winrateTrend: total ? `${wins}W / ${losses}L sur les ${total} dernières` : 'Importe des games pour calculer',
     impactScore: recent[0]?.impact_score || '—',
-    impactTrend: recent[0]?.primary_focus || 'Pas encore assez de données',
+    impactTrend: recent[0] ? `${recent[0].duration || '--:--'} · ${recent[0].side || 'Side ?'}` : 'Pas encore assez de données',
     visionDiff: recent[0]?.vision_score || '—',
-    visionTrend: recent[0]?.main_issue || 'Analyse vision à générer',
-    midgameRisk: improvements[0] ? 'À surveiller' : '—',
-    riskTrend: improvements[0]?.title || 'Priorités non calculées'
+    visionTrend: recent[0] ? 'Différence de vision dernière game' : 'Pas encore assez de données',
+    midgameRisk: improvements[0] ? 'Donnée disponible' : '—',
+    riskTrend: improvements[0]?.title || 'Aucune donnée calculée'
   };
 }
 

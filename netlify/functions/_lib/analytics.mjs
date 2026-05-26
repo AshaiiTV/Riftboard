@@ -30,33 +30,6 @@ function participantRiotId(p) {
   return tag ? `${gameName}#${tag}` : gameName;
 }
 
-function gradeParticipant({ kdaValue, csPerMin, kp, vision, role }) {
-  let score = 0;
-  if (kdaValue >= 5) score += 3;
-  else if (kdaValue >= 3) score += 2;
-  else if (kdaValue >= 2) score += 1;
-  else score -= 1;
-
-  if (role === 'ADC' || role === 'MID' || role === 'TOP') {
-    if (csPerMin >= 8) score += 2;
-    else if (csPerMin >= 7) score += 1;
-    else if (csPerMin < 5.5) score -= 1;
-  }
-
-  if (kp >= 0.7) score += 2;
-  else if (kp >= 0.55) score += 1;
-  else if (kp < 0.35) score -= 1;
-
-  if (vision >= 45) score += 2;
-  else if (vision >= 25) score += 1;
-
-  if (score >= 6) return 'S';
-  if (score >= 4) return 'A';
-  if (score >= 2) return 'B';
-  if (score >= 0) return 'C';
-  return 'D';
-}
-
 function teamKills(match, teamId) {
   return match.info.participants
     .filter((p) => p.teamId === teamId)
@@ -98,7 +71,6 @@ function buildParticipants(match, allyTeamId, roster) {
       const vision = Number(p.visionScore || 0);
       const killsForTeam = Math.max(1, teamKills(match, p.teamId));
       const kp = (kills + assists) / killsForTeam;
-      const kdaValue = (kills + assists) / Math.max(1, deaths);
       const csPerMin = cs / durationMin;
       const goldPerMin = gold / durationMin;
       const rid = participantRiotId(p);
@@ -123,7 +95,7 @@ function buildParticipants(match, allyTeamId, roster) {
         cs_per_min: Number(csPerMin.toFixed(1)),
         gold_per_min: Number(goldPerMin.toFixed(0)),
         kill_participation: `${Math.round(kp * 100)}%`,
-        grade: gradeParticipant({ kdaValue, csPerMin, kp, vision, role }),
+        grade: null,
         raw: p
       };
     });
@@ -142,26 +114,6 @@ function buildMatchSummary(match, allyTeamId, participants) {
   const duration = mmss(match.info.gameDuration);
   const patch = String(match.info.gameVersion || '').split('.').slice(0, 2).join('.');
 
-  let primaryFocus = 'Review complète à effectuer';
-  let mainIssue = 'Pas assez de signaux faibles détectés';
-
-  if (visionDiff < -20) {
-    primaryFocus = 'Setup vision avant objectifs';
-    mainIssue = `Vision diff négative (${visionDiff})`;
-  } else if (ally.some((p) => p.deaths >= 7)) {
-    primaryFocus = 'Réduire les morts isolées';
-    mainIssue = 'Un joueur allié dépasse 7 morts';
-  } else if (dragons < 2 && !allyTeam?.win) {
-    primaryFocus = 'Contrôle dragons';
-    mainIssue = 'Peu de dragons sécurisés dans une défaite';
-  } else if (allyTeam?.win) {
-    primaryFocus = 'Identifier les conditions de victoire';
-    mainIssue = 'Game gagnée : consolider les patterns efficaces';
-  }
-
-  const avgGradeScore = ally.reduce((sum, p) => sum + ({ S: 5, A: 4, B: 3, C: 2, D: 1 }[p.grade] || 2), 0) / Math.max(1, ally.length);
-  const impactScore = avgGradeScore >= 4.5 ? 'S' : avgGradeScore >= 3.8 ? 'A' : avgGradeScore >= 3 ? 'B' : avgGradeScore >= 2 ? 'C' : 'D';
-
   return {
     result: allyTeam?.win ? 'Victoire' : 'Défaite',
     side: allyTeamId === 100 ? 'Blue Side' : 'Red Side',
@@ -170,88 +122,106 @@ function buildMatchSummary(match, allyTeamId, participants) {
     patch,
     objective_score: `Dragons ${dragons} · Barons ${barons} · Tours ${towers}`,
     vision_score: visionDiff >= 0 ? `+${visionDiff}` : String(visionDiff),
-    impact_score: impactScore,
-    primary_focus: primaryFocus,
-    main_issue: mainIssue,
+    impact_score: null,
+    primary_focus: null,
+    main_issue: null,
     opponent: 'Enemy Team'
   };
 }
 
 function reportForMatch({ team, summary, participants }) {
   const ally = participants.filter((p) => p.team_key === 'ALLY');
-  const gradeScoreMap = { S: 5, A: 4, B: 3, C: 2, D: 1 };
-  const best = ally.slice().sort((a, b) => (gradeScoreMap[b.grade] || 0) - (gradeScoreMap[a.grade] || 0))[0];
-  const risky = ally.slice().sort((a, b) => b.deaths - a.deaths)[0];
+  const rows = ally
+    .map((p) => `- **${p.role || 'ROLE'} ${p.summoner_name || p.riot_id || 'Joueur'}** sur **${p.champion || 'Champion'}** : ${p.kda}, ${p.cs_per_min} CS/min, ${p.gold_per_min} gold/min, ${p.damage} dégâts, ${p.vision} vision.`)
+    .join('\n');
 
-  return `## 📊 Review — ${team.name}\n\n**Résultat :** ${summary.result}  \n**Durée :** ${summary.duration}  \n**Side :** ${summary.side}  \n**Objectifs :** ${summary.objective_score}  \n**Vision diff :** ${summary.vision_score}\n\n### ✅ Points forts\n- Meilleur impact individuel : **${best?.summoner_name || 'N/A'}** sur **${best?.champion || 'N/A'}** (${best?.grade || '—'}).\n- Score d'impact global : **${summary.impact_score}**.\n- Focus détecté : **${summary.primary_focus}**.\n\n### ⚠️ Points à corriger\n- Signal principal : **${summary.main_issue}**.\n- Joueur le plus exposé : **${risky?.summoner_name || 'N/A'}** (${risky?.deaths ?? '—'} morts).\n\n### 🎯 Focus prochain scrim\n- Revoir les 90 secondes avant objectif neutre.\n- Vérifier la vision rivière + entrées jungle.\n- Identifier les morts évitables avant dragon/Nashor.`;
+  return `## Review — ${team.name}\n\n**Résultat :** ${summary.result}  \n**Durée :** ${summary.duration}  \n**Side :** ${summary.side}  \n**Objectifs neutres :** ${summary.objective_score}  \n**Vision diff :** ${summary.vision_score}\n\n### Données joueurs\n${rows || '- Aucun participant allié détecté.'}`;
 }
 
 async function rebuildChampionPool(teamId) {
-  await sql`delete from champion_pool where team_id = ${teamId}`;
-
   const rows = await sql`
     select
       p.player_id as player_id,
       coalesce(pl.name, p.summoner_name) as player_name,
+      pl.role as role,
       p.champion,
       count(*)::int as games,
       sum(case when m.result = 'Victoire' then 1 else 0 end)::int as wins,
       sum(case when m.result = 'Défaite' then 1 else 0 end)::int as losses,
       avg((p.kills + p.assists)::numeric / greatest(1, p.deaths)) as kda,
-      avg(p.cs_per_min) as cs_per_min,
-      avg(case p.grade when 'S' then 5 when 'A' then 4 when 'B' then 3 when 'C' then 2 else 1 end) as grade_score
+      avg(p.cs_per_min) as cs_per_min
     from match_participants p
     join matches m on m.id = p.match_id
     left join players pl on pl.id = p.player_id
     where m.team_id = ${teamId}
       and p.team_key = 'ALLY'
-    group by p.player_id, pl.name, p.summoner_name, p.champion
+    group by p.player_id, pl.name, pl.role, p.summoner_name, p.champion
   `;
 
   for (const r of rows) {
     const winrate = Math.round((Number(r.wins) / Math.max(1, Number(r.games))) * 100);
-    const gradeScore = Number(r.grade_score || 0);
-    const impactGrade = gradeScore >= 4.5 ? 'S' : gradeScore >= 3.8 ? 'A' : gradeScore >= 3 ? 'B' : gradeScore >= 2 ? 'C' : 'D';
     let verdict = 'Données insuffisantes';
-    if (r.games >= 5 && winrate >= 60 && gradeScore >= 3.5) verdict = 'Pick fiable / priorité haute';
-    else if (r.games >= 5 && winrate <= 40) verdict = 'Pick à retravailler';
-    else if (r.games >= 3 && gradeScore >= 4) verdict = 'Fort potentiel';
+    if (r.games >= 5 && winrate >= 60) verdict = 'Volume élevé, WR positif';
+    else if (r.games >= 5 && winrate <= 40) verdict = 'Volume élevé, WR faible';
     else if (r.games >= 3) verdict = 'Situationnel';
 
     await sql`
-      insert into champion_pool (team_id, player_id, player_name, champion, games, wins, losses, winrate, kda, cs_per_min, impact_grade, verdict)
-      values (${teamId}, ${r.player_id}, ${r.player_name}, ${r.champion}, ${r.games}, ${r.wins}, ${r.losses}, ${winrate}, ${Number(r.kda || 0).toFixed(2)}, ${Number(r.cs_per_min || 0).toFixed(1)}, ${impactGrade}, ${verdict})
+      insert into champion_pool (
+        team_id,
+        player_id,
+        player_name,
+        champion,
+        games,
+        wins,
+        losses,
+        winrate,
+        kda,
+        cs_per_min,
+        impact_grade,
+        verdict,
+        role,
+        status,
+        source,
+        updated_at
+      )
+      values (
+        ${teamId},
+        ${r.player_id},
+        ${r.player_name},
+        ${r.champion},
+        ${r.games},
+        ${r.wins},
+        ${r.losses},
+        ${winrate},
+        ${Number(r.kda || 0).toFixed(2)},
+        ${Number(r.cs_per_min || 0).toFixed(1)},
+        ${r.role},
+        ${verdict},
+        null,
+        'work',
+        'riot',
+        now()
+      )
+      on conflict (team_id, player_id, champion) do update
+      set player_name = excluded.player_name,
+          games = excluded.games,
+          wins = excluded.wins,
+          losses = excluded.losses,
+          winrate = excluded.winrate,
+          kda = excluded.kda,
+          cs_per_min = excluded.cs_per_min,
+          impact_grade = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.impact_grade else excluded.impact_grade end,
+          verdict = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.verdict else excluded.verdict end,
+          status = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.status else excluded.status end,
+          notes = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.notes else champion_pool.notes end,
+          source = case when champion_pool.source in ('manual', 'riot_manual') then 'riot_manual' else excluded.source end,
+          updated_at = now()
     `;
   }
 }
 
 async function rebuildImprovements(teamId) {
   await sql`delete from improvements where team_id = ${teamId}`;
-
-  const recent = await sql`
-    select * from matches
-    where team_id = ${teamId}
-    order by created_at desc
-    limit 12
-  `;
-
-  if (!recent.length) return;
-
-  const badVision = recent.filter((m) => String(m.vision_score || '').startsWith('-')).length;
-  const losses = recent.filter((m) => m.result === 'Défaite').length;
-
-  const priorities = [];
-  if (badVision >= 3) priorities.push({ title: 'Setup vision avant objectifs', severity: 'high', proof: `${badVision} games récentes avec vision diff négative.`, action: 'Reset 1:10 avant objectif, ward rivière + entrées jungle, refuser le contest sans prio mid.', evidence: { badVision } });
-  if (losses >= 3) priorities.push({ title: 'Conversion des games perdantes', severity: 'medium', proof: `${losses} défaites dans les ${recent.length} dernières games importées.`, action: 'Isoler les patterns des défaites : premier objectif perdu, mort avant Nashor, side lane non couverte.', evidence: { losses } });
-  priorities.push({ title: 'Revue champion pool', severity: 'medium', proof: 'Les picks fiables et picks risqués doivent être confirmés par volume de games.', action: 'Garder les champions à fort volume + impact, retravailler ceux sous 40% WR avec au moins 5 games.', evidence: {} });
-
-  for (let i = 0; i < Math.min(3, priorities.length); i += 1) {
-    const p = priorities[i];
-    await sql`
-      insert into improvements (team_id, rank, title, severity, proof, action, evidence)
-      values (${teamId}, ${i + 1}, ${p.title}, ${p.severity}, ${p.proof}, ${p.action}, ${JSON.stringify(p.evidence)}::jsonb)
-    `;
-  }
 }
 
 async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'import' }) {
