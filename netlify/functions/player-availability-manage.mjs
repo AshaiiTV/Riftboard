@@ -71,10 +71,10 @@ export default async function handler(request, context) {
     `;
     const member = memberRows[0];
     const role = String(member?.role || '').toLowerCase();
-    const canManage = member?.owner_id === user.id || ['owner', 'captain', 'coach'].includes(role);
+    const canManage = member?.owner_id === user.id || ['owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(role);
     const ownsProfile = player.user_id && player.user_id === user.id;
     if (!canManage && !ownsProfile) {
-      throw Object.assign(new Error('Tu peux modifier uniquement tes disponibilités, sauf capitaine ou coach.'), { status: 403 });
+      throw Object.assign(new Error('Tu peux modifier uniquement tes disponibilités, sauf staff autorisé.'), { status: 403 });
     }
 
     const rows = await sql`

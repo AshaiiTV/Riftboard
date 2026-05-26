@@ -35,7 +35,7 @@ export default async function handler(request, context) {
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
+        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board'))
       limit 1
     `;
     if (!allowed[0]) throw Object.assign(new Error('Tu ne peux pas modifier cette team.'), { status: 403 });

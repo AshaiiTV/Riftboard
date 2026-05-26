@@ -4,6 +4,15 @@ import { requireAuth } from './_lib/auth.mjs';
 
 const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
 const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', ...STAFF_ROLES]);
+const MANAGE_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
+
+async function ensurePlayerRoleConstraint() {
+  await sql`alter table players drop constraint if exists players_role_check`;
+  await sql`
+    alter table players add constraint players_role_check
+    check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD'))
+  `;
+}
 
 export default async function handler(request, context) {
   try {
@@ -26,15 +35,17 @@ export default async function handler(request, context) {
       opggUrl = null;
     }
 
+    await ensurePlayerRoleConstraint();
+
     const allowed = await sql`
       select teams.id
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
+        and (teams.owner_id = ${user.id} or team_members.role = any(${MANAGE_ROLES}))
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut ajouter un profil.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner ou un staff autorisé peut ajouter un profil.'), { status: 403 });
 
     const rows = await sql`
       insert into players (team_id, name, riot_id, opgg_url, role)

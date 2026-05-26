@@ -31,7 +31,7 @@ export default async function handler(request, context) {
     `;
     if (!allowed[0]) throw Object.assign(new Error('Tu dois être membre de la team pour gérer les compositions types.'), { status: 403 });
     const role = String(allowed[0].role || '').toLowerCase();
-    const canManageAll = allowed[0].owner_id === user.id || ['owner', 'captain', 'coach'].includes(role);
+    const canManageAll = allowed[0].owner_id === user.id || ['owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(role);
 
     if (action === 'delete') {
       if (!compositionId) throw Object.assign(new Error('Composition requise.'), { status: 400 });

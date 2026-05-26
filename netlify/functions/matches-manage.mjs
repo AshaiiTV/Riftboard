@@ -40,7 +40,7 @@ export default async function handler(request, context) {
     `;
     const member = membership[0];
     if (!member) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
-    const elevated = member.owner_id === user.id || ['captain', 'coach'].includes(String(member.role || '').toLowerCase());
+    const elevated = member.owner_id === user.id || ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(String(member.role || '').toLowerCase());
 
     const existing = await sql`
       select *

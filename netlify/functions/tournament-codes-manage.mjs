@@ -18,7 +18,7 @@ export default async function handler(request, context) {
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
     const allowed = await canManageTournamentCodes(user.id, teamId);
-    if (!allowed) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut gérer les codes tournoi.'), { status: 403 });
+    if (!allowed) throw Object.assign(new Error('Seul l’owner ou un staff autorisé peut gérer les codes tournoi.'), { status: 403 });
 
     await ensureTournamentCodesTable();
 

@@ -101,6 +101,19 @@ async function ensureMatchImporterColumn() {
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
 }
 
+async function ensureRoleConstraints() {
+  await sql`alter table players drop constraint if exists players_role_check`;
+  await sql`
+    alter table players add constraint players_role_check
+    check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD'))
+  `;
+  await sql`alter table team_members drop constraint if exists team_members_role_check`;
+  await sql`
+    alter table team_members add constraint team_members_role_check
+    check (role in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member'))
+  `;
+}
+
 export default async function handler(request, context) {
   try {
     const user = await requireAuth(request, context);
@@ -117,6 +130,7 @@ export default async function handler(request, context) {
       return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], tournamentCodes: [], inviteCodes: [], availability: [] });
     }
     await ensureMatchImporterColumn();
+    await ensureRoleConstraints();
 
     const [
       players,

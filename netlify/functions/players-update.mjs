@@ -23,10 +23,10 @@ export default async function handler(request, context) {
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
+        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board'))
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut modifier un profil.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner ou un staff autorisé peut modifier un profil.'), { status: 403 });
 
     const existing = await sql`
       select id, role

@@ -46,5 +46,5 @@ export async function canManageTournamentCodes(userId, teamId) {
   `;
   const member = rows[0];
   if (!member) return false;
-  return member.owner_id === userId || ['captain', 'coach'].includes(String(member.role || '').toLowerCase());
+  return member.owner_id === userId || ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(String(member.role || '').toLowerCase());
 }
