@@ -2096,6 +2096,14 @@ function itemIconUrl(itemId) {
   return itemId ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/item/" + itemId + ".png" : "";
 }
 
+function safeJsonParse(value, fallback) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
 const SUMMONER_SPELLS = {
   1: "SummonerBoost",
   3: "SummonerExhaust",
@@ -2115,18 +2123,34 @@ function summonerSpellIconUrl(spellId) {
   return name ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/spell/" + name + ".png" : "";
 }
 
+function participantRaw(row) {
+  const raw = typeof row?.raw === "string" ? safeJsonParse(row.raw, {}) : row?.raw || {};
+  return raw?.participant || raw?.stats || raw;
+}
+
+function participantNumber(row, ...keys) {
+  const raw = participantRaw(row);
+  for (const source of [row, raw]) {
+    for (const key of keys) {
+      const value = Number(source?.[key] || 0);
+      if (value) return value;
+    }
+  }
+  return 0;
+}
+
 function itemSlots(row) {
-  const raw = row?.raw || {};
-  return [0, 1, 2, 3, 4, 5].map((index) => Number(raw[`item${index}`] || 0));
+  return [0, 1, 2, 3, 4, 5].map((index) => participantNumber(row, `item${index}`, `item${index}Id`));
 }
 
 function trinketItemId(row) {
-  return Number(row?.raw?.item6 || 0);
+  return participantNumber(row, "item6", "item6Id", "trinket", "trinketItemId");
 }
 
 function summonerSpellIds(row) {
-  const raw = row?.raw || {};
-  return [raw.summoner1Id, raw.summoner2Id].map((id) => Number(id || 0)).filter(Boolean);
+  const first = participantNumber(row, "summoner1Id", "spell1Id");
+  const second = participantNumber(row, "summoner2Id", "spell2Id");
+  return [first, second].filter(Boolean);
 }
 
 function parsePercent(value) {
@@ -2198,7 +2222,7 @@ function PlayerDetailRow({ row, maxDamage, maxGold }) {
   const spells = summonerSpellIds(row);
   const kda = `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`;
   const kp = parsePercent(row.kill_participation || row.kp);
-  return <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 2xl:grid-cols-[minmax(220px,1fr)_minmax(230px,.92fr)_minmax(210px,.9fr)_minmax(320px,1.35fr)] xl:items-center"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><img src={championIconUrl(row) || championLoadingUrl(row.champion)} alt={row.champion} className="h-full w-full object-cover" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-500">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KDA</p><p className="mt-1 font-black text-white">{kda}</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-600">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={`${formatPoints(row.damage)} · ${formatPoints(statPerMinute(row, "totalDamageDealtToChampions") || statPerMinute(row, "damage"))}/min`} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={`${formatPoints(row.gold)} · ${formatPoints(row.gold_per_min || statPerMinute(row, "goldEarned") || statPerMinute(row, "gold"))}/min`} tone="orange" /></div><div className="rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.045] p-3"><div className="mb-3 flex items-center justify-between gap-2"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/80">Items de la game</p><div className="flex gap-1">{spells.map((spell) => <div key={`${row.id}-spell-${spell}`} title={`Sort ${spell}`} className="h-7 w-7 overflow-hidden rounded-lg border border-white/10 bg-black/35">{summonerSpellIconUrl(spell) ? <img src={summonerSpellIconUrl(spell)} alt={`Sort ${spell}`} className="h-full w-full object-cover" /> : null}</div>)}</div></div><div className="grid grid-cols-[repeat(6,2.55rem)_2.55rem] gap-1.5">{items.map((item, index) => <div key={`${row.id}-item-slot-${index}`} title={item ? `Item ${item}` : "Slot vide"} className={cx("flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border bg-black/35", item ? "border-cyan-200/20" : "border-white/8 opacity-45")} >{item ? <img src={itemIconUrl(item)} alt={`Item ${item}`} className="h-full w-full object-cover" /> : <span className="text-[0.58rem] font-black text-slate-500">VIDE</span>}</div>)}<div title={trinket ? `Trinket ${trinket}` : "Trinket vide"} className={cx("flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border bg-black/35", trinket ? "border-fuchsia-200/25" : "border-white/8 opacity-45")}>{trinket ? <img src={itemIconUrl(trinket)} alt={`Trinket ${trinket}`} className="h-full w-full object-cover" /> : <span className="text-[0.54rem] font-black text-slate-500">TRI</span>}</div></div></div></div>;
+  return <div className="grid min-w-0 gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><div className="min-w-0 space-y-3"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><img src={championIconUrl(row) || championLoadingUrl(row.champion)} alt={row.champion} className="h-full w-full object-cover" /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-400">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KDA</p><p className="mt-1 truncate font-black text-white">{kda}</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={`${formatPoints(row.damage)} · ${formatPoints(statPerMinute(row, "totalDamageDealtToChampions") || statPerMinute(row, "damage"))}/min`} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={`${formatPoints(row.gold)} · ${formatPoints(row.gold_per_min || statPerMinute(row, "goldEarned") || statPerMinute(row, "gold"))}/min`} tone="orange" /></div></div><div className="min-w-0 rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.045] p-3"><div className="mb-3 flex min-w-0 items-center justify-between gap-2"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/80">Items de la game</p><div className="flex shrink-0 gap-1">{spells.map((spell) => <div key={`${row.id}-spell-${spell}`} title={`Sort ${spell}`} className="h-7 w-7 overflow-hidden rounded-lg border border-white/10 bg-black/35">{summonerSpellIconUrl(spell) ? <img src={summonerSpellIconUrl(spell)} alt={`Sort ${spell}`} className="h-full w-full object-cover" /> : null}</div>)}</div></div><div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">{items.map((item, index) => <div key={`${row.id}-item-slot-${index}`} title={item ? `Item ${item}` : "Slot vide"} className={cx("aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", item ? "border-cyan-200/20" : "border-white/8 opacity-45")} >{item ? <img src={itemIconUrl(item)} alt={`Item ${item}`} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[0.56rem] font-black text-slate-500">VIDE</span>}</div>)}<div title={trinket ? `Trinket ${trinket}` : "Trinket vide"} className={cx("aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", trinket ? "border-fuchsia-200/25" : "border-white/8 opacity-45")}>{trinket ? <img src={itemIconUrl(trinket)} alt={`Trinket ${trinket}`} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[0.54rem] font-black text-slate-500">TRI</span>}</div></div></div></div>;
 }
 
 function MatchDataPanel({ match }) {
