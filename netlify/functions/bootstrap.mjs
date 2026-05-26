@@ -96,6 +96,11 @@ async function loadMatchArchives(teamIds) {
   }
 }
 
+async function ensureMatchImporterColumn() {
+  await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
+  await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
+}
+
 export default async function handler(request, context) {
   try {
     const user = await requireAuth(request, context);
@@ -111,6 +116,7 @@ export default async function handler(request, context) {
     if (!teamIds.length) {
       return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], tournamentCodes: [], inviteCodes: [], availability: [] });
     }
+    await ensureMatchImporterColumn();
 
     const [
       players,
@@ -136,7 +142,14 @@ export default async function handler(request, context) {
         where team_members.team_id = any(${teamIds})
         order by team_members.created_at asc
       `,
-      sql`select * from matches where team_id = any(${teamIds}) order by created_at desc limit 50`,
+      sql`
+        select matches.*, users.name as created_by_name, users.account_name as created_by_account
+        from matches
+        left join users on users.id = matches.created_by
+        where matches.team_id = any(${teamIds})
+        order by matches.created_at desc
+        limit 50
+      `,
       sql`select * from champion_pool where team_id = any(${teamIds}) order by games desc, winrate desc`,
       sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`,
       sql`

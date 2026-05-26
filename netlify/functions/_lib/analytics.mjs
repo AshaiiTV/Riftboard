@@ -248,7 +248,13 @@ async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'impor
   `;
 }
 
+async function ensureMatchImporterColumn() {
+  await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
+  await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
+}
+
 export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null }) {
+  await ensureMatchImporterColumn();
   const allyTeamId = detectAllyTeam(match, roster);
   const participants = buildParticipants(match, allyTeamId, roster);
   const summary = buildMatchSummary(match, allyTeamId, participants);
@@ -257,12 +263,12 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
     insert into matches (
       team_id, game_id, region, opponent, result, side,
       duration_seconds, duration, patch, objective_score, vision_score,
-      impact_score, primary_focus, main_issue, raw
+      impact_score, primary_focus, main_issue, created_by, raw
     )
     values (
       ${team.id}, ${gameId}, 'EUROPE', ${summary.opponent}, ${summary.result}, ${summary.side},
       ${summary.duration_seconds}, ${summary.duration}, ${summary.patch}, ${summary.objective_score}, ${summary.vision_score},
-      ${summary.impact_score}, ${summary.primary_focus}, ${summary.main_issue}, ${JSON.stringify(match)}::jsonb
+      ${summary.impact_score}, ${summary.primary_focus}, ${summary.main_issue}, ${userId}, ${JSON.stringify(match)}::jsonb
     )
     on conflict (team_id, game_id)
     do update set
@@ -277,6 +283,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       impact_score = excluded.impact_score,
       primary_focus = excluded.primary_focus,
       main_issue = excluded.main_issue,
+      created_by = coalesce(matches.created_by, excluded.created_by),
       raw = excluded.raw
     returning *
   `;

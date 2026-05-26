@@ -137,6 +137,7 @@ create table if not exists matches (
   impact_score text,
   primary_focus text,
   main_issue text,
+  created_by uuid references users(id) on delete set null,
   raw jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   unique(team_id, game_id)
@@ -300,6 +301,7 @@ create index if not exists idx_improvements_team on improvements(team_id, rank a
 create index if not exists idx_reports_team on reports(team_id, created_at desc);
 alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb;
 alter table reports add column if not exists created_by uuid references users(id) on delete set null;
+alter table matches add column if not exists created_by uuid references users(id) on delete set null;
 alter table reports add column if not exists updated_at timestamptz not null default now();
 alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb;
 alter table player_availability add column if not exists week_start date not null default date_trunc('week', current_date)::date;

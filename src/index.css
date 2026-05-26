@@ -90,21 +90,21 @@ button, input, select, textarea {
 
 /* NXT5 favors high-contrast secondary text: readable silver over dim grey. */
 .text-slate-300 {
-  color: #eef4ff;
+  color: #f5f9ff;
 }
 
 .text-slate-400 {
-  color: #dce7f8;
+  color: #edf5ff;
 }
 
 .text-slate-500 {
-  color: #c9d6ea;
+  color: #e3edfb;
 }
 
 .text-slate-600,
 .text-slate-650,
 .text-slate-700 {
-  color: #b6c4d9;
+  color: #d4e1f2;
 }
 
 .text-cyan-100\/55,
