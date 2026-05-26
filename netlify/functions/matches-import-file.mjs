@@ -13,7 +13,9 @@ function unwrapImportPayload(body) {
   const label = String(body?.label || payload?.label || payload?.metadata?.label || '').trim().slice(0, 120);
   const opponent = String(body?.opponent || payload?.opponent || payload?.metadata?.opponent || '').trim().slice(0, 120);
   const laneAssignments = body?.laneAssignments || payload?.laneAssignments || payload?.metadata?.laneAssignments || {};
-  return { match, gameId, tournamentCode, platform, label, opponent, laneAssignments };
+  const playerAssignments = body?.playerAssignments || payload?.playerAssignments || payload?.metadata?.playerAssignments || {};
+  const allyTeamSide = String(body?.allyTeamSide || payload?.allyTeamSide || payload?.metadata?.allyTeamSide || '').trim().slice(0, 20);
+  return { match, gameId, tournamentCode, platform, label, opponent, laneAssignments, playerAssignments, allyTeamSide };
 }
 
 function assertRiotMatchShape(match) {
@@ -33,7 +35,7 @@ export default async function handler(request, context) {
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
-    let { match, gameId, tournamentCode, platform, label, opponent, laneAssignments } = unwrapImportPayload(body);
+    let { match, gameId, tournamentCode, platform, label, opponent, laneAssignments, playerAssignments, allyTeamSide } = unwrapImportPayload(body);
     let resolvedGameId = gameId || String(match?.metadata?.matchId || '').trim().toUpperCase();
     if (!resolvedGameId && tournamentCode) resolvedGameId = await resolveMatchIdByTournamentCode(tournamentCode, platform);
     if (!/^([A-Z0-9]+)_\d+$/.test(resolvedGameId)) {
@@ -41,6 +43,30 @@ export default async function handler(request, context) {
     }
     if (!match) match = await fetchRiotMatch(resolvedGameId);
     assertRiotMatchShape(match);
+    if (body.previewOnly) {
+      return json({
+        gameId: resolvedGameId,
+        match: {
+          gameId: resolvedGameId,
+          duration: match.info?.gameDuration || 0,
+          version: match.info?.gameVersion || '',
+          teams: [100, 200].map((teamId) => ({
+            teamId,
+            side: teamId === 100 ? 'BLUE' : 'RED',
+            win: Boolean(match.info?.teams?.find((team) => team.teamId === teamId)?.win),
+            participants: (match.info?.participants || []).filter((participant) => participant.teamId === teamId).map((participant) => ({
+              participantId: participant.participantId,
+              teamId: participant.teamId,
+              champion: participant.championName,
+              championId: participant.championId,
+              summonerName: participant.summonerName,
+              riotId: participant.riotIdTagline ? `${participant.riotIdGameName || participant.summonerName}#${participant.riotIdTagline}` : participant.summonerName,
+              teamPosition: participant.teamPosition || participant.individualPosition || participant.lane || ''
+            }))
+          }))
+        }
+      });
+    }
 
     const teams = await sql`
       select distinct teams.*
@@ -56,7 +82,7 @@ export default async function handler(request, context) {
     const roster = await sql`select * from players where team_id = ${teamId}`;
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
-    let savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments });
+    let savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments, playerAssignments, allyTeamSide });
     if (opponent || label) {
       const named = await sql`
         update matches

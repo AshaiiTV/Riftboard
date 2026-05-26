@@ -33,6 +33,18 @@ function normalizeLaneAssignments(value) {
   return Object.fromEntries(['TOP', 'JGL', 'MID', 'ADC', 'SUP'].map((role) => [role, normalizeLoose(source[role])]).filter(([, text]) => text));
 }
 
+function normalizePlayerAssignments(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  return Object.fromEntries(['TOP', 'JGL', 'MID', 'ADC', 'SUP'].map((role) => [role, String(source[role] || '').trim()]).filter(([, text]) => text));
+}
+
+function teamIdFromSide(side) {
+  const value = String(side || '').trim().toUpperCase();
+  if (value === 'BLUE' || value === 'BLUE SIDE' || value === '100') return 100;
+  if (value === 'RED' || value === 'RED SIDE' || value === '200') return 200;
+  return null;
+}
+
 function participantRiotId(p) {
   const gameName = p.riotIdGameName || p.summonerName || '';
   const tag = p.riotIdTagline || '';
@@ -55,7 +67,10 @@ function teamKills(match, teamId) {
     .reduce((sum, p) => sum + Number(p.kills || 0), 0);
 }
 
-function detectAllyTeam(match, roster) {
+function detectAllyTeam(match, roster, allyTeamSide = '') {
+  const sideTeamId = teamIdFromSide(allyTeamSide);
+  if (sideTeamId) return sideTeamId;
+
   const normalizedRoster = new Set(roster.map((p) => normalizeRiotId(p.riot_id)).filter(Boolean));
 
   for (const participant of match.info.participants) {
@@ -69,11 +84,13 @@ function detectAllyTeam(match, roster) {
   throw Object.assign(new Error('Aucun joueur du roster ne correspond à cette game. Ajoute les bons Riot IDs avant import.'), { status: 400 });
 }
 
-function buildParticipants(match, allyTeamId, roster, laneAssignments = {}) {
+function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, playerAssignments = {}) {
   const durationMin = Math.max(1, Number(match.info.gameDuration || 0) / 60);
   const rosterByRiot = new Map();
+  const rosterById = new Map();
   for (const player of roster) {
     rosterByRiot.set(normalizeRiotId(player.riot_id), player);
+    rosterById.set(String(player.id), player);
   }
 
   return match.info.participants
@@ -94,7 +111,8 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}) {
       const csPerMin = cs / durationMin;
       const goldPerMin = gold / durationMin;
       const rid = participantRiotId(p);
-      const player = rosterByRiot.get(normalizeRiotId(rid)) || rosterByRiot.get(normalizeRiotId(p.summonerName));
+      const assignedPlayerId = p.teamId === allyTeamId && manualRole ? playerAssignments[manualRole] : '';
+      const player = rosterById.get(String(assignedPlayerId || '')) || rosterByRiot.get(normalizeRiotId(rid)) || rosterByRiot.get(normalizeRiotId(p.summonerName));
 
       return {
         player_id: player?.id || null,
@@ -273,16 +291,21 @@ async function ensureMatchImporterColumn() {
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {} }) {
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, playerAssignments = {}, allyTeamSide = '' }) {
   await ensureMatchImporterColumn();
-  const allyTeamId = detectAllyTeam(match, roster);
+  const allyTeamId = detectAllyTeam(match, roster, allyTeamSide);
   const normalizedLaneAssignments = normalizeLaneAssignments(laneAssignments);
+  const normalizedPlayerAssignments = normalizePlayerAssignments(playerAssignments);
   const requiredRoles = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
   const missingInputs = requiredRoles.filter((role) => !normalizedLaneAssignments[role]);
   if (missingInputs.length) {
     throw Object.assign(new Error(`Assignation des lanes requise : indique ${missingInputs.join(', ')} avant d’importer. Utilise le champion ou le pseudo exact visible dans la game.`), { status: 400 });
   }
-  const participants = buildParticipants(match, allyTeamId, roster, normalizedLaneAssignments);
+  const missingProfiles = requiredRoles.filter((role) => !normalizedPlayerAssignments[role]);
+  if (missingProfiles.length) {
+    throw Object.assign(new Error(`Liaison profil requise : associe ${missingProfiles.join(', ')} à un profil de l’équipe avant d’importer.`), { status: 400 });
+  }
+  const participants = buildParticipants(match, allyTeamId, roster, normalizedLaneAssignments, normalizedPlayerAssignments);
   const assignedRoles = new Set(participants.filter((p) => p.team_key === 'ALLY').map((p) => p.role));
   const missingRoles = requiredRoles.filter((role) => !assignedRoles.has(role));
   if (missingRoles.length) {

@@ -18,6 +18,8 @@ export default async function handler(request, context) {
     const label = cleanTournamentText(body.label, 120);
     const opponent = cleanTournamentText(body.opponent, 120);
     const laneAssignments = body.laneAssignments && typeof body.laneAssignments === 'object' ? body.laneAssignments : {};
+    const playerAssignments = body.playerAssignments && typeof body.playerAssignments === 'object' ? body.playerAssignments : {};
+    const allyTeamSide = cleanTournamentText(body.allyTeamSide, 20);
 
     if (!gameId && !tournamentCode) throw Object.assign(new Error('Game ID ou code tournoi requis.'), { status: 400 });
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
@@ -66,7 +68,31 @@ export default async function handler(request, context) {
     }
 
     const match = await fetchRiotMatch(gameId);
-    let savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments });
+    if (body.previewOnly) {
+      return json({
+        gameId,
+        match: {
+          gameId,
+          duration: match.info?.gameDuration || 0,
+          version: match.info?.gameVersion || '',
+          teams: [100, 200].map((teamId) => ({
+            teamId,
+            side: teamId === 100 ? 'BLUE' : 'RED',
+            win: Boolean(match.info?.teams?.find((team) => team.teamId === teamId)?.win),
+            participants: (match.info?.participants || []).filter((participant) => participant.teamId === teamId).map((participant) => ({
+              participantId: participant.participantId,
+              teamId: participant.teamId,
+              champion: participant.championName,
+              championId: participant.championId,
+              summonerName: participant.summonerName,
+              riotId: participant.riotIdTagline ? `${participant.riotIdGameName || participant.summonerName}#${participant.riotIdTagline}` : participant.summonerName,
+              teamPosition: participant.teamPosition || participant.individualPosition || participant.lane || ''
+            }))
+          }))
+        }
+      });
+    }
+    let savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, playerAssignments, allyTeamSide });
     if (opponent || label) {
       const named = await sql`
         update matches
