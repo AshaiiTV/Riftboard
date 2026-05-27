@@ -480,7 +480,7 @@ function BrandLogo({ compact = false, className = "" }) {
 }
 
 function Nxt5Wordmark({ className = "" }) {
-  return <img src="/assets/nxt5-wordmark.png?v=2" alt="NXT5" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
+  return <img src="/assets/nxt5-wordmark.png?v=3" alt="NXT5" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
 }
 
 function MarketingPreview() {
