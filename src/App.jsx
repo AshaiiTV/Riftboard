@@ -2165,9 +2165,43 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       return next;
     }, {});
   }
+  function previewRole(participant, index) {
+    const raw = String(participant?.teamPosition || participant?.individualPosition || participant?.lane || "").toUpperCase();
+    if (raw === "JUNGLE") return "JGL";
+    if (raw === "MIDDLE") return "MID";
+    if (raw === "BOTTOM") return "ADC";
+    if (raw === "UTILITY" || raw === "SUPPORT") return "SUP";
+    if (COMP_ROLES.includes(raw)) return raw;
+    return COMP_ROLES[index] || "";
+  }
+  function previewAssignmentValue(participant) {
+    return participant?.riotId || participant?.summonerName || participant?.champion || "";
+  }
+  function laneAssignmentsForSide(side) {
+    const team = previewTeams.find((item) => item.side === side);
+    return (team?.participants || []).reduce((next, participant, index) => {
+      const role = previewRole(participant, index);
+      const value = previewAssignmentValue(participant);
+      if (role && value && !next[role]) next[role] = value;
+      return next;
+    }, {});
+  }
+  function playerAssignmentsForSide(side) {
+    const byRole = rosterAssignmentsByRole();
+    const team = previewTeams.find((item) => item.side === side);
+    const byRiot = new Map(gameplayRoster.map((player) => [normalizeProfileKey(player.riot_id), player.id]).filter(([key]) => key));
+    const byName = new Map(gameplayRoster.map((player) => [normalizeProfileKey(player.name), player.id]).filter(([key]) => key));
+    return (team?.participants || []).reduce((next, participant, index) => {
+      const role = previewRole(participant, index);
+      const matched = byRiot.get(normalizeProfileKey(participant.riotId)) || byName.get(normalizeProfileKey(participant.summonerName));
+      if (role && matched) next[role] = matched;
+      return next;
+    }, byRole);
+  }
   function selectImportSide(side) {
     setAllyTeamSide(side);
-    setPlayerAssignments(rosterAssignmentsByRole());
+    setLaneAssignments(laneAssignmentsForSide(side));
+    setPlayerAssignments(playerAssignmentsForSide(side));
   }
   function resetImportDraft() {
     setImportPreview(null);
@@ -2279,7 +2313,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
 
             <div className="rounded-3xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div><h4 className="text-xl font-black text-white">Assignation de la game</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Ton roster est préplacé par rôle. Tu choisis seulement le side et le champion réellement joué sur chaque poste.</p></div>
+                <div><h4 className="text-xl font-black text-white">Assignation de la game</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Choisis ton side : NXT5 préremplit les profils et champions par poste, puis tu corriges si nécessaire avant validation.</p></div>
                 <Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge>
               </div>
               {importPreview ? <div className="mt-4 space-y-4">
