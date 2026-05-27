@@ -1,4 +1,4 @@
-name: Build NXT5 Match Exporter
+name: Build NXT5 Importer
 
 on:
   push:
@@ -36,15 +36,15 @@ jobs:
       - name: Upload Windows app
         uses: actions/upload-artifact@v4
         with:
-          name: NXT5-Match-Exporter-Windows
+          name: NXT5-Importer-Windows
           path: importer-app/release/*.exe
 
       - name: Publish latest exporter release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nxt5-match-exporter-latest
-          name: NXT5 Match Exporter latest
-          body: "Dernière version de NXT5 Match Exporter."
+          name: NXT5 Importer latest
+          body: "Dernière version de NXT5 Importer."
           make_latest: true
           overwrite_files: true
           files: importer-app/release/*.exe
@@ -82,8 +82,8 @@ jobs:
             if [ "$ARCH" = "arm64" ]; then
               APP_DIR="release/mac-arm64"
             fi
-            APP_PATH="$APP_DIR/NXT5 Match Exporter.app"
-            BUNDLE_DIR="release/NXT5 Match Exporter Mac ${ARCH}"
+            APP_PATH="$APP_DIR/NXT5 Importer.app"
+            BUNDLE_DIR="release/NXT5 Importer Mac ${ARCH}"
             rm -rf "$BUNDLE_DIR"
             mkdir -p "$BUNDLE_DIR"
             cp -R "$APP_PATH" "$BUNDLE_DIR/"
@@ -91,13 +91,13 @@ jobs:
               '#!/bin/bash' \
               'set -e' \
               'DIR="$(cd "$(dirname "$0")" && pwd)"' \
-              'APP="$DIR/NXT5 Match Exporter.app"' \
+              'APP="$DIR/NXT5 Importer.app"' \
               'xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true' \
               'open "$APP"' \
-              > "$BUNDLE_DIR/Ouvrir NXT5 Match Exporter.command"
-            chmod +x "$BUNDLE_DIR/Ouvrir NXT5 Match Exporter.command"
-            rm -f "release/NXT5-Match-Exporter-Mac-${ARCH}-${VERSION}.zip"
-            ditto -c -k --sequesterRsrc --keepParent "$BUNDLE_DIR" "release/NXT5-Match-Exporter-Mac-${ARCH}-${VERSION}.zip"
+              > "$BUNDLE_DIR/Ouvrir NXT5 Importer.command"
+            chmod +x "$BUNDLE_DIR/Ouvrir NXT5 Importer.command"
+            rm -f "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
+            ditto -c -k --sequesterRsrc --keepParent "$BUNDLE_DIR" "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
           }
           make_zip x64
           make_zip arm64
@@ -105,15 +105,15 @@ jobs:
       - name: Upload mac app
         uses: actions/upload-artifact@v4
         with:
-          name: NXT5-Match-Exporter-macOS
+          name: NXT5-Importer-macOS
           path: importer-app/release/*.zip
 
       - name: Publish latest exporter release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nxt5-match-exporter-latest
-          name: NXT5 Match Exporter latest
-          body: "Dernière version de NXT5 Match Exporter."
+          name: NXT5 Importer latest
+          body: "Dernière version de NXT5 Importer."
           make_latest: true
           overwrite_files: true
           files: importer-app/release/*.zip

@@ -258,9 +258,9 @@ async function rebuildChampionPool(teamId) {
         ${winrate},
         ${Number(r.kda || 0).toFixed(2)},
         ${Number(r.cs_per_min || 0).toFixed(1)},
-        ${r.role},
-        ${verdict},
         null,
+        ${verdict},
+        ${r.role},
         'work',
         'riot',
         now()
@@ -313,6 +313,11 @@ async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'impor
 
 async function ensureMatchImporterColumn() {
   await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
+  await sql`alter table matches add column if not exists raw jsonb not null default '{}'::jsonb`;
+  await sql`alter table match_participants add column if not exists raw jsonb not null default '{}'::jsonb`;
+  await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
+  await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
+  await sql`alter table reports add column if not exists updated_at timestamptz not null default now()`;
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
 }
 

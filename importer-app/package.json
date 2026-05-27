@@ -1,12 +1,12 @@
 {
-  "name": "nxt5-match-exporter",
-  "version": "0.2.0",
+  "name": "nxt5-importer",
+  "version": "0.2.1",
   "private": true,
-  "description": "NXT5 local League of Legends match exporter",
+  "description": "NXT5 local League of Legends match importer",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win portable --x64",
+    "dist:win": "electron-builder --win nsis --x64",
     "dist:mac": "electron-builder --mac zip --x64",
     "dist:mac:arm": "electron-builder --mac zip --arm64"
   },
@@ -16,8 +16,10 @@
   },
   "type": "module",
   "build": {
-    "appId": "app.nxt5.match-exporter",
-    "productName": "NXT5 Match Exporter",
+    "appId": "app.nxt5.importer",
+    "productName": "NXT5 Importer",
+    "copyright": "Copyright © 2026 NXT5",
+    "publisherName": "NXT5",
     "directories": {
       "output": "release"
     },
@@ -39,7 +41,16 @@
           ]
         }
       ],
-      "artifactName": "NXT5-Match-Exporter-Windows-${version}.${ext}"
+      "artifactName": "NXT5-Importer-Windows-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NXT5 Importer"
     },
     "mac": {
       "icon": "assets/icon.icns",
@@ -53,7 +64,7 @@
           ]
         }
       ],
-      "artifactName": "NXT5-Match-Exporter-Mac-${arch}-${version}.${ext}",
+      "artifactName": "NXT5-Importer-Mac-${arch}-${version}.${ext}",
       "identity": "-",
       "hardenedRuntime": false
     }

@@ -5,6 +5,7 @@ import {
   ArrowRight,
   AlertTriangle,
   BarChart3,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronRight,
@@ -44,8 +45,8 @@ import {
 } from "lucide-react";
 
 const API_BASE = "/.netlify/functions";
-const NXT5_IMPORTER_WINDOWS_URL = "https://github.com/AshaiiTV/Riftboard/releases/download/nxt5-match-exporter-latest/NXT5-Match-Exporter-Windows-0.2.0.exe";
-const NXT5_IMPORTER_MAC_URL = "https://github.com/AshaiiTV/Riftboard/releases/download/nxt5-match-exporter-latest/NXT5-Match-Exporter-Mac-arm64-0.2.0.zip";
+const NXT5_IMPORTER_WINDOWS_URL = "https://github.com/AshaiiTV/Riftboard/releases/download/nxt5-match-exporter-latest/NXT5-Importer-Windows-0.2.1.exe";
+const NXT5_IMPORTER_MAC_URL = "https://github.com/AshaiiTV/Riftboard/releases/download/nxt5-match-exporter-latest/NXT5-Importer-Mac-arm64-0.2.1.zip";
 
 const NAV = [
   { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
@@ -55,6 +56,7 @@ const NAV = [
   { id: "planning", label: "Planning", icon: CalendarDays, shortcut: "L", path: "/planning" },
   { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
   { id: "reports", label: "Rapports", icon: FileText, shortcut: "R", path: "/rapports" },
+  { id: "guide", label: "Guide", icon: BookOpen, shortcut: "A", path: "/guide" },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres" },
 ];
@@ -77,7 +79,7 @@ const PLANNING_DAYS = [
   ["SAT", "Sam"],
   ["SUN", "Dim"],
 ];
-const PLANNING_TIMES = ["18:00", "19:00", "20:00", "21:00", "22:00", "23:00"];
+const PLANNING_TIMES = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00"];
 
 function normalizePath(pathname = "/") {
   if (!pathname || pathname === "/") return "/";
@@ -86,7 +88,6 @@ function normalizePath(pathname = "/") {
 
 function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/codes-tournoi") return "matches";
   if (path === "/reviews") return "matches";
   return NAV.find((item) => item.path === path)?.id || "teams";
 }
@@ -139,7 +140,6 @@ const DEFAULT_DATA = {
   improvements: [],
   reports: [],
   matchArchives: [],
-  tournamentCodes: [],
   inviteCodes: [],
 };
 
@@ -209,23 +209,17 @@ function preciseErrorText(err, context = "generic") {
   if (code === "RIOT_KEY_MISSING") return "RIOT_API_KEY manque dans Netlify. Ajoute la variable dans Site configuration > Environment variables, puis redeploy le site.";
   if (code === "RIOT_KEY_REJECTED") return `La clé Riot est refusée${err?.riotStatus ? ` (Riot ${err.riotStatus})` : ""}. Remplace RIOT_API_KEY par une clé valide, vérifie qu’elle n’est pas expirée, puis redeploy.`;
   if (code === "RIOT_RATE_LIMIT") return `Riot bloque temporairement les requêtes. Réessaie dans ${formatRetryAfter(err?.retryAfter)}; si ça revient souvent, attends avant de relancer toute la team.`;
-  if (code === "RIOT_TOURNAMENT_NOT_CONFIGURED") return `La génération Riot n’est pas configurée. À vérifier dans Netlify: ${missing || "RIOT_API_KEY, RIOT_TOURNAMENT_ID ou RIOT_TOURNAMENT_CALLBACK_URL"}.`;
-  if (code === "RIOT_TOURNAMENT_ACCESS_MISSING") return `La clé Riot peut lire certains matchs, mais pas ce code tournoi. Il faut l’accès Tournament API / Match by tournament code sur la clé, ou importer avec le Game ID Riot si tu l’as.${errorDetailsLine(err)}`;
-  if (code === "RIOT_TOURNAMENT_MATCH_NOT_FOUND") return `Aucune game terminée trouvée pour ce code tournoi. Vérifie le serveur sélectionné, que la partie est finie, et que le code exact a bien été utilisé pour cette game.${errorDetailsLine(err)}`;
   if (code === "RIOT_API_ERROR") return `Riot renvoie une erreur API${err?.riotStatus ? ` ${err.riotStatus}` : ""}. Vérifie la région, la clé et réessaie après quelques minutes. Message brut: ${message || "non fourni"}`;
   if (code === "NXT5_IMPORT_FILE_INVALID") return `${message} Génère le fichier avec l’outil NXT5 local, ou importe un JSON Match-V5 complet contenant info.participants et info.teams.`;
 
-  if (/Format Game ID invalide/i.test(message)) return "Format Game ID invalide. Mets un ID du type EUW1_7123456789. Si tu colles un code tournoi, choisis le serveur dans le menu et colle uniquement le code.";
-  if (/Game ID ou code tournoi requis/i.test(message)) return "Colle soit un Game ID Riot, soit un code tournoi avant d’importer.";
+  if (/Format Game ID invalide/i.test(message)) return "Format Game ID invalide. Mets un ID du type EUW1_7123456789, ou colle l’ID numérique avec le bon serveur sélectionné.";
+  if (/Game ID requis/i.test(message)) return "Colle un Game ID Riot avant d’importer.";
   if (/Team ID requis|Team introuvable/i.test(message)) return "Aucune équipe active n’est reliée à cet import. Sélectionne ou crée une équipe, puis réessaie.";
   if (/roster avant d.importer/i.test(message)) return "Ajoute au moins un profil joueur dans la page Équipe avant d’importer une game.";
   if (/Aucun joueur du roster/i.test(message)) return "La game a été trouvée, mais aucun participant ne correspond au roster. Corrige les Riot IDs des profils dans Équipe, puis relance l’import.";
-  if (/Code tournoi requis/i.test(message)) return "Le code tournoi est vide. Colle le code complet généré par Riot ou reçu pour le tournoi.";
-  if (/Nom du code requis/i.test(message)) return "Donne un nom au code tournoi avant de l’enregistrer, par exemple Scrim vs Vitality ou Round 1.";
 
   if (context === "match-import" && status === 404) return "Riot ne trouve pas cette game. Vérifie le Game ID, la région du préfixe (EUW1, NA1, KR...) ou attends quelques minutes après la fin de la partie.";
   if (context === "match-import" && status === 403) return "Ton compte n’a pas accès à cette équipe pour importer une game. Vérifie que tu es bien membre de la team.";
-  if (context === "tournament-code" && status === 403) return "Tu n’as pas les droits pour gérer les codes tournoi. Seuls l’owner, un capitaine ou un coach peuvent le faire.";
   if (status === 502 || status === 503) return `${message || "Service temporairement indisponible."} Vérifie les variables Netlify et redeploy si tu viens de les modifier.`;
 
   return message || "Erreur inconnue. Réessaie, puis vérifie les variables Netlify si le problème revient.";
@@ -630,7 +624,7 @@ const LEGAL_PAGES = {
     intro: "Cette politique explique comment NXT5 traite les données nécessaires au fonctionnement du service. Elle vise à fournir une information claire, accessible et proportionnée aux usages réels de la plateforme.",
     sections: [
       ["Responsable du traitement", "Le responsable du traitement est l’exploitant du service NXT5. Les demandes relatives aux données personnelles peuvent être adressées via les moyens de contact disponibles dans l’application ou sur les canaux officiels du projet."],
-      ["Données traitées", "NXT5 peut traiter les informations de compte, les adresses e-mail, les pseudonymes, les rôles, les équipes, les profils joueurs, les Riot IDs, les liens de profil, les disponibilités, les compositions, les champion pools, les rapports, les codes tournoi, les matchs importés et les statistiques associées."],
+      ["Données traitées", "NXT5 peut traiter les informations de compte, les adresses e-mail, les pseudonymes, les rôles, les équipes, les profils joueurs, les Riot IDs, les liens de profil, les disponibilités, les compositions, les champion pools, les rapports, les matchs importés et les statistiques associées."],
       ["Finalités", "Ces données sont utilisées pour créer et sécuriser les comptes, gérer les équipes, permettre la collaboration entre membres, importer et consulter des matchs, produire des tableaux statistiques, préparer des compositions, organiser les disponibilités et conserver un historique utile aux reviews."],
       ["Base juridique", "Les traitements reposent principalement sur l’exécution du service demandé par l’utilisateur, l’intérêt légitime à maintenir un outil fiable et sécurisé, ainsi que le consentement lorsque l’utilisateur fournit volontairement certaines informations ou active certaines fonctionnalités."],
       ["Données de jeu", "Les données liées à League of Legends peuvent provenir d’informations saisies par les utilisateurs, de fichiers importés, de profils publics, d’OP.GG ou des API Riot lorsque l’accès est disponible. Elles sont utilisées pour alimenter les fonctionnalités NXT5 et ne constituent pas une notation officielle des joueurs."],
@@ -651,7 +645,7 @@ const LEGAL_PAGES = {
       ["Usage autorisé", "Le service doit être utilisé pour organiser une équipe, importer des matchs, consulter des statistiques, préparer des champion pools, construire des compositions, gérer les disponibilités et rédiger des rapports de review liés à League of Legends."],
       ["Comptes et responsabilités", "Chaque utilisateur est responsable de l’exactitude des informations qu’il renseigne, de la confidentialité de ses identifiants et des actions réalisées depuis son compte. Les administrateurs d’équipe doivent attribuer les accès avec prudence."],
       ["Contenus d’équipe", "Les rapports, notes, noms de groupes, compositions, profils et autres contenus ajoutés dans NXT5 sont créés par les utilisateurs. L’équipe reste responsable de leur exactitude, de leur pertinence et de leur conformité aux règles applicables."],
-      ["Codes tournoi et imports", "Les codes tournoi, Game IDs, fichiers JSON et imports de matchs doivent correspondre à des parties réelles ou légitimement accessibles par l’équipe. L’utilisateur s’engage à ne pas importer de données dans le but de nuire, d’usurper, de surveiller abusivement ou de détourner le service."],
+      ["Imports de matchs", "Les Game IDs, fichiers JSON et imports de matchs doivent correspondre à des parties réelles ou légitimement accessibles par l’équipe. L’utilisateur s’engage à ne pas importer de données dans le but de nuire, d’usurper, de surveiller abusivement ou de détourner le service."],
       ["Comportements interdits", "Il est interdit de tenter de contourner les droits d’accès, de perturber le service, d’extraire massivement des données, de publier des contenus illicites, injurieux ou discriminatoires, ou d’utiliser NXT5 pour harceler, cibler ou porter atteinte à d’autres joueurs."],
       ["Données et API tierces", "Certaines fonctionnalités dépendent de données ou services tiers, notamment l’écosystème Riot, des profils publics ou des outils d’import. NXT5 ne garantit pas l’exhaustivité, la disponibilité permanente ou l’absence d’erreur de ces sources externes."],
       ["Disponibilité", "Le service est fourni en l’état et peut évoluer, être interrompu, limité ou modifié pour des raisons techniques, de maintenance, de sécurité, de conformité ou de dépendance à des prestataires externes."],
@@ -1417,8 +1411,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   useEffect(() => {
     const params = new URLSearchParams(routeSearch || window.location.search);
-    if (params.get("create") === "1") setTeamSetupOpen(true);
-  }, [routeSearch]);
+    setTeamSetupOpen(!hasTeams && params.get("create") === "1");
+  }, [routeSearch, hasTeams]);
 
   useEffect(() => {
     if (!riotCooldownUntil) return undefined;
@@ -1706,11 +1700,11 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     }
   }
 
-  if (managementOnly) return <div><PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Modifie l’identité de l’équipe, les accès, les invitations et les liaisons de profils." />{selectedTeam ? <><TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} matches={data.matches || []} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} /><Surface glow className="p-5 md:p-6"><div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><Badge tone="purple">Roster</Badge><h3 className="mt-3 text-2xl font-black text-white">Ajouter ou modifier un profil</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Les Riot IDs, OP.GG et catégories se gèrent ici pour garder la page Équipe lisible.</p></div><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!gameplayRoster.length}>Copier Multi OP.GG</Button></div><form onSubmit={createPlayer} className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-5"><TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur ou staff" required /><TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder={isStaffRole(playerForm.role) ? "Optionnel pour staff" : "Pseudo#TAG"} required={!isStaffRole(playerForm.role)} disabled={isStaffRole(playerForm.role)} /><TextInput label="OP.GG" value={playerForm.opggUrl} onChange={(opggUrl) => setPlayerForm({ ...playerForm, opggUrl })} placeholder={isStaffRole(playerForm.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(playerForm.role)} /><SelectInput label="Catégorie" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role, riotId: isStaffRole(role) ? "" : playerForm.riotId, opggUrl: isStaffRole(role) ? "" : playerForm.opggUrl })}>{PROFILE_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput><div className="flex items-end"><Button type="submit" disabled={saving || !canManageTeam} icon={saving ? Loader2 : UserPlus} className="w-full">Ajouter</Button></div></form>{editingPlayer && <form onSubmit={updatePlayer} className="mt-5 rounded-[1.35rem] border border-cyan-300/20 bg-cyan-400/10 p-4"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><Badge tone="orange">Modification</Badge><h4 className="mt-3 text-xl font-black text-white">Modifier {editingPlayer.name}</h4><p className="mt-1 text-sm font-semibold text-cyan-100/80">Corrige le nom, le Riot ID ou l’OP.GG du profil.</p></div><Button type="button" variant="ghost" icon={X} onClick={closePlayerEdit}>Fermer</Button></div><div className="mt-4 grid gap-3 md:grid-cols-3"><TextInput label="Nom" value={playerEditForm.name} onChange={(name) => setPlayerEditForm({ ...playerEditForm, name })} placeholder="Nom visible" required /><TextInput label="Riot ID" value={playerEditForm.riotId} onChange={(riotId) => setPlayerEditForm({ ...playerEditForm, riotId })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "Pseudo#TAG"} required={!isStaffRole(editingPlayer.role)} disabled={isStaffRole(editingPlayer.role)} /><TextInput label="OP.GG" value={playerEditForm.opggUrl} onChange={(opggUrl) => setPlayerEditForm({ ...playerEditForm, opggUrl })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(editingPlayer.role)} /></div><div className="mt-4 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={closePlayerEdit}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManageTeam}>Enregistrer</Button></div></form>}<PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} canManage={canManageTeam} saving={saving} syncingPlayerId={syncingPlayerId} riotCooldownSeconds={riotCooldownSeconds} onCopyOpgg={copyPlayerOpggLink} onSyncPlayer={syncPlayerMostPlayed} onEditPlayer={openPlayerEdit} onDeletePlayer={deletePlayer} /></Surface></> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}</div>;
+  if (managementOnly) return <div><PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Permissions, liaisons de comptes et création de profils. La lecture sportive reste dans l’onglet Équipe." />{selectedTeam ? <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} /> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}</div>;
 
-  return <div><PageHeader eyebrow="Team manager" title={hasTeams ?"Gérer ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ?"La page affiche le roster, les invitations et les analyses de l’équipe active." : "Choisis clairement ton entrée : créer ta structure ou rejoindre une team avec un code temporaire."} />
-    <div className={cx("grid gap-5", hasTeams ?teamSetupOpen && "xl:grid-cols-[.78fr_1.22fr]" : "xl:grid-cols-2")}>
-      <div className={cx("space-y-5", hasTeams && !teamSetupOpen && "hidden")}>
+  return <div><PageHeader eyebrow="Team manager" title={hasTeams ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Choisis clairement ton entrée : créer ta structure ou rejoindre une team avec un code temporaire."} />
+    <div className={cx("grid gap-5", !hasTeams && "xl:grid-cols-2")}>
+      {!hasTeams && <div className="space-y-5">
         <Surface glow>
           <h3 className="text-xl font-black text-white">Créer une team</h3>
           <p className="mt-1 text-sm text-slate-500">Pour lancer une nouvelle structure, créer son roster et importer ses games.</p>
@@ -1733,7 +1727,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
           </form>
         </Surface>
 
-      </div>
+      </div>}
 
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -1768,7 +1762,96 @@ function InviteCodesPanel({ inviteCodes = [], nowTick }) {
   return <div className="rounded-3xl border border-cyan-300/15 bg-cyan-400/8 p-4"><div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/70">Codes actifs</p><h4 className="mt-1 text-xl font-black text-white">Invitations temporaires</h4></div><Badge tone="cyan">Valables 1h</Badge></div><div className="mt-4 space-y-2">{activeCodes.length ? activeCodes.map((code) => { const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000)); return <div key={code.id} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 md:flex-row md:items-center md:justify-between"><div><p className="font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><p className="mt-1 text-xs font-semibold text-slate-500">Créé par {code.created_by_name || "staff"} · suppression automatique à expiration</p></div><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-slate-500">Aucun code actif. Génère un code pour inviter quelqu’un pendant 1h.</p>}</div></div>;
 }
 
-function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, matches = [], inviteCodes = [], saving, onRoleChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam }) {
+function GuidePage() {
+  const starterSteps = [
+    ["Créer ou rejoindre une team", "Au premier lancement, crée ta team ou colle le code temporaire donné par le capitaine. Une fois dans une team, les onglets NXT5 deviennent accessibles."],
+    ["Configurer le roster", "Va dans Gestion équipe, ajoute les cinq joueurs, leur poste et leur Riot ID. Le Riot ID sert à relier les imports aux bons profils."],
+    ["Inviter le staff", "Génère un code d’invitation d’une heure dans Gestion équipe. Les coachs, managers et analystes peuvent ensuite rejoindre la structure."],
+    ["Relier les comptes", "Dans Gestion équipe, associe les comptes NXT5 aux profils joueurs. Cela permet de savoir qui modifie, importe ou crée du contenu."],
+  ];
+  const importSteps = [
+    ["Installer l’importer", "Dans Intégration, télécharge l’application NXT5 Importer adaptée à ton système. Elle sert à générer un fichier de match local."],
+    ["Exporter une game", "Ouvre l’importer, colle le Game ID depuis le client League of Legends, choisis la région et génère le fichier NXT5."],
+    ["Importer le fichier", "Dans Intégration, utilise Importer une game et glisse le JSON généré. Donne un nom clair à l’import, par exemple Scrim 1 vs Team X."],
+    ["Assigner la team", "Sélectionne si ton équipe est blue side ou red side, puis associe les champions aux profils. NXT5 ne devine pas les lanes à ta place."],
+  ];
+  const analysisSteps = [
+    ["Statistiques", "Sélectionne une game ou un groupe de games. Les statistiques affichent les joueurs, champions, KDA, dégâts, vision, items et sorts d’invocateur."],
+    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Clique une deuxième fois sur une game ou un groupe pour le retirer de la sélection."],
+    ["Rapports", "Crée un rapport lié à une ou plusieurs games. Utilise les commandes du lexique pour injecter des données, puis écris l’analyse humaine autour."],
+    ["Champion Pool", "Le Champion Pool sert à organiser la maîtrise des champions par joueur. Le capitaine et le joueur concerné peuvent le maintenir."],
+    ["Compos Types", "Crée des compositions à cinq joueurs à partir des pools existants. Les couleurs indiquent rapidement le niveau de maîtrise disponible."],
+    ["Planning", "Chaque joueur renseigne ses disponibilités par semaine. La vue générale montre les créneaux communs de la team."],
+  ];
+  const troubleshooting = [
+    ["Import introuvable", "Vérifie la région du Game ID, attends quelques minutes après la fin de la game, puis réessaie. Pour une game officielle, le fichier local reste la méthode la plus fiable."],
+    ["Aucun joueur reconnu", "Corrige les Riot IDs dans Gestion équipe. Le format attendu est Pseudo#TAG, exactement comme sur Riot."],
+    ["Permissions bloquées", "Le créateur est capitaine. Les managers peuvent gérer la team, mais ne modifient pas les plannings personnels des joueurs."],
+    ["Données incohérentes", "Réimporte la game avec l’assignation manuelle correcte: side de ton équipe, champions et profils associés."],
+  ];
+
+  const StepList = ({ items }) => <div className="grid gap-3">{items.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-cyan-300/10 text-sm font-black text-cyan-100">{index + 1}</span><div><h4 className="text-base font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div></div>)}</div>;
+
+  return <div>
+    <PageHeader eyebrow="Guide NXT5" title="Guide complet d’utilisation" subtitle="Le parcours de A à Z pour configurer ta team, importer tes games, créer des groupes, lire les stats et produire des rapports propres.">
+      <Button icon={Swords} onClick={() => openAppPath("/integration")}>Importer une game</Button>
+      <Button variant="ghost" icon={Settings} onClick={() => openAppPath("/gestion-equipe")}>Gestion équipe</Button>
+    </PageHeader>
+
+    <div className="grid gap-5 xl:grid-cols-[.9fr_1.1fr]">
+      <Surface glow className="p-5 md:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Badge tone="cyan">Démarrage</Badge>
+            <h3 className="mt-3 text-2xl font-black text-white">1. Mettre la structure en place</h3>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Cette étape évite 90% des erreurs d’import, parce que les games doivent pouvoir être reliées aux bons profils.</p>
+          </div>
+          <Users className="h-8 w-8 shrink-0 text-cyan-100" />
+        </div>
+        <div className="mt-5"><StepList items={starterSteps} /></div>
+      </Surface>
+
+      <Surface glow className="p-5 md:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Badge tone="purple">Import</Badge>
+            <h3 className="mt-3 text-2xl font-black text-white">2. Transformer une game LoL en données</h3>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Le fichier local garde les informations utiles de la partie et permet à NXT5 de construire les stats de manière fiable.</p>
+          </div>
+          <Download className="h-8 w-8 shrink-0 text-fuchsia-100" />
+        </div>
+        <div className="mt-5"><StepList items={importSteps} /></div>
+      </Surface>
+    </div>
+
+    <Surface glow className="mt-5 p-5 md:p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <Badge tone="orange">Workflow</Badge>
+          <h3 className="mt-3 text-2xl font-black text-white">3. Exploiter les données sans remplacer le coach</h3>
+          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">NXT5 donne les chiffres, les filtres et les chemins rapides. L’interprétation reste dans les mains du coach, du capitaine et des joueurs.</p>
+        </div>
+        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Ouvrir les stats</Button>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{analysisSteps.map(([title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><h4 className="font-black text-white">{title}</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div>
+    </Surface>
+
+    <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_.95fr]">
+      <Surface className="p-5 md:p-6">
+        <Badge tone="green">Routine recommandée</Badge>
+        <div className="mt-4 grid gap-3">
+          {["Avant scrim: vérifier roster, planning et compos types.", "Après chaque game: exporter le JSON, importer la game, assigner side et profils.", "Après le bloc: créer un groupe de games, ouvrir les stats, puis rédiger un rapport lié.", "Avant la prochaine session: mettre à jour Champion Pool et compos selon les décisions du staff."].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
+        </div>
+      </Surface>
+      <Surface className="p-5 md:p-6">
+        <Badge tone="red">Dépannage</Badge>
+        <div className="mt-4 space-y-3">{troubleshooting.map(([title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><h4 className="font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div>
+      </Surface>
+    </div>
+  </div>;
+}
+
+function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer }) {
   const [nowTick, setNowTick] = useState(Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNowTick(Date.now()), 1000);
@@ -1852,6 +1935,25 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
       </div>
     </div>
 
+    <div className="mt-6 rounded-3xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div><h4 className="text-xl font-black text-white">Créer un profil</h4><p className="mt-1 text-sm font-semibold text-slate-300">Ajoute un joueur ou un membre staff, puis lie-le à un compte NXT5 si besoin.</p></div>
+        <Badge tone="purple">Gestion roster</Badge>
+      </div>
+      <form onSubmit={onCreatePlayer} className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
+        <TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur ou staff" required />
+        <TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder={isStaffRole(playerForm.role) ? "Optionnel pour staff" : "Pseudo#TAG"} required={!isStaffRole(playerForm.role)} disabled={isStaffRole(playerForm.role)} />
+        <TextInput label="OP.GG" value={playerForm.opggUrl} onChange={(opggUrl) => setPlayerForm({ ...playerForm, opggUrl })} placeholder={isStaffRole(playerForm.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(playerForm.role)} />
+        <SelectInput label="Catégorie" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role, riotId: isStaffRole(role) ? "" : playerForm.riotId, opggUrl: isStaffRole(role) ? "" : playerForm.opggUrl })}>{PROFILE_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
+        <div className="flex items-end"><Button type="submit" disabled={saving || !canManage} icon={saving ? Loader2 : UserPlus} className="w-full">Ajouter</Button></div>
+      </form>
+      {editingPlayer && <form onSubmit={onUpdatePlayer} className="mt-5 rounded-[1.35rem] border border-cyan-300/20 bg-cyan-400/10 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><Badge tone="orange">Modification</Badge><h4 className="mt-3 text-xl font-black text-white">Modifier {editingPlayer.name}</h4><p className="mt-1 text-sm font-semibold text-cyan-100/80">Corrige le nom, le Riot ID ou l’OP.GG du profil.</p></div><Button type="button" variant="ghost" icon={X} onClick={onClosePlayerEdit}>Fermer</Button></div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3"><TextInput label="Nom" value={playerEditForm.name} onChange={(name) => setPlayerEditForm({ ...playerEditForm, name })} placeholder="Nom visible" required /><TextInput label="Riot ID" value={playerEditForm.riotId} onChange={(riotId) => setPlayerEditForm({ ...playerEditForm, riotId })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "Pseudo#TAG"} required={!isStaffRole(editingPlayer.role)} disabled={isStaffRole(editingPlayer.role)} /><TextInput label="OP.GG" value={playerEditForm.opggUrl} onChange={(opggUrl) => setPlayerEditForm({ ...playerEditForm, opggUrl })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(editingPlayer.role)} /></div>
+        <div className="mt-4 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClosePlayerEdit}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button></div>
+      </form>}
+    </div>
+
     <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div><h4 className="text-xl font-black text-white">Profils & accès</h4><p className="mt-1 text-sm font-semibold text-slate-300">Lie un compte, choisis son accès, et retire un profil depuis la même ligne.</p></div>
@@ -1871,6 +1973,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <div className="flex flex-wrap justify-end gap-2 lg:flex-nowrap">
               {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}>Renvoyer</Button>}
+              <Button type="button" variant="ghost" icon={Pencil} onClick={() => onEditPlayer(player)} disabled={saving || !canManage}>Modifier</Button>
               <Button type="button" variant="danger" icon={Trash2} onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}>Supprimer</Button>
             </div>
           </div>;
@@ -2030,24 +2133,18 @@ function matchImportTitle(match) {
 }
 
 function ImportHistoryCard({ match, editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange }) {
-  const importer = match.created_by_name || match.created_by_account || "Ancien import";
-  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-3 md:grid-cols-2"><TextInput label="Nom de l’import" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Scrim, tournoi, BO..." icon={FileText} /><TextInput label="Adversaire" value={editForm.opponent} onChange={(opponent) => onChange({ ...editForm, opponent })} placeholder="Enemy Team" icon={Swords} /></div> : <><div className="flex flex-wrap items-center gap-2"><p className="font-black text-white">{matchImportTitle(match)}</p><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.side || "Side ?"}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p><div className="mt-3 flex flex-wrap gap-2"><Badge tone="cyan">Intégré par {importer}</Badge><Badge tone="purple">{match.patch || "Patch ?"}</Badge></div></>}</div><div className="flex shrink-0 flex-wrap justify-end gap-2">{editing ? <><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button></> : <><Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button></>}</div></div></div>;
+  const importer = match.created_by_name || match.created_by_account || "";
+  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-3 md:grid-cols-2"><TextInput label="Nom de l’import" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Scrim, review, BO..." icon={FileText} /><TextInput label="Adversaire" value={editForm.opponent} onChange={(opponent) => onChange({ ...editForm, opponent })} placeholder="Enemy Team" icon={Swords} /></div> : <><div className="flex flex-wrap items-center gap-2"><p className="font-black text-white">{matchImportTitle(match)}</p><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.side || "Side ?"}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p><div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="purple">{match.patch || "Patch ?"}</Badge></div></>}</div><div className="flex shrink-0 flex-wrap justify-end gap-2">{editing ? <><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button></> : <><Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button></>}</div></div></div>;
 }
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, user }) {
-  const [gameId, setGameId] = useState("");
-  const [importMeta, setImportMeta] = useState({ label: "", opponent: "" });
-  const [importPlatform, setImportPlatform] = useState("EUW1");
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [allyTeamSide, setAllyTeamSide] = useState("");
   const [importPreview, setImportPreview] = useState(null);
   const [previewPayload, setPreviewPayload] = useState(null);
-  const [previewSource, setPreviewSource] = useState("");
   const [importing, setImporting] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
-  const [codeForm, setCodeForm] = useState({ label: "", opponent: "", code: "", platform: "EUW1" });
-  const [savingCode, setSavingCode] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState("");
   const [matchEditForm, setMatchEditForm] = useState({ label: "", opponent: "" });
   const [managingMatchId, setManagingMatchId] = useState("");
@@ -2056,14 +2153,6 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const rows = selected?.participants || [];
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
   const gameplayRoster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
-  const canManageCodes = selectedTeam && (selectedTeam.owner_id === user?.id || STAFF_ACCESS_ROLE_IDS.includes(String(currentMember?.role || "").toLowerCase()));
-  const tournamentCodes = (data.tournamentCodes || []).filter((item) => item.team_id === selectedTeamId);
-  function updateCodeForm(key, value) {
-    setCodeForm((current) => ({ ...current, [key]: value }));
-  }
-  function updateImportMeta(key, value) {
-    setImportMeta((current) => ({ ...current, [key]: value }));
-  }
   function updateLaneAssignment(role, value) {
     setLaneAssignments((current) => ({ ...current, [role]: value }));
   }
@@ -2080,17 +2169,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     setAllyTeamSide(side);
     setPlayerAssignments(rosterAssignmentsByRole());
   }
-  function resetImportDraft(options = {}) {
-    if (options.clearInput) setGameId("");
+  function resetImportDraft() {
     setImportPreview(null);
     setPreviewPayload(null);
-    setPreviewSource("");
     setAllyTeamSide("");
     setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-  }
-  function assignParticipant(role, participant) {
-    updateLaneAssignment(role, participant?.riotId || participant?.summonerName || participant?.champion || "");
   }
   function startEditMatch(match) {
     setEditingMatchId(match.id);
@@ -2126,77 +2210,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       setManagingMatchId("");
     }
   }
-  async function saveTournamentCode(event, action = "create") {
-    event.preventDefault();
-    setSavingCode(true);
-    try {
-      await apiFetch("tournament-codes-manage", { method: "POST", body: JSON.stringify({ ...codeForm, action, teamId: selectedTeamId }) });
-      setCodeForm({ label: "", opponent: "", code: "", platform: codeForm.platform });
-      await refreshAll();
-      pushToast({ type: "green", title: action === "generate" ? "Code généré" : "Code enregistré", text: "Il est prêt dans Review." });
-    } catch (err) {
-      pushToast(errorToast(err, action === "generate" ? "Génération impossible" : "Code impossible", "tournament-code"));
-    } finally {
-      setSavingCode(false);
-    }
-  }
-  async function copyTournamentCode(code) {
-    try {
-      await navigator.clipboard.writeText(code);
-      pushToast({ type: "cyan", title: "Code copié", text: "Tu peux le coller dans le lobby LoL." });
-    } catch {
-      pushToast({ type: "red", title: "Copie impossible", text: "Le navigateur bloque le presse-papiers." });
-    }
-  }
-  async function deleteTournamentCode(code) {
-    if (!window.confirm(`Supprimer le code "${code.label}" ?`)) return;
-    setSavingCode(true);
-    try {
-      await apiFetch("tournament-codes-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, codeId: code.id }) });
-      await refreshAll();
-      pushToast({ type: "green", title: "Code supprimé", text: "La liste Review est à jour." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
-    } finally {
-      setSavingCode(false);
-    }
-  }
-  async function loadMatchPreview(event) {
-    event.preventDefault();
-    const value = String(gameId || "").trim();
-    const isGameId = /^([A-Z0-9]+)_\d+$/i.test(value);
-    const payload = isGameId
-      ? { gameId: value, teamId: selectedTeamId, previewOnly: true }
-      : { tournamentCode: value, platform: importPlatform, teamId: selectedTeamId, previewOnly: true };
-    setImporting(true);
-    try {
-      const result = await apiFetch("matches-import", { method: "POST", body: JSON.stringify(payload) });
-      resetImportDraft();
-      setGameId(value);
-      setImportPreview(result.match);
-      setPreviewSource("riot");
-      pushToast({ type: "green", title: "Game chargée", text: "Choisis ton side, les champions et les profils avant de confirmer." });
-    } catch (err) {
-      pushToast(errorToast(err, "Chargement impossible", "match-import"));
-    } finally {
-      setImporting(false);
-    }
-  }
   async function confirmImport(event) {
     event.preventDefault();
-    const value = String(gameId || "").trim();
-    const isGameId = /^([A-Z0-9]+)_\d+$/i.test(value);
-    const base = { teamId: selectedTeamId, label: importMeta.label, opponent: importMeta.opponent, laneAssignments, playerAssignments, allyTeamSide };
-    const payload = previewSource === "file"
-      ? { ...base, payload: previewPayload }
-      : isGameId
-        ? { ...base, gameId: value }
-        : { ...base, tournamentCode: value, platform: importPlatform };
+    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, playerAssignments, allyTeamSide };
     setImporting(true);
     try {
-      await apiFetch(previewSource === "file" ? "matches-import-file" : "matches-import", { method: "POST", body: JSON.stringify(payload) });
-      setGameId("");
-      setImportMeta({ label: "", opponent: "" });
+      await apiFetch("matches-import-file", { method: "POST", body: JSON.stringify(payload) });
       resetImportDraft();
       await refreshAll();
       pushToast({ type: "green", title: "Game importée", text: "Side, profils et lanes ont été appliqués à cette game." });
@@ -2215,12 +2234,10 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       const result = await apiFetch("matches-import-file", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, payload, previewOnly: true }) });
       resetImportDraft();
       setPreviewPayload(payload);
-      setPreviewSource("file");
       setImportPreview(result.match);
-      setGameId(result.gameId || payload.gameId || "");
       pushToast({ type: "green", title: "JSON chargé", text: "Choisis ton side, les champions et les profils avant de confirmer." });
     } catch (err) {
-      if (err instanceof SyntaxError) pushToast({ type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Match Exporter." });
+      if (err instanceof SyntaxError) pushToast({ type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Importer." });
       else pushToast(errorToast(err, "Import fichier impossible", "match-import"));
     } finally {
       setFileImporting(false);
@@ -2234,33 +2251,31 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   return (
     <div>
-      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Un flux simple : importer, assigner, confirmer. Les codes tournoi restent à côté, l’historique reste en dessous." />
-      <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,.75fr)]">
+      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Télécharge l’application NXT5 Importer, génère ton fichier, puis importe le JSON ici." />
+      <div className="grid min-w-0 gap-5">
         <Surface glow className="min-w-0 p-5 md:p-6">
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Import</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "Game chargée" : "En attente"}</Badge></div>
-                <h3 className="mt-3 text-2xl font-black text-white">Importer une game</h3>
-                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Charge un Game ID, un code tournoi ou un JSON local. Ensuite tu choisis ton side et tu lies les champions aux postes.</p>
+                <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">NXT5 Importer</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "JSON chargé" : "Prêt"}</Badge></div>
+                <h3 className="mt-3 text-2xl font-black text-white">Application locale</h3>
+                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">L’app sert à transformer une game LoL en fichier NXT5. Ici, tu importes uniquement ce fichier JSON et tu confirmes l’assignation.</p>
               </div>
-              <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16", fileImporting ? "pointer-events-none opacity-60" : "")}>
-                {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
-                <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
-              </label>
+              <div className="flex flex-wrap gap-2">
+                <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a>
+                <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac</a>
+                <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]", fileImporting ? "pointer-events-none opacity-60" : "")}>
+                  {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
+                  <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
+                </label>
+              </div>
             </div>
 
-            <form onSubmit={loadMatchPreview} className="rounded-3xl border border-white/10 bg-black/22 p-4">
-              <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)_120px]">
-                <TextInput label="Nom de l’import" value={importMeta.label} onChange={(value) => updateImportMeta("label", value)} placeholder="Scrim G1, Tournoi round 1..." icon={FileText} />
-                <TextInput label="Adversaire" value={importMeta.opponent} onChange={(value) => updateImportMeta("opponent", value)} placeholder="Équipe adverse" icon={Swords} />
-                <SelectInput label="Serveur" value={importPlatform} onChange={setImportPlatform}><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></SelectInput>
-              </div>
-              <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                <TextInput label="Game ID ou code tournoi" value={gameId} onChange={setGameId} placeholder="EUW1_7123456789 ou code Riot" icon={Search} />
-                <div className="flex items-end"><Button type="submit" icon={importing ? Loader2 : Search} disabled={importing || !selectedTeamId || !gameId.trim()}>Charger</Button></div>
-              </div>
-            </form>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">1. Exporter</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ouvre NXT5 Importer, colle le Game ID et génère le fichier.</p></div>
+              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">2. Importer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Clique sur “Importer un JSON” et sélectionne le fichier créé par l’app.</p></div>
+              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">3. Confirmer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis ton side, associe les champions aux postes et valide.</p></div>
+            </div>
 
             <div className="rounded-3xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -2287,22 +2302,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                   })}
                 </div>
                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
-              </div> : <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,.9fr)_minmax(320px,1.1fr)] xl:items-stretch"><p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold leading-6 text-slate-300">Charge une game ou importe un JSON pour afficher les deux teams et lancer l’assignation.</p><div className="rounded-2xl border border-cyan-300/16 bg-black/25 p-4"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">NXT5 Match Exporter</p><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">L’application locale récupère une game depuis Riot et sort un JSON prêt à importer ici.</p></div><div className="flex shrink-0 flex-wrap gap-2"><a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-50 transition hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a><a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-fuchsia-50 transition hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac</a></div></div><div className="mt-4 grid gap-2 sm:grid-cols-3"><div className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">1. Ouvrir</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Télécharge l’app, lance-la, puis laisse le client LoL ouvert.</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">2. Exporter</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Colle le Game ID LoL, choisis la région, puis génère le JSON.</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">3. Importer</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Clique “Importer un JSON”, choisis ton fichier, puis assigne ton side.</p></div></div></div></div>}
-            </div>
-          </div>
-        </Surface>
-
-        <Surface className="min-w-0 p-5">
-          <div className="flex min-w-0 flex-col gap-4">
-            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="text-xl font-black text-white">Codes tournoi</h3><Badge tone={canManageCodes ? "green" : "slate"}>{canManageCodes ? "Staff" : "Lecture"}</Badge></div><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Crée ou stocke un code. L’import se fait toujours dans le bloc principal.</p></div>
-            <form onSubmit={(event) => saveTournamentCode(event, "create")} className="grid min-w-0 gap-3">
-              <TextInput label="Nom" value={codeForm.label} onChange={(value) => updateCodeForm("label", value)} placeholder="Scrim vs..." required icon={Trophy} />
-              <div className="grid gap-3 sm:grid-cols-[1fr_110px]"><TextInput label="Adversaire" value={codeForm.opponent} onChange={(value) => updateCodeForm("opponent", value)} placeholder="Équipe adverse" icon={Swords} /><SelectInput label="Serveur" value={codeForm.platform} onChange={(value) => updateCodeForm("platform", value)}><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></SelectInput></div>
-              <TextInput label="Code tournoi" value={codeForm.code} onChange={(value) => updateCodeForm("code", value)} placeholder="Code Riot" icon={Clipboard} />
-              <div className="grid gap-2 sm:grid-cols-2"><Button type="button" variant="ghost" icon={Wand2} onClick={(event) => saveTournamentCode(event, "generate")} disabled={!canManageCodes || savingCode || !codeForm.label.trim()}>{savingCode ? "..." : "Générer"}</Button><Button type="submit" icon={savingCode ? Loader2 : Plus} disabled={!canManageCodes || savingCode || !codeForm.label.trim() || !codeForm.code.trim()}>Ajouter</Button></div>
-            </form>
-            <div className="max-h-[430px] min-w-0 space-y-2 overflow-auto pr-1">
-              {tournamentCodes.length > 0 ? tournamentCodes.map((code) => <div key={code.id} className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex min-w-0 flex-wrap items-center gap-2"><p className="min-w-0 truncate text-sm font-black text-white">{code.label || "Code tournoi"}</p><Badge tone={code.status === "imported" ? "green" : "orange"}>{code.status === "imported" ? "Importé" : "Prêt"}</Badge><Badge tone="slate">{code.platform || "EUW1"}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{code.opponent || "Adversaire libre"}{code.imported_game_id ? " · " + code.imported_game_id : ""}</p><p className="mt-2 max-w-full break-all rounded-lg border border-cyan-300/10 bg-cyan-400/8 px-2 py-1 font-mono text-[0.68rem] font-semibold leading-5 text-cyan-100/85">{code.code}</p><div className="mt-3 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyTournamentCode(code.code)}>Copier</Button>{canManageCodes && <Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteTournamentCode(code)} disabled={savingCode}>Supprimer</Button>}</div></div>) : <div className="rounded-2xl border border-dashed border-cyan-300/18 bg-cyan-400/6 p-4 text-sm font-semibold text-slate-300">Aucun code tournoi préparé.</div>}
+              </div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold leading-6 text-slate-300">Aucun JSON chargé pour le moment.</p>}
             </div>
           </div>
         </Surface>
@@ -3923,6 +3923,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
+    if (active === "guide") return <GuidePage />;
     if (active === "settings") return <SettingsPage user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast, user, onUserUpdate]);

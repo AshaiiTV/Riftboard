@@ -7,7 +7,7 @@ import https from 'node:https';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NXT5_SITE_URL = String(process.env.NXT5_SITE_URL || 'https://nxt5.netlify.app').replace(/\/+$/, '');
-const APP_NAME = 'NXT5 Match Exporter';
+const APP_NAME = 'NXT5 Importer';
 const REMOTE_TIMEOUT_MS = 12000;
 const LOCAL_TIMEOUT_MS = 8000;
 const championNameCache = new Map();
