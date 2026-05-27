@@ -1761,33 +1761,116 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
   const memberByUser = new Map(members.map((member) => [member.user_id, member]));
   const unlinkedMemberRows = members.filter((member) => !linkedPlayerByUser.has(member.user_id));
   const linkedCount = roster.filter((player) => player.user_id).length;
-  const unlinkedMembers = unlinkedMemberRows.length;
-  const unlinkedRoster = roster.filter((player) => !player.user_id).length;
+  const gameplayCount = roster.filter((player) => isGameplayRole(player.role)).length;
+  const staffCount = roster.filter((player) => isStaffRole(player.role)).length;
+  const activeCodes = inviteCodes.filter((code) => new Date(code.expires_at).getTime() > nowTick);
   const roleValue = (role) => TEAM_ACCESS_ROLES.some(([id]) => id === String(role || "").toLowerCase()) ? String(role || "").toLowerCase() : "player";
   const linkedProfileLabel = (member) => {
     const linked = linkedPlayerByUser.get(member.user_id);
     const accountName = member.name || member.account_name || "Compte NXT5";
-    return linked ? `${accountName} · ${linked.riot_id || roleLabel(linked.role)}` : `${accountName} · Non-lié`;
+    return linked ? accountName + " · " + (linked.riot_id || roleLabel(linked.role)) : accountName + " · Non-lié";
   };
   const isLinkedElsewhere = (member, player) => {
     const linked = linkedPlayerByUser.get(member.user_id);
     return Boolean(linked && linked.id !== player.id);
   };
-  return (
-    <Surface glow className="mb-6 p-6 md:p-8">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><Badge tone="cyan">Gestion</Badge><h3 className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">Gestion de la team</h3><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">Modifie l'identité de l'équipe, les accès et les liaisons entre comptes NXT5 et profils Riot.</p></div><Badge tone="cyan">{members.length} compte{members.length > 1 ?"s" : ""}</Badge></div>
-      <div className="mt-6 grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-4"><p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-emerald-100/75">Profils liés</p><p className="mt-2 text-3xl font-black text-white">{linkedCount}<span className="text-base text-slate-500">/{roster.length}</span></p></div>
-        <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">Comptes non liés</p><p className="mt-2 text-3xl font-black text-white">{unlinkedMembers}</p></div>
-        <div className="rounded-2xl border border-violet-300/15 bg-violet-400/10 p-4"><p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-violet-100/75">Slots à associer</p><p className="mt-2 text-3xl font-black text-white">{unlinkedRoster}</p></div>
+  return <Surface glow className="mb-6 p-5 md:p-6">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
+        <Badge tone="cyan">Gestion</Badge>
+        <h3 className="mt-3 truncate text-3xl font-black tracking-tight text-white md:text-4xl">{team.name}</h3>
+        <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Identité, invitations, profils liés et permissions. Tout est regroupé ici pour aller vite.</p>
       </div>
-      <form onSubmit={onSaveTeam} className="mt-8 grid gap-5 xl:grid-cols-[360px_1fr]">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5"><div className="mx-auto h-48 w-48 overflow-hidden rounded-[2rem] border border-cyan-300/25 bg-black/30">{edit.avatarDataUrl ?<img src={edit.avatarDataUrl} alt={team.name} className="h-full w-full object-cover" style={{ transform: "scale(" + Number(edit.avatarZoom || 1) + ")", objectPosition: Number(edit.avatarX ?? 50) + "% " + Number(edit.avatarY ?? 50) + "%" }} /> : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-12 w-12 text-slate-600" /></div>}</div><label className="mt-5 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="hidden" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canManage || saving} /></label><div className="mt-5 space-y-4"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canManage || saving} className="w-full" /></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Cadrage horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canManage || saving} className="w-full" /></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Cadrage vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canManage || saving} className="w-full" /></label></div></div>
-        <div className="space-y-5"><div className="grid gap-4 md:grid-cols-2"><TextInput label="Nom de l'équipe" value={edit.name} onChange={(name) => setEdit({ ...edit, name })} placeholder="Nom" required icon={Trophy} /><TextInput label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} /></div><div className="flex flex-wrap gap-2"><Button type="submit" icon={saving ?Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button><Button type="button" variant="ghost" icon={saving ?Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canManage}>Créer un code d’invitation · 1h</Button>{canDeleteTeam && <Button type="button" variant="danger" icon={saving ?Loader2 : Trash2} onClick={onDeleteTeam} disabled={saving}>Supprimer la team</Button>}</div><InviteCodesPanel inviteCodes={inviteCodes} nowTick={nowTick} />{!canManage && <p className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}</div>
+      <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[360px]">
+        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-emerald-100/80">Liés</p><p className="mt-1 text-2xl font-black text-white">{linkedCount}/{roster.length}</p></div>
+        <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100/80">Joueurs</p><p className="mt-1 text-2xl font-black text-white">{gameplayCount}</p></div>
+        <div className="rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/10 p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100/80">Staff</p><p className="mt-1 text-2xl font-black text-white">{staffCount}</p></div>
+      </div>
+    </div>
+
+    <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(260px,.7fr)_minmax(0,1.3fr)]">
+      <form onSubmit={onSaveTeam} className="rounded-3xl border border-white/10 bg-black/22 p-4">
+        <div className="flex items-center gap-4">
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/25 bg-black/30">
+            {edit.avatarDataUrl ? <img src={edit.avatarDataUrl} alt={team.name} className="h-full w-full object-cover" style={{ transform: "scale(" + Number(edit.avatarZoom || 1) + ")", objectPosition: Number(edit.avatarX ?? 50) + "% " + Number(edit.avatarY ?? 50) + "%" }} /> : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-9 w-9 text-slate-400" /></div>}
+          </div>
+          <div className="min-w-0 flex-1 space-y-3">
+            <TextInput label="Nom de l'équipe" value={edit.name} onChange={(name) => setEdit({ ...edit, name })} placeholder="Nom" required icon={Trophy} />
+            <TextInput label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} />
+          </div>
+        </div>
+        <details className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+          <summary className="cursor-pointer text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Image de team</summary>
+          <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="hidden" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canManage || saving} /></label>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
+            <label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">Horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
+            <label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">Vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
+          </div>
+        </details>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button>
+          {canDeleteTeam && <Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={onDeleteTeam} disabled={saving}>Supprimer</Button>}
+        </div>
+        {!canManage && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}
       </form>
-      <div className="mt-10 space-y-8"><div><div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between"><div><h4 className="text-xl font-black text-white">Profils & accès</h4><p className="mt-1 text-sm font-semibold text-slate-500">Chaque profil gère sa liaison de compte et son niveau d'accès au même endroit.</p></div><Badge tone="purple">{roster.length} profil{roster.length > 1 ?"s" : ""}</Badge></div><div className="grid gap-4 xl:grid-cols-2">{roster.map((player) => { const linkedMember = player.user_id ? memberByUser.get(player.user_id) : null; return <div key={player.id} className={cx("rounded-3xl border p-4 transition sm:p-5", player.user_id ? "border-emerald-300/20 bg-emerald-400/[0.055]" : "border-cyan-300/18 bg-cyan-400/[0.045]")}><div className="flex flex-col gap-4 lg:min-h-[360px]"><div className="flex items-start justify-between gap-3"><LinkedPlayerSummary player={player} linkedMember={linkedMember} matches={matches} /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Associé" : "Non-lié"}</Badge></div><div className="grid gap-3 md:grid-cols-2"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)} · {profileStatusLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label></div>{linkedMember ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/[0.18] p-4"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Compte NXT5</p><p className="mt-1 text-sm font-black text-white">{linkedMember.name || linkedMember.account_name || "Compte NXT5"}</p><div className="mt-2 flex flex-wrap gap-2"><Badge tone={profileStatusTone(linkedMember)}>{profileStatusLabel(linkedMember)}</Badge><Badge tone="green">Profil lié</Badge></div></div><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(linkedMember.user_id, `${roleLabel(player.role)} · ${linkedMember.name || player.name}`)} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}>Renvoyer</Button></div> : <p className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4 text-sm font-semibold text-cyan-100">Aucun compte lié à ce profil.</p>}<Button type="button" variant="danger" icon={Trash2} onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}>Supprimer ce profil</Button></div></div>; })}</div></div>{unlinkedMemberRows.length > 0 && <div><h4 className="mb-4 text-xl font-black text-white">Comptes sans profil</h4><div className="grid gap-3 xl:grid-cols-2">{unlinkedMemberRows.map((member) => <div key={member.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-4"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><div className="flex flex-wrap gap-2"><Badge tone="slate">Non-lié</Badge><Badge tone={profileStatusTone(member)}>{profileStatusLabel(member)}</Badge></div><p className="mt-2 text-sm font-semibold text-slate-400">{member.name || member.account_name || "Compte invité"} sans profil roster associé.</p></div><div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || "ce compte non lié")} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"}>Renvoyer</Button></div></div></div>)}</div></div>}</div>
-    </Surface>
-  );
+
+      <div className="rounded-3xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h4 className="text-xl font-black text-white">Invitations temporaires</h4>
+            <p className="mt-1 text-sm font-semibold text-slate-300">Un code, valable 1h, à donner au joueur ou au staff.</p>
+          </div>
+          <Button type="button" variant="ghost" icon={saving ? Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canManage}>Créer un code</Button>
+        </div>
+        <div className="mt-4 grid gap-2 md:grid-cols-2">
+          {activeCodes.length ? activeCodes.map((code) => {
+            const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000));
+            return <div key={code.id} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+              <div className="flex items-center justify-between gap-3"><p className="font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>
+              <p className="mt-1 truncate text-xs font-semibold text-slate-300">Créé par {code.created_by_name || "staff"}</p>
+            </div>;
+          }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300 md:col-span-2">Aucun code actif.</p>}
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div><h4 className="text-xl font-black text-white">Profils & accès</h4><p className="mt-1 text-sm font-semibold text-slate-300">Lie un compte, choisis son accès, et retire un profil depuis la même ligne.</p></div>
+        <Badge tone="purple">{roster.length} profil{roster.length > 1 ? "s" : ""}</Badge>
+      </div>
+      <div className="mt-4 space-y-2">
+        {roster.map((player) => {
+          const linkedMember = player.user_id ? memberByUser.get(player.user_id) : null;
+          const staff = isStaffRole(player.role);
+          return <div key={player.id} className={cx("grid gap-3 rounded-2xl border p-3 lg:grid-cols-[minmax(210px,.9fr)_minmax(220px,1fr)_minmax(170px,.65fr)_auto] lg:items-center", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2"><Badge tone={staff ? "purple" : "blue"}>{roleLabel(player.role)}</Badge><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge></div>
+              <p className="mt-2 truncate text-lg font-black text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
+              <p className="truncate text-xs font-semibold text-slate-300">{player.riot_id || (staff ? "Staff" : "Riot ID manquant")}</p>
+            </div>
+            <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
+            <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+            <div className="flex flex-wrap justify-end gap-2 lg:flex-nowrap">
+              {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}>Renvoyer</Button>}
+              <Button type="button" variant="danger" icon={Trash2} onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}>Supprimer</Button>
+            </div>
+          </div>;
+        })}
+      </div>
+    </div>
+
+    {unlinkedMemberRows.length > 0 && <div className="mt-5 rounded-3xl border border-fuchsia-300/14 bg-fuchsia-400/[0.045] p-4">
+      <h4 className="text-xl font-black text-white">Comptes sans profil</h4>
+      <div className="mt-4 grid gap-2 lg:grid-cols-2">
+        {unlinkedMemberRows.map((member) => <div key={member.id} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone="slate">Non-lié</Badge><Badge tone={profileStatusTone(member)}>{profileStatusLabel(member)}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{member.name || member.account_name || "Compte invité"}</p></div>
+          <div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"} className="rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || "ce compte non lié")} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"}>Renvoyer</Button></div>
+        </div>)}
+      </div>
+    </div>}
+  </Surface>;
 }
 
 function LinkedPlayerSummary({ player, linkedMember, matches = [] }) {
@@ -2133,57 +2216,84 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   return (
     <div>
-      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Crée des codes tournoi, importe les games terminées et garde un historique clair des imports." />
-      <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]">
-        <Surface glow className="min-w-0 p-6">
-          <div className="flex h-full flex-col gap-5">
-            <div>
-              <h3 className="text-2xl font-black text-white">Importer une game</h3>
-              <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">Charge une game, choisis ton side, puis lie les champions joués aux profils de ta team avant de confirmer l’import.</p>
+      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Un flux simple : importer, assigner, confirmer. Les codes tournoi restent à côté, l’historique reste en dessous." />
+      <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,.75fr)]">
+        <Surface glow className="min-w-0 p-5 md:p-6">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Import</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "Game chargée" : "En attente"}</Badge></div>
+                <h3 className="mt-3 text-2xl font-black text-white">Importer une game</h3>
+                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Charge un Game ID, un code tournoi ou un JSON local. Ensuite tu choisis ton side et tu lies les champions aux postes.</p>
+              </div>
+              <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16", fileImporting ? "pointer-events-none opacity-60" : "")}>
+                {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
+                <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
+              </label>
             </div>
-            <form onSubmit={loadMatchPreview} className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_minmax(0,.82fr)_140px]">
-              <TextInput label="Nom de l’import" value={importMeta.label} onChange={(value) => updateImportMeta("label", value)} placeholder="Scrim vs KCorp, Tournoi round 1..." icon={FileText} />
-              <TextInput label="Adversaire" value={importMeta.opponent} onChange={(value) => updateImportMeta("opponent", value)} placeholder="Équipe adverse" icon={Swords} />
-              <SelectInput label="Serveur" value={importPlatform} onChange={setImportPlatform}><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></SelectInput>
-              <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_auto] 2xl:col-span-3">
+
+            <form onSubmit={loadMatchPreview} className="rounded-3xl border border-white/10 bg-black/22 p-4">
+              <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)_120px]">
+                <TextInput label="Nom de l’import" value={importMeta.label} onChange={(value) => updateImportMeta("label", value)} placeholder="Scrim G1, Tournoi round 1..." icon={FileText} />
+                <TextInput label="Adversaire" value={importMeta.opponent} onChange={(value) => updateImportMeta("opponent", value)} placeholder="Équipe adverse" icon={Swords} />
+                <SelectInput label="Serveur" value={importPlatform} onChange={setImportPlatform}><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></SelectInput>
+              </div>
+              <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
                 <TextInput label="Game ID ou code tournoi" value={gameId} onChange={setGameId} placeholder="EUW1_7123456789 ou code Riot" icon={Search} />
-                <div className="flex items-end"><Button type="submit" icon={importing ? Loader2 : Search} disabled={importing || !selectedTeamId || !gameId.trim()}>Charger la game</Button></div>
+                <div className="flex items-end"><Button type="submit" icon={importing ? Loader2 : Search} disabled={importing || !selectedTeamId || !gameId.trim()}>Charger</Button></div>
               </div>
             </form>
-            <div className="rounded-2xl border border-cyan-300/18 bg-cyan-400/[0.07] p-4">
+
+            <div className="rounded-3xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div><h4 className="font-black text-white">Assignation depuis la game</h4><p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Choisis d’abord ton side : les profils se calent automatiquement sur leur poste, il ne reste qu’à placer les champions joués.</p></div>
-                <Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt" : "À compléter"}</Badge>
+                <div><h4 className="text-xl font-black text-white">Assignation de la game</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Ton roster est préplacé par rôle. Tu choisis seulement le side et le champion réellement joué sur chaque poste.</p></div>
+                <Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge>
               </div>
               {importPreview ? <div className="mt-4 space-y-4">
-                <div className="grid gap-3 md:grid-cols-2">{previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} className={cx("rounded-2xl border p-4 text-left transition", allyTeamSide === team.side ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-black/20 hover:bg-white/[0.04]")}><div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Blue Side" : "Red Side"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div><div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 rounded-full object-cover" /><span className="text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div></button>)}</div>
-                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => { const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role); return <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="mb-3 flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><p className="text-sm font-black text-white">{role}</p></div><label className="block"><span className="mb-2 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Champion joué</span><select value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none"><option value="">Choisir</option>{(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}</select></label><div className="mt-3 rounded-xl border border-cyan-300/14 bg-cyan-400/[0.07] px-3 py-2"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100/70">Profil NXT5 auto</span><p className="truncate text-xs font-black text-white">{assignedPlayer ? `${roleLabel(assignedPlayer.role)} · ${assignedPlayer.name}` : "Aucun profil à ce poste"}</p></div></div>; })}</div>
-                <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
-              </div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Charge une game ou un JSON local pour afficher les deux teams ici.</p>}
-            </div>
-            <div className="rounded-3xl border border-white/12 bg-white/[0.045] p-5 shadow-[0_0_34px_rgba(34,211,238,.08)]">
-              <div className="grid gap-5 2xl:grid-cols-[1fr_auto] 2xl:items-center">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2"><h3 className="text-xl font-black text-white">Importer un JSON local</h3></div>
-                  <ol className="mt-3 grid gap-2 text-sm font-semibold leading-6 text-slate-300">
-                    <li><span className="font-black text-cyan-100">1.</span> Télécharge l’application locale adaptée à ton ordinateur.</li>
-                    <li><span className="font-black text-cyan-100">2.</span> Colle le Game ID LoL dans NXT5 Match Exporter pour générer le JSON.</li>
-                    <li><span className="font-black text-cyan-100">3.</span> Reviens ici, importe le fichier, puis assigne le side et les profils.</li>
-                  </ol>
-                  <div className="mt-4 flex flex-wrap gap-3"><a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-50 transition hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a><a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-fuchsia-50 transition hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac</a></div>
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} className={cx("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
+                    <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Blue Side" : "Red Side"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div>
+                    <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="truncate text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
+                  </button>)}
                 </div>
-                <label className={cx("flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/35 bg-cyan-400/14 px-6 py-5 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:border-cyan-200/55 hover:bg-cyan-400/20", fileImporting ? "pointer-events-none opacity-60" : "")}>
-                  {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Charger un JSON"}
-                  <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
-                </label>
-              </div>
+                <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
+                  {COMP_ROLES.map((role) => {
+                    const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
+                    return <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                      <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></span>{assignedPlayer && <Badge tone="slate">{assignedPlayer.name}</Badge>}</div>
+                      <select value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
+                        <option value="">Champion joué</option>
+                        {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
+                      </select>
+                    </div>;
+                  })}
+                </div>
+                <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
+              </div> : <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center"><p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Charge une game ou importe un JSON pour afficher les deux teams et lancer l’assignation.</p><div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Exporter local</p><p className="mt-1 text-sm font-semibold text-slate-300">NXT5 Match Exporter génère le JSON depuis ton PC.</p><div className="mt-3 flex flex-wrap gap-2"><a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-50 transition hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a><a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-fuchsia-50 transition hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac</a></div></div></div>}
             </div>
-            <p className="text-xs font-semibold leading-5 text-slate-500">Les analyses détaillées sont disponibles dans l’onglet Statistiques.</p>
           </div>
         </Surface>
-        <Surface glow className="min-w-0"><div className="flex min-w-0 flex-col gap-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="text-xl font-black text-white">Créer un code tournoi</h3><Badge tone={canManageCodes ? "green" : "slate"}>{canManageCodes ? "Staff" : "Lecture"}</Badge></div><p className="mt-1 text-sm font-semibold leading-6 text-slate-500">Prépare un code vierge, copie-le dans LoL, puis importe la game terminée depuis le bloc de gauche.</p></div><form onSubmit={(event) => saveTournamentCode(event, "create")} className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,.95fr)_140px_minmax(0,1.2fr)_auto]"><TextInput label="Nom" value={codeForm.label} onChange={(value) => updateCodeForm("label", value)} placeholder="Scrim vs..." required icon={Trophy} /><TextInput label="Adversaire" value={codeForm.opponent} onChange={(value) => updateCodeForm("opponent", value)} placeholder="Équipe adverse" icon={Swords} /><SelectInput label="Serveur" value={codeForm.platform} onChange={(value) => updateCodeForm("platform", value)}><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></SelectInput><TextInput label="Code tournoi" value={codeForm.code} onChange={(value) => updateCodeForm("code", value)} placeholder="Code Riot" icon={Clipboard} /><div className="flex flex-wrap items-end gap-2"><Button type="button" variant="ghost" icon={Wand2} onClick={(event) => saveTournamentCode(event, "generate")} disabled={!canManageCodes || savingCode || !codeForm.label.trim()}>{savingCode ? "..." : "Générer"}</Button><Button type="submit" icon={savingCode ? Loader2 : Plus} disabled={!canManageCodes || savingCode || !codeForm.label.trim() || !codeForm.code.trim()}>Ajouter</Button></div></form>{tournamentCodes.length > 0 ? <div className="max-h-64 min-w-0 space-y-2 overflow-auto pr-1">{tournamentCodes.map((code) => <div key={code.id} className="grid min-w-0 gap-3 rounded-xl border border-white/10 bg-black/25 p-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center"><div className="min-w-0"><div className="flex min-w-0 flex-wrap items-center gap-2"><p className="min-w-0 truncate text-sm font-black text-white">{code.label || "Code tournoi"}</p><Badge tone={code.status === "imported" ? "green" : "orange"}>{code.status === "imported" ? "Importé" : "Prêt"}</Badge><Badge tone="slate">{code.platform || "EUW1"}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">{code.opponent || "Adversaire libre"}{code.imported_game_id ? " · Game liée : " + code.imported_game_id : ""}</p><p className="mt-2 max-w-full break-all rounded-lg border border-cyan-300/10 bg-cyan-400/8 px-2 py-1 font-mono text-[0.68rem] font-semibold leading-5 text-cyan-100/75">{code.code}</p></div><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyTournamentCode(code.code)}>Copier</Button>{canManageCodes && <Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteTournamentCode(code)} disabled={savingCode}>Supprimer</Button>}</div></div>)}</div> : <div className="rounded-2xl border border-dashed border-cyan-300/18 bg-cyan-400/6 p-4 text-sm font-semibold text-slate-400">Aucun code tournoi préparé pour cette team.</div>}</div></Surface>
+
+        <Surface className="min-w-0 p-5">
+          <div className="flex min-w-0 flex-col gap-4">
+            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="text-xl font-black text-white">Codes tournoi</h3><Badge tone={canManageCodes ? "green" : "slate"}>{canManageCodes ? "Staff" : "Lecture"}</Badge></div><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Crée ou stocke un code. L’import se fait toujours dans le bloc principal.</p></div>
+            <form onSubmit={(event) => saveTournamentCode(event, "create")} className="grid min-w-0 gap-3">
+              <TextInput label="Nom" value={codeForm.label} onChange={(value) => updateCodeForm("label", value)} placeholder="Scrim vs..." required icon={Trophy} />
+              <div className="grid gap-3 sm:grid-cols-[1fr_110px]"><TextInput label="Adversaire" value={codeForm.opponent} onChange={(value) => updateCodeForm("opponent", value)} placeholder="Équipe adverse" icon={Swords} /><SelectInput label="Serveur" value={codeForm.platform} onChange={(value) => updateCodeForm("platform", value)}><option value="EUW1">EUW</option><option value="EUN1">EUNE</option><option value="NA1">NA</option><option value="KR">KR</option></SelectInput></div>
+              <TextInput label="Code tournoi" value={codeForm.code} onChange={(value) => updateCodeForm("code", value)} placeholder="Code Riot" icon={Clipboard} />
+              <div className="grid gap-2 sm:grid-cols-2"><Button type="button" variant="ghost" icon={Wand2} onClick={(event) => saveTournamentCode(event, "generate")} disabled={!canManageCodes || savingCode || !codeForm.label.trim()}>{savingCode ? "..." : "Générer"}</Button><Button type="submit" icon={savingCode ? Loader2 : Plus} disabled={!canManageCodes || savingCode || !codeForm.label.trim() || !codeForm.code.trim()}>Ajouter</Button></div>
+            </form>
+            <div className="max-h-[430px] min-w-0 space-y-2 overflow-auto pr-1">
+              {tournamentCodes.length > 0 ? tournamentCodes.map((code) => <div key={code.id} className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex min-w-0 flex-wrap items-center gap-2"><p className="min-w-0 truncate text-sm font-black text-white">{code.label || "Code tournoi"}</p><Badge tone={code.status === "imported" ? "green" : "orange"}>{code.status === "imported" ? "Importé" : "Prêt"}</Badge><Badge tone="slate">{code.platform || "EUW1"}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{code.opponent || "Adversaire libre"}{code.imported_game_id ? " · " + code.imported_game_id : ""}</p><p className="mt-2 max-w-full break-all rounded-lg border border-cyan-300/10 bg-cyan-400/8 px-2 py-1 font-mono text-[0.68rem] font-semibold leading-5 text-cyan-100/85">{code.code}</p><div className="mt-3 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyTournamentCode(code.code)}>Copier</Button>{canManageCodes && <Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteTournamentCode(code)} disabled={savingCode}>Supprimer</Button>}</div></div>) : <div className="rounded-2xl border border-dashed border-cyan-300/18 bg-cyan-400/6 p-4 text-sm font-semibold text-slate-300">Aucun code tournoi préparé.</div>}
+            </div>
+          </div>
+        </Surface>
       </div>
-      <Surface className="mt-5"><div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-500">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""} pour cette team.</p></div><Badge tone="cyan">Statistiques disponibles</Badge></div><div className="mt-4 grid gap-3 xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div></Surface>
+
+      <Surface className="mt-5 p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-300">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""}. Renommer ou supprimer ici met à jour les autres pages.</p></div><Badge tone="cyan">Stats synchronisées</Badge></div>
+        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
+      </Surface>
     </div>
   );
 }
