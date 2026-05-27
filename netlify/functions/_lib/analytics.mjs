@@ -51,6 +51,31 @@ function participantRiotId(p) {
   return tag ? `${gameName}#${tag}` : gameName;
 }
 
+function participantNumber(p, ...keys) {
+  for (const source of [p, p?.stats].filter(Boolean)) {
+    for (const key of keys) {
+      const value = Number(source?.[key] ?? 0);
+      if (value) return value;
+    }
+  }
+  return 0;
+}
+
+function participantRawSnapshot(p) {
+  return {
+    ...p,
+    item0: participantNumber(p, 'item0', 'item0Id'),
+    item1: participantNumber(p, 'item1', 'item1Id'),
+    item2: participantNumber(p, 'item2', 'item2Id'),
+    item3: participantNumber(p, 'item3', 'item3Id'),
+    item4: participantNumber(p, 'item4', 'item4Id'),
+    item5: participantNumber(p, 'item5', 'item5Id'),
+    item6: participantNumber(p, 'item6', 'item6Id', 'trinket', 'trinketItemId'),
+    summoner1Id: participantNumber(p, 'summoner1Id', 'spell1Id'),
+    summoner2Id: participantNumber(p, 'summoner2Id', 'spell2Id')
+  };
+}
+
 function manualRoleForParticipant(p, laneAssignments) {
   const champion = normalizeLoose(p.championName);
   const summoner = normalizeLoose(p.summonerName);
@@ -134,7 +159,7 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
         gold_per_min: Number(goldPerMin.toFixed(0)),
         kill_participation: `${Math.round(kp * 100)}%`,
         grade: null,
-        raw: p
+        raw: participantRawSnapshot(p)
       };
     });
 }

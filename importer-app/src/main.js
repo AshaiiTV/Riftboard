@@ -108,6 +108,13 @@ function lcuWinValue(team) {
 }
 
 async function lcuToRiotMatch(lcuGame, fallbackGameId) {
+  const statNumber = (stats, ...keys) => {
+    for (const key of keys) {
+      const value = Number(stats?.[key] ?? 0);
+      if (value) return value;
+    }
+    return 0;
+  };
   const participants = await Promise.all((lcuGame.participants || []).map(async (participant, index) => {
     const identity = (lcuGame.participantIdentities || []).find((item) => item.participantId === participant.participantId);
     const player = identity?.player || {};
@@ -135,6 +142,15 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId) {
       goldEarned: Number(stats.goldEarned || 0),
       totalDamageDealtToChampions: Number(stats.totalDamageDealtToChampions || 0),
       visionScore: Number(stats.visionScore || 0),
+      item0: statNumber(stats, 'item0', 'item0Id'),
+      item1: statNumber(stats, 'item1', 'item1Id'),
+      item2: statNumber(stats, 'item2', 'item2Id'),
+      item3: statNumber(stats, 'item3', 'item3Id'),
+      item4: statNumber(stats, 'item4', 'item4Id'),
+      item5: statNumber(stats, 'item5', 'item5Id'),
+      item6: statNumber(stats, 'item6', 'item6Id', 'trinket', 'trinketItemId'),
+      summoner1Id: statNumber(participant, 'summoner1Id', 'spell1Id') || statNumber(stats, 'summoner1Id', 'spell1Id'),
+      summoner2Id: statNumber(participant, 'summoner2Id', 'spell2Id') || statNumber(stats, 'summoner2Id', 'spell2Id'),
       win: Boolean(stats.win)
     };
   }));

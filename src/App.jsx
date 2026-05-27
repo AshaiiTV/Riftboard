@@ -2258,17 +2258,41 @@ function summonerSpellIconUrl(spellId) {
   return name ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/spell/" + name + ".png" : "";
 }
 
-function participantRaw(row) {
+function participantStoredRaw(row) {
   const raw = typeof row?.raw === "string" ? safeJsonParse(row.raw, {}) : row?.raw || {};
+  return raw;
+}
+
+function participantRaw(row) {
+  const raw = participantStoredRaw(row);
   return raw?.participant || raw?.stats || raw;
 }
 
+function itemIndexFromKey(key) {
+  const match = String(key).match(/^item([0-6])(?:Id)?$/i);
+  return match ? Number(match[1]) : null;
+}
+
+function participantSources(row) {
+  const raw = participantStoredRaw(row);
+  return [row, raw, raw?.participant, raw?.stats, participantRaw(row)].filter((source, index, list) => source && list.indexOf(source) === index);
+}
+
 function participantNumber(row, ...keys) {
-  const raw = participantRaw(row);
-  for (const source of [row, raw]) {
+  const sources = participantSources(row);
+  for (const source of sources) {
     for (const key of keys) {
-      const value = Number(source?.[key] || 0);
+      const value = Number(source?.[key] ?? 0);
       if (value) return value;
+    }
+  }
+  for (const key of keys) {
+    const itemIndex = itemIndexFromKey(key);
+    if (itemIndex !== null) {
+      for (const source of sources) {
+        const value = Number(source?.items?.[itemIndex] ?? source?.itemIds?.[itemIndex] ?? source?.stats?.items?.[itemIndex] ?? source?.stats?.itemIds?.[itemIndex] ?? 0);
+        if (value) return value;
+      }
     }
   }
   return 0;
@@ -2283,8 +2307,16 @@ function trinketItemId(row) {
 }
 
 function summonerSpellIds(row) {
-  const first = participantNumber(row, "summoner1Id", "spell1Id");
-  const second = participantNumber(row, "summoner2Id", "spell2Id");
+  const sources = participantSources(row);
+  const spellFromList = (index) => {
+    for (const source of sources) {
+      const value = Number(source?.summonerSpells?.[index] ?? source?.spells?.[index] ?? source?.stats?.summonerSpells?.[index] ?? source?.stats?.spells?.[index] ?? 0);
+      if (value) return value;
+    }
+    return 0;
+  };
+  const first = participantNumber(row, "summoner1Id", "spell1Id") || spellFromList(0);
+  const second = participantNumber(row, "summoner2Id", "spell2Id") || spellFromList(1);
   return [first, second].filter(Boolean);
 }
 
@@ -2351,13 +2383,26 @@ function GameMetricSignals({ match }) {
   return <div className="mt-5 grid gap-3 xl:grid-cols-[1.15fr_.85fr]"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-600">{label}</p><div className={cx("rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-3 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{detail}</p></div>)}</div><div className="rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/10 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-fuchsia-100/70">Comparatif équipe</p><div className="mt-3 grid gap-2 text-sm font-bold text-white"><div className="flex items-center justify-between gap-3"><span>CS diff équipe</span><Badge tone={diffTone(csDiff)}>{(csDiff >= 0 ? "+" : "") + formatPoints(csDiff)}</Badge></div><div className="flex items-center justify-between gap-3"><span>Morts alliées vs ennemies</span><Badge tone={deaths <= enemyDeaths ? "green" : "red"}>{deaths} / {enemyDeaths}</Badge></div><div className="flex items-center justify-between gap-3"><span>Games lue</span><Badge tone="cyan">{match?.game_id || "N/A"}</Badge></div></div></div></div>;
 }
 
+function HudIcon({ src, label, fallback, emptyText = "VIDE", toneName = "cyan", className = "" }) {
+  const active = Boolean(src);
+  return <div title={label} className={cx("relative aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", active ? toneName === "pink" ? "border-fuchsia-200/25 shadow-[0_0_14px_rgba(217,70,239,.10)]" : "border-cyan-200/20 shadow-[0_0_14px_rgba(34,211,238,.10)]" : "border-white/8 opacity-45", className)}>
+    {active ? <>
+      <img src={src} alt={label} className="h-full w-full object-cover" onError={(event) => {
+        event.currentTarget.style.display = "none";
+        event.currentTarget.nextElementSibling?.classList.remove("hidden");
+      }} />
+      <span className="hidden h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-300">{fallback}</span>
+    </> : <span className="flex h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-500">{emptyText}</span>}
+  </div>;
+}
+
 function PlayerDetailRow({ row, maxDamage, maxGold }) {
   const items = itemSlots(row);
   const trinket = trinketItemId(row);
   const spells = summonerSpellIds(row);
   const kda = `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`;
   const kp = parsePercent(row.kill_participation || row.kp);
-  return <div className="grid min-w-0 gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><div className="min-w-0 space-y-3"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-400">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KDA</p><p className="mt-1 truncate font-black text-white">{kda}</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={`${formatPoints(row.damage)} · ${formatPoints(statPerMinute(row, "totalDamageDealtToChampions") || statPerMinute(row, "damage"))}/min`} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={`${formatPoints(row.gold)} · ${formatPoints(row.gold_per_min || statPerMinute(row, "goldEarned") || statPerMinute(row, "gold"))}/min`} tone="orange" /></div></div><div className="min-w-0 rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.045] p-3"><div className="mb-3 flex min-w-0 items-center justify-between gap-2"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/80">HUD sorts & items</p><div className="flex shrink-0 gap-1">{spells.map((spell) => <div key={`${row.id}-spell-${spell}`} title={`Sort ${spell}`} className="h-7 w-7 overflow-hidden rounded-lg border border-cyan-200/20 bg-black/35 shadow-[0_0_14px_rgba(34,211,238,.10)]">{summonerSpellIconUrl(spell) ? <img src={summonerSpellIconUrl(spell)} alt={`Sort ${spell}`} className="h-full w-full object-cover" /> : null}</div>)}</div></div><div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">{items.map((item, index) => <div key={`${row.id}-item-slot-${index}`} title={item ? `Item ${item}` : "Slot vide"} className={cx("aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", item ? "border-cyan-200/20" : "border-white/8 opacity-45")} >{item ? <img src={itemIconUrl(item)} alt={`Item ${item}`} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[0.56rem] font-black text-slate-500">VIDE</span>}</div>)}<div title={trinket ? `Trinket ${trinket}` : "Trinket vide"} className={cx("aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", trinket ? "border-fuchsia-200/25" : "border-white/8 opacity-45")}>{trinket ? <img src={itemIconUrl(trinket)} alt={`Trinket ${trinket}`} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[0.54rem] font-black text-slate-500">TRI</span>}</div></div></div></div>;
+  return <div className="grid min-w-0 gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><div className="min-w-0 space-y-3"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-400">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KDA</p><p className="mt-1 truncate font-black text-white">{kda}</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={`${formatPoints(row.damage)} · ${formatPoints(statPerMinute(row, "totalDamageDealtToChampions") || statPerMinute(row, "damage"))}/min`} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={`${formatPoints(row.gold)} · ${formatPoints(row.gold_per_min || statPerMinute(row, "goldEarned") || statPerMinute(row, "gold"))}/min`} tone="orange" /></div></div><div className="min-w-0 rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.045] p-3"><div className="mb-3 flex min-w-0 items-center justify-between gap-2"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/80">HUD sorts & items</p><div className="flex shrink-0 gap-1">{spells.map((spell) => <HudIcon key={`${row.id}-spell-${spell}`} src={summonerSpellIconUrl(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-7 w-7 rounded-lg" />)}</div></div><div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">{items.map((item, index) => <HudIcon key={`${row.id}-item-slot-${index}`} src={itemIconUrl(item)} label={item ? `Item ${item}` : "Slot vide"} fallback={item} emptyText="VIDE" />)}<HudIcon src={itemIconUrl(trinket)} label={trinket ? `Trinket ${trinket}` : "Trinket vide"} fallback={trinket} emptyText="TRI" toneName="pink" /></div></div></div>;
 }
 
 function MatchDataPanel({ match }) {
