@@ -6,6 +6,23 @@ export const COOKIE_NAME = 'rb_session';
 const REMEMBER_SESSION_DAYS = 30;
 const SHORT_SESSION_HOURS = 12;
 
+function isSecureRequest(request = null) {
+  if (process.env.URL?.startsWith('https://') || process.env.DEPLOY_PRIME_URL?.startsWith('https://')) return true;
+  if (!request) return process.env.APP_ENV === 'production';
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  if (forwardedProto) return forwardedProto.split(',')[0].trim() === 'https';
+  return new URL(request.url).protocol === 'https:';
+}
+
+function sessionCookieOptions(request = null) {
+  return {
+    httpOnly: true,
+    secure: isSecureRequest(request),
+    sameSite: 'Lax',
+    path: '/'
+  };
+}
+
 export function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
@@ -57,10 +74,7 @@ export async function createSession({ userId, context, request, remember = true 
   context.cookies.set({
     name: COOKIE_NAME,
     value: rawToken,
-    httpOnly: true,
-    secure: process.env.APP_ENV === 'production',
-    sameSite: 'Lax',
-    path: '/',
+    ...sessionCookieOptions(request),
     maxAge
   });
 }
@@ -97,14 +111,14 @@ export async function requireAuth(request, context) {
 
   const user = rows[0];
   if (!user) {
-    context.cookies.set({ name: COOKIE_NAME, value: '', path: '/', maxAge: 0, httpOnly: true, secure: process.env.APP_ENV === 'production', sameSite: 'Lax' });
+    context.cookies.set({ name: COOKIE_NAME, value: '', ...sessionCookieOptions(request), maxAge: 0 });
     throw Object.assign(new Error('Session invalide ou expirée.'), { status: 401 });
   }
 
   return user;
 }
 
-export async function revokeSession(context) {
+export async function revokeSession(context, request = null) {
   const token = readSessionCookie(context);
   if (token) {
     await sql`update sessions set revoked_at = now() where token_hash = ${sha256(token)}`;
@@ -113,10 +127,7 @@ export async function revokeSession(context) {
   context.cookies.set({
     name: COOKIE_NAME,
     value: '',
-    httpOnly: true,
-    secure: process.env.APP_ENV === 'production',
-    sameSite: 'Lax',
-    path: '/',
+    ...sessionCookieOptions(request),
     maxAge: 0
   });
 }

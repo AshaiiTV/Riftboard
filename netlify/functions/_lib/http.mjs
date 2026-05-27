@@ -1,10 +1,16 @@
+const SECURITY_HEADERS = {
+  'Content-Type': 'application/json; charset=utf-8',
+  'Cache-Control': 'no-store',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Vary': 'Cookie'
+};
+
 export function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store'
-    }
+    headers: SECURITY_HEADERS
   });
 }
 
@@ -30,11 +36,13 @@ export function assertMethod(request, method) {
 
 export function handleError(err) {
   console.error(err);
-  const payload = { error: err.message || 'Erreur serveur.' };
+  const status = err.status || 500;
+  const serverSideFailure = status >= 500;
+  const payload = { error: serverSideFailure ? 'Erreur serveur.' : (err.message || 'Erreur serveur.') };
   if (err.code) payload.code = err.code;
   if (err.retryAfter) payload.retryAfter = err.retryAfter;
   if (err.riotStatus) payload.riotStatus = err.riotStatus;
-  if (err.missing) payload.missing = err.missing;
-  if (err.details) payload.details = err.details;
-  return json(payload, err.status || 500);
+  if (!serverSideFailure && err.missing) payload.missing = err.missing;
+  if (!serverSideFailure && err.details) payload.details = err.details;
+  return json(payload, status);
 }
