@@ -669,14 +669,20 @@ const LEGAL_PAGES = {
   },
 };
 
-function LegalPage({ route, navigate }) {
+function LegalPage({ route, navigate, user }) {
   const page = LEGAL_PAGES[route.path] || LEGAL_PAGES["/mentions-legales"];
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
-        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
-        <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
+        {user ? (
+          <LinkButton href="/equipes" navigate={navigate} icon={ArrowRight}>Retour à l’app</LinkButton>
+        ) : (
+          <>
+            <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
+            <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
+          </>
+        )}
       </SiteHeader>
       <main className="relative z-10 mx-auto max-w-5xl px-5 pb-12 pt-6">
         <Surface glow className="p-6 md:p-9">
@@ -693,8 +699,14 @@ function LegalPage({ route, navigate }) {
             </div>
           </div>}
           <div className="mt-8 flex flex-wrap gap-3">
-            <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
-            <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Connexion</LinkButton>
+            {user ? (
+              <LinkButton href="/equipes" navigate={navigate} icon={ArrowRight}>Retour à l’app</LinkButton>
+            ) : (
+              <>
+                <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
+                <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Connexion</LinkButton>
+              </>
+            )}
           </div>
         </Surface>
       </main>
@@ -4504,7 +4516,7 @@ export default function NXT5() {
   const view = unknownRoute
     ?<NotFoundPage navigate={navigate} />
       : LEGAL_PAGES[route.path]
-      ?<LegalPage route={route} navigate={navigate} />
+      ?<LegalPage route={route} navigate={navigate} user={user} />
       : user
       ?<MainApp user={user} onLogout={() => setUser(null)} onUserUpdate={setUser} pushToast={pushToast} navigate={navigate} route={route} />
       : route.path === "/mot-de-passe-oublie"
