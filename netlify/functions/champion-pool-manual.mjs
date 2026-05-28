@@ -9,6 +9,40 @@ function cleanText(value, max = 120) {
   return String(value || '').trim().slice(0, max);
 }
 
+function championKey(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function canonicalChampion(value) {
+  const raw = cleanText(value, 80);
+  const aliases = {
+    aurelionsol: 'AurelionSol',
+    belveth: 'Belveth',
+    chogath: 'Chogath',
+    drmundo: 'DrMundo',
+    jarvaniv: 'JarvanIV',
+    kaisa: 'Kaisa',
+    khazix: 'Khazix',
+    kogmaw: 'KogMaw',
+    ksante: 'KSante',
+    leblanc: 'Leblanc',
+    leesin: 'LeeSin',
+    masteryi: 'MasterYi',
+    missfortune: 'MissFortune',
+    monkeyking: 'MonkeyKing',
+    nunuwillump: 'Nunu',
+    reksai: 'RekSai',
+    renataglasc: 'Renata',
+    tahmkench: 'TahmKench',
+    twistedfate: 'TwistedFate',
+    velkoz: 'Velkoz',
+    viego: 'Viego',
+    wukong: 'MonkeyKing',
+    xinzhao: 'XinZhao',
+  };
+  return aliases[championKey(raw)] || raw.replace(/[^A-Za-z0-9]/g, '');
+}
+
 export default async function handler(request, context) {
   try {
     assertMethod(request, 'POST');
@@ -18,7 +52,7 @@ export default async function handler(request, context) {
     const action = cleanText(body.action || 'upsert', 20);
     const teamId = cleanText(body.teamId, 80);
     const playerId = cleanText(body.playerId, 80);
-    const champion = cleanText(body.champion, 80);
+    const champion = canonicalChampion(body.champion);
     const status = cleanText(body.status || 'work', 20);
     const notes = cleanText(body.notes, 240) || null;
     const poolId = cleanText(body.poolId, 80);
@@ -57,12 +91,6 @@ export default async function handler(request, context) {
         returning *
       `;
       if (!deleted[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
-      if (deleted[0].source === 'riot_manual') {
-        await sql`
-          insert into champion_pool (id, team_id, player_id, player_name, champion, games, wins, losses, winrate, kda, cs_per_min, impact_grade, verdict, role, status, notes, source, updated_at)
-          values (${deleted[0].id}, ${deleted[0].team_id}, ${deleted[0].player_id}, ${deleted[0].player_name}, ${deleted[0].champion}, ${deleted[0].games}, ${deleted[0].wins}, ${deleted[0].losses}, ${deleted[0].winrate}, ${deleted[0].kda}, ${deleted[0].cs_per_min}, ${deleted[0].impact_grade}, ${deleted[0].verdict}, ${deleted[0].role}, 'work', null, 'riot', now())
-        `;
-      }
       await sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'champion_pool.manual_delete', 'champion_pool', ${poolId}, ${JSON.stringify({ teamId, champion: deleted[0].champion })}::jsonb)
@@ -116,10 +144,16 @@ export default async function handler(request, context) {
         set player_id = ${playerId},
             player_name = ${player.name},
             role = ${player.role},
+            games = 0,
+            wins = 0,
+            losses = 0,
+            winrate = 0,
+            kda = 0,
+            cs_per_min = 0,
             status = ${status},
             notes = ${notes},
-            source = case when source = 'riot' then 'riot_manual' else source end,
-            impact_grade = case when source = 'manual' then 'POOL' else impact_grade end,
+            source = 'manual',
+            impact_grade = 'POOL',
             verdict = ${verdict},
             updated_at = now()
         where id = ${poolId}
@@ -141,15 +175,15 @@ export default async function handler(request, context) {
       do update set
         player_name = excluded.player_name,
         role = excluded.role,
-        games = champion_pool.games,
-        wins = champion_pool.wins,
-        losses = champion_pool.losses,
-        winrate = champion_pool.winrate,
-        kda = champion_pool.kda,
-        cs_per_min = champion_pool.cs_per_min,
+        games = 0,
+        wins = 0,
+        losses = 0,
+        winrate = 0,
+        kda = 0,
+        cs_per_min = 0,
         status = excluded.status,
         notes = excluded.notes,
-        source = case when champion_pool.source = 'riot' then 'riot_manual' else 'manual' end,
+        source = 'manual',
         impact_grade = 'POOL',
         verdict = excluded.verdict,
         updated_at = now()

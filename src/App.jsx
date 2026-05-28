@@ -3317,9 +3317,18 @@ function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
   return <div draggable={canManage} onDragStart={(event) => onDragStart(event, row)} className={cx("group flex min-h-[52px] items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2 transition", canManage ?"cursor-grab active:cursor-grabbing hover:border-cyan-300/25 hover:bg-white/[0.05]" : "")}><img src={championSquareUrl(row)} alt={row.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-[0.68rem] font-semibold text-slate-500">{detail}</p></div>{canManage && <button type="button" onClick={() => onDelete(row)} disabled={saving} className="rounded-lg p-1.5 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>}</div>;
 }
 
-function ChampionSearchTile({ champion, active, existingRow, canManage, onDragStart }) {
-  const dragRow = existingRow || { champion };
-  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, dragRow)} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}><img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>{active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}</div>;
+function ChampionSearchTile({ champion, active, existingRow, canManage, onDragStart, onQuickPick }) {
+  const source = existingRow && ["manual", "riot_manual"].includes(String(existingRow.source || "")) ? existingRow : { champion };
+  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, source)} className={cx("group min-w-0 rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}>
+    <div className="flex min-w-0 items-center gap-2">
+      <img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
+      <span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>
+      {active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}
+    </div>
+    {canManage && <div className="mt-2 grid grid-cols-4 gap-1 opacity-75 transition group-hover:opacity-100">
+      {CHAMPION_TIERS.map((tier) => <button key={tier.id} type="button" onClick={(event) => { event.stopPropagation(); onQuickPick(champion, tier.id, source.id || null); }} className={cx("rounded-lg border px-1.5 py-1 text-[0.52rem] font-black uppercase tracking-[0.08em] transition hover:-translate-y-0.5", active && championPoolStatus(existingRow) === tier.id ? tone(tier.tone) : "border-white/10 bg-black/30 text-slate-300 hover:border-cyan-200/25 hover:text-white")} title={`Mettre en ${tier.title}`}>{tier.title.slice(0, 3)}</button>)}
+    </div>}
+  </div>;
 }
 
 function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -3337,9 +3346,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
   const canManageSelectedPool = canManageTeamPool || String(selectedPlayer?.user_id || "") === String(user?.id || "");
   const selectedPlayerRows = (localPool || [])
     .filter((row) => String(row.team_id || "") === String(activeTeamId || "") && selectedPlayer && (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name))
+    .filter((row) => ["manual", "riot_manual"].includes(String(row.source || "")))
     .map((row) => ({ ...row, role: row.role || selectedPlayer?.role || "UNK", status: championPoolStatus(row) }));
   const selectedRows = selectedPlayerRows
-    .filter((row) => ["manual", "riot_manual"].includes(String(row.source || "")))
     .sort((a, b) => championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
   const selectedChampionByKey = new Map();
   selectedPlayerRows.forEach((row) => {
@@ -3395,9 +3404,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
 
   async function saveChampion(champion, status, poolId = null) {
     if (!canManageSelectedPool || !selectedPlayer || !champion) return;
-    const championName = championDisplayName(champion);
+    const championName = championAssetId(champion) || championDisplayName(champion);
     const championId = championAssetId(champion);
-    const existing = (localPool || []).find((row) => String(row.team_id || "") === String(activeTeamId || "") && (poolId ? String(row.id || "") === String(poolId) : (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name) && championAssetId(row.champion) === championId));
+    const existing = (localPool || []).find((row) => String(row.team_id || "") === String(activeTeamId || "") && ["manual", "riot_manual"].includes(String(row.source || "")) && (poolId ? String(row.id || "") === String(poolId) : (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name) && championAssetId(row.champion) === championId));
     const keepStats = Boolean(existing);
     const optimistic = {
       ...(existing || {}),
@@ -3408,7 +3417,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
       role: selectedPlayer.role,
       champion: championName,
       status,
-      source: existing?.source === "riot" ? "riot_manual" : (existing?.source || "manual"),
+      source: existing?.source || "manual",
       games: keepStats ? existing?.games || 0 : 0,
       wins: keepStats ? existing?.wins || 0 : 0,
       losses: keepStats ? existing?.losses || 0 : 0,
@@ -3422,7 +3431,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
       : [...current, optimistic]);
     setSaving(true);
     try {
-      const result = await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ teamId: activeTeamId, playerId: selectedPlayer.id, champion: championName, status, poolId: existing?.id || poolId || null, notes: "" }) });
+      const result = await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ teamId: activeTeamId, playerId: selectedPlayer.id, champion: championName, status, poolId: existing && ["manual", "riot_manual"].includes(String(existing.source || "")) ? existing.id : null, notes: "" }) });
       if (result?.pick) setLocalPool((current) => current.map((row) => row.id === optimistic.id ? result.pick : row));
     } catch (err) {
       setLocalPool((current) => existing
@@ -3533,7 +3542,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                       {visibleChampions.map((champion) => {
                         const championKeyValue = championAssetId(champion) || championKey(champion);
                         const active = pickedChampionKeys.has(championKeyValue);
-                        return <ChampionSearchTile key={champion} champion={champion} active={active} existingRow={selectedChampionByKey.get(championKeyValue)} canManage={canManageSelectedPool} onDragStart={onDragStart} />;
+                        return <ChampionSearchTile key={champion} champion={champion} active={active} existingRow={selectedChampionByKey.get(championKeyValue)} canManage={canManageSelectedPool} onDragStart={onDragStart} onQuickPick={saveChampion} />;
                       })}
                     </div>
                   </div>
