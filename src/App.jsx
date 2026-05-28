@@ -68,9 +68,10 @@ const AUTH_ROUTES = {
   "/inscription": "register",
 };
 
-const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/mentions-legales", "/confidentialite", "/conditions"];
+const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/mentions-legales", "/confidentialite", "/conditions", "/contact"];
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
+const DISCORD_INVITE_URL = "";
 const PLANNING_DAYS = [
   ["MON", "Lun"],
   ["TUE", "Mar"],
@@ -600,6 +601,7 @@ function LegalLinks({ navigate }) {
     ["/mentions-legales", "Mentions légales"],
     ["/confidentialite", "Confidentialité"],
     ["/conditions", "Conditions"],
+    ["/contact", "Contact"],
   ];
   return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-500">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="rounded-xl border-transparent bg-transparent px-0 py-0 text-xs text-slate-400 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-600">NXT5 n’est pas affilié à Riot Games.</span></footer>;
 }
@@ -654,6 +656,17 @@ const LEGAL_PAGES = {
       ["Évolution des conditions", "Les présentes conditions peuvent être mises à jour afin de suivre l’évolution du service. Dernière mise à jour : 27 mai 2026."],
     ],
   },
+  "/contact": {
+    eyebrow: "Support",
+    title: "Contact",
+    intro: "Besoin d’aide, de signaler un souci ou de rejoindre la communauté NXT5 ? Le point de contact principal est le serveur Discord officiel.",
+    sections: [
+      ["Discord NXT5", "Le serveur Discord permet de centraliser les retours, les bugs, les idées de fonctionnalités et les demandes d’aide autour de NXT5. C’est le canal à privilégier pour obtenir une réponse rapide."],
+      ["Support produit", "Pour un problème technique, indique la page concernée, l’action réalisée, le message d’erreur affiché et, si possible, le contexte de l’équipe ou de l’import. Plus le signalement est précis, plus il peut être corrigé vite."],
+      ["Sécurité et données", "Pour une demande sensible liée à un compte, une équipe, des données ou un accès, évite de publier des informations privées dans un salon public. Utilise un canal privé ou un échange direct avec l’équipe NXT5 lorsque c’est nécessaire."],
+    ],
+    contact: true,
+  },
 };
 
 function LegalPage({ route, navigate }) {
@@ -673,6 +686,12 @@ function LegalPage({ route, navigate }) {
           <div className="mt-8 grid gap-4">
             {page.sections.map(([title, text]) => <section key={title} className="rounded-2xl border border-white/12 bg-black/[0.24] p-5 md:p-6"><h2 className="text-2xl font-black text-white">{title}</h2><p className="mt-3 text-base font-semibold leading-8 text-slate-200">{text}</p></section>)}
           </div>
+          {page.contact && <div className="mt-8 rounded-[1.35rem] border border-cyan-300/18 bg-cyan-400/[0.07] p-5 shadow-[0_0_34px_rgba(34,211,238,.10)]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div><Badge tone="purple">Discord</Badge><h2 className="mt-3 text-2xl font-black text-white">Rejoindre le serveur NXT5</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{DISCORD_INVITE_URL ? "Ouvre Discord pour contacter le support ou rejoindre la communauté." : "Le bouton est prêt. Il manque juste le lien d’invitation Discord final."}</p></div>
+              {DISCORD_INVITE_URL ? <a href={DISCORD_INVITE_URL} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-200/35 bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 shadow-[0_0_24px_rgba(34,211,238,.25)] transition hover:-translate-y-0.5 hover:bg-white"><Users className="h-4 w-4" />Ouvrir Discord</a> : <button type="button" disabled className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-slate-400"><Users className="h-4 w-4" />Discord à connecter</button>}
+            </div>
+          </div>}
           <div className="mt-8 flex flex-wrap gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Connexion</LinkButton>
@@ -2134,6 +2153,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
   const canObserveAll = ["owner", "captain", "coach", "assistant", "analyst", "manager", "board"].includes(String(currentMember?.role || "").toLowerCase());
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [profileView, setProfileView] = useState("overview");
   useEffect(() => {
     const fallback = canObserveAll ? players[0]?.id : linkedPlayer?.id || players[0]?.id;
     if (!selectedPlayerId || !players.some((player) => player.id === selectedPlayerId)) setSelectedPlayerId(fallback || "");
@@ -2201,6 +2221,12 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
     { title: "Présence vision", value: `${avgVisionShare.toFixed(1)}%`, detail: `${avg("vision")} vision moyenne · part vision équipe`, toneName: avgVisionShare >= 20 ? "cyan" : "purple", icon: Eye },
     { title: "Pool joué", value: `${championStats.length} champions`, detail: topChampion ? `${championDisplayName(topChampion.champion)} représente ${topChampionShare}% des games` : "Aucune game importée.", toneName: topChampionShare >= 60 ? "orange" : "green", icon: Crown },
   ];
+  const profileViews = [
+    ["overview", "Synthèse", Activity, `${games}G`],
+    ["champions", "Champions", Crown, championStats.length],
+    ["matchups", "Matchups", Swords, matchups.length],
+    ["history", "Historique", FileText, rows.length],
+  ];
   if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
   return <div className="min-w-0 overflow-hidden">
     <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle="Toutes les données utiles du profil sélectionné : champions, games importées, matchups et tendances brutes.">
@@ -2213,21 +2239,31 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
         <div className="grid w-full gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
       </div>
     </Surface>
-    <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
-      <Surface glow><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><Badge tone="cyan">Lecture coach</Badge><h3 className="mt-3 text-2xl font-black text-white">Signaux exploitables</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Des ratios bruts pour situer l’impact du joueur dans les games importées : contribution, ressources, exposition, vision et largeur du pool.</p></div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{games} game{games > 1 ? "s" : ""} analysée{games > 1 ? "s" : ""}</p></div><div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{profileSignals.map((signal) => <ProfileSignalCard key={signal.title} signal={signal} />)}</div></Surface>
-      <Surface glow><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><Badge tone="purple">Champion read</Badge><h3 className="mt-3 text-2xl font-black text-white">Bangers & flops</h3></div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</p></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><ChampionSpotlight title="Bangers" items={bangers} toneName="green" empty="Aucun banger détectable pour l’instant." /><ChampionSpotlight title="Flops" items={flops} toneName="red" empty="Aucun flop détectable pour l’instant." /></div></Surface>
+    <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
+      <div className="grid gap-2 md:grid-cols-4">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => setProfileView(active ? "overview" : id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
     </div>
-    <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
-      <Surface glow><h3 className="text-2xl font-black text-white">Champions joués</h3><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => <div key={stat.champion} className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div></div></div>) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></Surface>
-      <Surface><h3 className="text-2xl font-black text-white">Champion Pool</h3><div className="mt-4 grid gap-2">{championPool.length ? championPool.map((row) => <div key={row.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{championPoolStatusLabel(championPoolStatus(row))}</p></div><Badge tone={championPoolStatusTone(championPoolStatus(row))}>{roleLabel(row.role || selectedPlayer.role)}</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion déclaré dans son pool.</p>}</div></Surface>
-    </div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-2"><MatchupPanel title="Meilleurs matchups" items={bestMatchups} toneName="green" /><MatchupPanel title="Matchups difficiles" items={worstMatchups} toneName="red" /></div>
-    <Surface className="mt-5"><h3 className="text-2xl font-black text-white">Historique importé</h3><div className="mt-4 grid gap-2 lg:grid-cols-2">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{row.match?.opponent || row.match?.game_id} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></Surface>
+    <AnimatePresence mode="wait">
+      <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
+        {profileView === "overview" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]"><ProfileFold title="Signaux exploitables" badge="Lecture coach" icon={Activity} toneName="cyan"><p className="max-w-3xl text-sm font-semibold leading-6 text-slate-200">Des ratios bruts pour situer l’impact du joueur dans les games importées : contribution, ressources, exposition, vision et largeur du pool.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{profileSignals.map((signal) => <ProfileSignalCard key={signal.title} signal={signal} />)}</div></ProfileFold><ProfileFold title="Bangers & flops" badge="Champion read" icon={Crown} toneName="purple"><div className="grid gap-4 lg:grid-cols-2"><ChampionSpotlight title="Bangers" items={bangers} toneName="green" empty="Aucun banger détectable pour l’instant." /><ChampionSpotlight title="Flops" items={flops} toneName="red" empty="Aucun flop détectable pour l’instant." /></div></ProfileFold></div>}
+        {profileView === "champions" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]"><ProfileFold title="Champions joués" badge="Games importées" icon={Crown} toneName="cyan"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => <div key={stat.champion} className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div></div></div>) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></ProfileFold><ProfileFold title="Champion Pool" badge="Déclaré" icon={Shield} toneName="green"><div className="grid gap-2">{championPool.length ? championPool.map((row) => <div key={row.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{championPoolStatusLabel(championPoolStatus(row))}</p></div><Badge tone={championPoolStatusTone(championPoolStatus(row))}>{roleLabel(row.role || selectedPlayer.role)}</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion déclaré dans son pool.</p>}</div></ProfileFold></div>}
+        {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
+        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-2 lg:grid-cols-2">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{row.match?.opponent || row.match?.game_id} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></ProfileFold>}
+      </motion.div>
+    </AnimatePresence>
   </div>;
 }
 
 function MatchupPanel({ title, items, toneName }) {
   return <Surface><div className="flex items-center justify-between gap-3"><h3 className="text-2xl font-black text-white">{title}</h3><Badge tone={toneName}>{items.length}</Badge></div><div className="mt-4 grid gap-2">{items.length ? items.map((item) => <div key={item.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait champion={item.champion} alt={item.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(item.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{item.games} game{item.games > 1 ? "s" : ""} · {item.winrate}% WR · KDA {item.kda}</p></div><Badge tone={item.winrate >= 50 ? "green" : "red"}>{item.wins}W</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de games pour afficher ce bloc.</p>}</div></Surface>;
+}
+
+function ProfileFold({ title, badge, icon: Icon = Activity, toneName = "cyan", children }) {
+  const [open, setOpen] = useState(true);
+  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-5 w-5" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><AnimatePresence initial={false}>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }} className="overflow-hidden"><div className="pt-4">{children}</div></motion.div>}</AnimatePresence></Surface>;
+}
+
+function MatchupList({ items, toneName }) {
+  return <div className="grid gap-2">{items.length ? items.map((item) => <div key={item.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait champion={item.champion} alt={item.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(item.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{item.games} game{item.games > 1 ? "s" : ""} · {item.winrate}% WR · KDA {item.kda}</p></div><Badge tone={item.winrate >= 50 ? "green" : "red"}>{item.wins}W</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de games pour afficher ce bloc.</p>}</div>;
 }
 
 function ProfileSignalCard({ signal }) {
@@ -4388,6 +4424,7 @@ export default function NXT5() {
       "/mentions-legales": "Mentions légales — NXT5",
       "/confidentialite": "Confidentialité — NXT5",
       "/conditions": "Conditions — NXT5",
+      "/contact": "Contact — NXT5",
     };
     document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
   }, [route.path]);
