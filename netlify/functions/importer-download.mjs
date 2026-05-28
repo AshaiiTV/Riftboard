@@ -1,4 +1,4 @@
-const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/Riftboard/releases/tags/nxt5-match-exporter-latest';
+const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest';
 
 function redirect(url) {
   return new Response(null, {
