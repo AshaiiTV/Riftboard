@@ -57,6 +57,7 @@ const NAV = [
   { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
   { id: "reports", label: "Rapports", icon: FileText, shortcut: "R", path: "/rapports" },
   { id: "guide", label: "Guide", icon: BookOpen, shortcut: "A", path: "/guide" },
+  { id: "profile", label: "Mon profil", icon: Activity, shortcut: "M", path: "/mon-profil", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres" },
 ];
@@ -997,7 +998,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-lg shadow-cyan-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
-        <div className="mt-auto space-y-3">{guideItem && (() => { const Icon = guideItem.icon; const selected = active === guideItem.id; return <button type="button" onClick={() => go(guideItem.id)} title={guideItem.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-400 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-500 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{guideItem.label}</span></button>; })()}<Surface className={cx(collapsed ?"p-3" : "p-4")} delay={0}><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-6 w-6" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-500">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></Surface>{settingsItem && <Button variant="ghost" icon={Settings} onClick={() => go("settings")} className={cx("w-full", active === "settings" && "border-cyan-300/35 bg-cyan-400/[0.075]", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>{settingsItem.label}</span></Button>}<Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
+        <div className="mt-auto space-y-3">{guideItem && (() => { const Icon = guideItem.icon; const selected = active === guideItem.id; return <button type="button" onClick={() => go(guideItem.id)} title={guideItem.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-400 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-500 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{guideItem.label}</span></button>; })()}<button type="button" onClick={() => go("profile")} title="Mon profil" className={cx("nxt5-panel nxt5-hud-lines group relative w-full max-w-full overflow-hidden border border-cyan-200/16 bg-[#060a18]/84 text-left shadow-2xl shadow-black/40 backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-400/[0.075]", collapsed ?"p-3" : "p-4")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-6 w-6" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></button>{settingsItem && <Button variant="ghost" icon={Settings} onClick={() => go("settings")} className={cx("w-full", active === "settings" && "border-cyan-300/35 bg-cyan-400/[0.075]", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>{settingsItem.label}</span></Button>}<Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
       </aside>
     </>
   );
@@ -2075,6 +2076,83 @@ function PlayerProfileStatsPanel({ player, matches = [] }) {
   }, new Map()).values()).sort((a, b) => b.games - a.games || b.wins - a.wins);
   if (!games) return <div className="rounded-2xl border border-dashed border-cyan-300/18 bg-cyan-400/8 p-4 text-sm font-semibold text-slate-300">Aucune stat intégrée pour ce profil. Importe une game où son Riot ID est présent pour alimenter ce panneau.</div>;
   return <div className="rounded-2xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4"><div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5"><MetricCard icon={Swords} label="Games" value={games} hint="Games intégrées" tone="cyan" /><MetricCard icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""}`} tone="green" /><MetricCard icon={Gauge} label="KDA" value={kda} hint="Moyenne globale" tone="purple" /><MetricCard icon={Flame} label="Dégâts" value={formatPoints(avg("damage"))} hint="Moyenne/game" tone="orange" /><MetricCard icon={Eye} label="Vision" value={Math.round(avg("vision"))} hint="Moyenne/game" tone="yellow" /></div><div className="mt-4 grid gap-2 xl:grid-cols-2">{championStats.map((stat) => { const champKda = ((stat.kills + stat.assists) / Math.max(1, stat.deaths)).toFixed(2); return <div key={stat.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><Badge tone={Math.round((stat.wins / Math.max(1, stat.games)) * 100) >= 50 ? "green" : "red"}>{Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} · KDA {champKda} · {formatPoints(stat.damage / Math.max(1, stat.games))} dégâts moy.</p></div></div>; })}</div></div>;
+}
+
+function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
+  const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role) && player.role !== "SUB");
+  const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const canObserveAll = ["owner", "captain", "coach", "assistant", "analyst", "manager", "board"].includes(String(currentMember?.role || "").toLowerCase());
+  const linkedPlayer = players.find((player) => player.user_id === user?.id);
+  const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  useEffect(() => {
+    const fallback = canObserveAll ? players[0]?.id : linkedPlayer?.id || players[0]?.id;
+    if (!selectedPlayerId || !players.some((player) => player.id === selectedPlayerId)) setSelectedPlayerId(fallback || "");
+  }, [canObserveAll, linkedPlayer?.id, players.map((player) => player.id).join("|"), selectedPlayerId]);
+  const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || linkedPlayer || players[0];
+  const rows = selectedPlayer ? playerIntegratedRows(selectedPlayer, matches) : [];
+  const games = rows.length;
+  const wins = rows.filter((row) => row.match?.result === "Victoire").length;
+  const losses = Math.max(0, games - wins);
+  const sum = (field) => rows.reduce((total, row) => total + Number(row[field] || 0), 0);
+  const avg = (field, decimals = 1) => (sum(field) / Math.max(1, games)).toFixed(decimals);
+  const kda = ((sum("kills") + sum("assists")) / Math.max(1, sum("deaths"))).toFixed(2);
+  const championPool = (data.championPool || []).filter((row) => row.team_id === selectedTeamId && (row.player_id === selectedPlayer?.id || row.player_name === selectedPlayer?.name));
+  const championStats = Array.from(rows.reduce((map, row) => {
+    const key = row.champion || "Champion";
+    const current = map.get(key) || { champion: key, rows: [], games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, csPerMin: 0, kp: 0 };
+    current.rows.push(row);
+    current.games += 1;
+    current.wins += row.match?.result === "Victoire" ? 1 : 0;
+    current.kills += Number(row.kills || 0);
+    current.deaths += Number(row.deaths || 0);
+    current.assists += Number(row.assists || 0);
+    current.damage += Number(row.damage || 0);
+    current.vision += Number(row.vision || 0);
+    current.gold += Number(row.gold || 0);
+    current.csPerMin += Number(row.cs_per_min || 0);
+    current.kp += parsePercent(row.kill_participation || row.kp || 0);
+    map.set(key, current);
+    return map;
+  }, new Map()).values()).map((stat) => ({ ...stat, winrate: Math.round((stat.wins / Math.max(1, stat.games)) * 100), kda: ((stat.kills + stat.assists) / Math.max(1, stat.deaths)).toFixed(2) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate);
+  const matchups = Array.from(rows.reduce((map, row) => {
+    const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || selectedPlayer?.role || "").toUpperCase());
+    if (!enemy?.champion) return map;
+    const key = enemy.champion;
+    const current = map.get(key) || { champion: key, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0 };
+    current.games += 1;
+    current.wins += row.match?.result === "Victoire" ? 1 : 0;
+    current.kills += Number(row.kills || 0);
+    current.deaths += Number(row.deaths || 0);
+    current.assists += Number(row.assists || 0);
+    current.damage += Number(row.damage || 0);
+    map.set(key, current);
+    return map;
+  }, new Map()).values()).map((item) => ({ ...item, winrate: Math.round((item.wins / Math.max(1, item.games)) * 100), kda: ((item.kills + item.assists) / Math.max(1, item.deaths)).toFixed(2) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate);
+  const bestMatchups = matchups.filter((item) => item.games >= 1).slice().sort((a, b) => b.winrate - a.winrate || b.games - a.games).slice(0, 5);
+  const worstMatchups = matchups.filter((item) => item.games >= 1).slice().sort((a, b) => a.winrate - b.winrate || b.games - a.games).slice(0, 5);
+  if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
+  return <div className="min-w-0 overflow-hidden">
+    <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle="Toutes les données utiles du profil sélectionné : champions, games importées, matchups et tendances brutes.">
+      {canObserveAll && <div className="w-full min-w-[220px] sm:w-80"><SelectInput label="Profil observé" value={selectedPlayer.id} onChange={setSelectedPlayerId}>{players.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput></div>}
+    </PageHeader>
+    <Surface glow className="relative overflow-hidden p-5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(34,211,238,.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(217,70,239,.13),transparent_34%)]" />
+      <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge></div><h2 className="mt-4 truncate text-4xl font-black text-white md:text-5xl">{selectedPlayer.name}</h2><p className="mt-2 truncate text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
+        <div className="grid w-full gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
+      </div>
+    </Surface>
+    <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
+      <Surface glow><h3 className="text-2xl font-black text-white">Champions joués</h3><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => <div key={stat.champion} className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div></div></div>) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></Surface>
+      <Surface><h3 className="text-2xl font-black text-white">Champion Pool</h3><div className="mt-4 grid gap-2">{championPool.length ? championPool.map((row) => <div key={row.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{championPoolStatusLabel(championPoolStatus(row))}</p></div><Badge tone={championPoolStatusTone(championPoolStatus(row))}>{roleLabel(row.role || selectedPlayer.role)}</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion déclaré dans son pool.</p>}</div></Surface>
+    </div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-2"><MatchupPanel title="Meilleurs matchups" items={bestMatchups} toneName="green" /><MatchupPanel title="Matchups difficiles" items={worstMatchups} toneName="red" /></div>
+    <Surface className="mt-5"><h3 className="text-2xl font-black text-white">Historique importé</h3><div className="mt-4 grid gap-2 lg:grid-cols-2">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{row.match?.opponent || row.match?.game_id} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></Surface>
+  </div>;
+}
+
+function MatchupPanel({ title, items, toneName }) {
+  return <Surface><div className="flex items-center justify-between gap-3"><h3 className="text-2xl font-black text-white">{title}</h3><Badge tone={toneName}>{items.length}</Badge></div><div className="mt-4 grid gap-2">{items.length ? items.map((item) => <div key={item.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait champion={item.champion} alt={item.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(item.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{item.games} game{item.games > 1 ? "s" : ""} · {item.winrate}% WR · KDA {item.kda}</p></div><Badge tone={item.winrate >= 50 ? "green" : "red"}>{item.wins}W</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de games pour afficher ce bloc.</p>}</div></Surface>;
 }
 
 function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserId = "", canManage = false, saving = false, syncingPlayerId = "", riotCooldownSeconds = 0, onCopyOpgg, onSyncPlayer, onEditPlayer, onDeletePlayer }) {
@@ -4039,6 +4117,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
+    if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
     if (active === "guide") return <GuidePage />;
     if (active === "settings") return <SettingsPage user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
