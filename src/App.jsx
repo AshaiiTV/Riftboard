@@ -2572,8 +2572,8 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                 <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">L’app transforme une game LoL en fichier NXT5. Elle doit être lancée sur le PC où le client League of Legends possède la partie dans son historique, sinon l’export ne peut pas récupérer les données locales.</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a>
-                <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac</a>
+                <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Télécharger l’importer Windows</a>
+                <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Télécharger l’importer Mac</a>
                 <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]", fileImporting ? "pointer-events-none opacity-60" : "")}>
                   {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
                   <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
@@ -3423,6 +3423,30 @@ const CHAMPION_TIERS = [
   { id: "danger", title: "À apprendre", hint: "À reprendre tranquillement avant de le sortir en game importante.", tone: "red" },
 ];
 
+function championTierFrame(tier, active = false) {
+  const t = tier?.tone || "cyan";
+  const base = {
+    green: "border-emerald-300/24 bg-emerald-400/[0.075] shadow-[0_0_28px_rgba(52,211,153,.08)]",
+    yellow: "border-amber-300/24 bg-amber-300/[0.075] shadow-[0_0_28px_rgba(251,191,36,.08)]",
+    cyan: "border-cyan-300/24 bg-cyan-400/[0.075] shadow-[0_0_28px_rgba(34,211,238,.08)]",
+    red: "border-rose-300/24 bg-rose-500/[0.075] shadow-[0_0_28px_rgba(244,63,94,.08)]",
+  }[t] || "border-cyan-300/24 bg-cyan-400/[0.075]";
+  const strong = {
+    green: "border-emerald-200/55 bg-emerald-300/18 shadow-[0_0_22px_rgba(52,211,153,.20)]",
+    yellow: "border-amber-200/55 bg-amber-300/18 shadow-[0_0_22px_rgba(251,191,36,.18)]",
+    cyan: "border-cyan-200/55 bg-cyan-300/18 shadow-[0_0_22px_rgba(34,211,238,.20)]",
+    red: "border-rose-200/55 bg-rose-400/18 shadow-[0_0_22px_rgba(244,63,94,.18)]",
+  }[t] || base;
+  return active ? strong : base;
+}
+
+function ChampionTierMark({ tier, active = false, className = "" }) {
+  return <span className={cx("relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition", championTierFrame(tier, active), className)}>
+    <img src="/assets/nxt5-mark.png?v=8" alt="" aria-hidden="true" className="h-7 w-7 object-contain drop-shadow-[0_0_12px_rgba(255,255,255,.22)]" />
+    <span className="pointer-events-none absolute inset-x-1 bottom-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+  </span>;
+}
+
 const CHAMPION_LANE_POOLS = {
   TOP: ["Aatrox", "Camille", "Chogath", "Darius", "DrMundo", "Fiora", "Gangplank", "Garen", "Gnar", "Gwen", "Irelia", "Jax", "Jayce", "Kayle", "Kennen", "Kled", "KSante", "Malphite", "MonkeyKing", "Mordekaiser", "Nasus", "Olaf", "Ornn", "Pantheon", "Poppy", "Quinn", "Renekton", "Riven", "Rumble", "Ryze", "Sett", "Shen", "Singed", "Sion", "Teemo", "Tryndamere", "Urgot", "Vladimir", "Volibear", "Warwick", "Yone", "Yorick"],
   JGL: ["Amumu", "Diana", "Ekko", "Elise", "Evelynn", "Fiddlesticks", "Gragas", "Graves", "Hecarim", "Ivern", "JarvanIV", "Karthus", "Kayn", "Khazix", "Kindred", "LeeSin", "Lillia", "Maokai", "MasterYi", "MonkeyKing", "Nidalee", "Nocturne", "Nunu", "Olaf", "Poppy", "Rammus", "RekSai", "Rengar", "Sejuani", "Shyvana", "Skarner", "Taliyah", "Trundle", "Udyr", "Vi", "Viego", "Volibear", "Warwick", "XinZhao", "Zac"],
@@ -3462,8 +3486,11 @@ function ChampionSearchTile({ champion, active, existingRow, canManage, onDragSt
       <span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>
       {active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}
     </div>
-    {canManage && <div className="mt-2 grid grid-cols-4 gap-1 opacity-75 transition group-hover:opacity-100">
-      {CHAMPION_TIERS.map((tier) => <button key={tier.id} type="button" onClick={(event) => { event.stopPropagation(); onQuickPick(champion, tier.id, source.id || null); }} className={cx("rounded-lg border px-1.5 py-1 text-[0.52rem] font-black uppercase tracking-[0.08em] transition hover:-translate-y-0.5", active && championPoolStatus(existingRow) === tier.id ? tone(tier.tone) : "border-white/10 bg-black/30 text-slate-300 hover:border-cyan-200/25 hover:text-white")} title={`Mettre en ${tier.title}`}>{tier.title.slice(0, 3)}</button>)}
+    {canManage && <div className="mt-2 grid grid-cols-4 gap-1.5 opacity-80 transition group-hover:opacity-100">
+      {CHAMPION_TIERS.map((tier) => {
+        const selected = active && championPoolStatus(existingRow) === tier.id;
+        return <button key={tier.id} type="button" onClick={(event) => { event.stopPropagation(); onQuickPick(champion, tier.id, source.id || null); }} className="flex justify-center rounded-xl p-0.5 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-cyan-200/35" title={`Mettre en ${tier.title}`} aria-label={`Mettre ${championDisplayName(champion)} en ${tier.title}`}><ChampionTierMark tier={tier} active={selected} className="h-8 w-8" /></button>;
+      })}
     </div>}
   </div>;
 }
@@ -3648,9 +3675,12 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
               <Surface className="mb-5">
                 <div className="mb-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
                   {CHAMPION_TIERS.map((tier) => (
-                    <div key={tier.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-left">
+                    <div key={tier.id} className={cx("rounded-2xl border p-3 text-left", championTierFrame(tier))}>
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-black text-white">{tier.title}</p>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <ChampionTierMark tier={tier} />
+                          <p className="truncate text-sm font-black text-white">{tier.title}</p>
+                        </div>
                         <Badge tone={tier.tone}>{selectedTierCounts[tier.id]}</Badge>
                       </div>
                       <p className="mt-1 truncate text-xs font-semibold text-slate-500">{tier.hint}</p>
@@ -3691,10 +3721,13 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                   const items = rowsForTier(tier.id);
                   return (
                     <Surface key={tier.id} className="p-3" delay={0}>
-                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className="flex min-h-[280px] flex-col rounded-[1.1rem] border border-white/10 bg-black/20 p-3">
+                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className={cx("flex min-h-[280px] flex-col rounded-[1.1rem] border p-3", championTierFrame(tier))}>
                         <div className="mb-3">
                           <div className="flex items-center justify-between gap-3">
-                            <h3 className="text-lg font-black text-white">{tier.title}</h3>
+                            <div className="flex min-w-0 items-center gap-3">
+                              <ChampionTierMark tier={tier} />
+                              <h3 className="truncate text-lg font-black text-white">{tier.title}</h3>
+                            </div>
                             <Badge tone={tier.tone}>{items.length}</Badge>
                           </div>
                           <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-500">{tier.hint}</p>
