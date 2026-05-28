@@ -1,0 +1,205 @@
+{
+  "name": "NXT5 - Draft. Strategize. Win.",
+  "description": "Template premium pour le serveur Discord officiel NXT5.",
+  "locale": "fr",
+  "roles": [
+    {
+      "name": "NXT5 Staff",
+      "color": "#22D3EE",
+      "hoist": true,
+      "permissions": ["Administrator"]
+    },
+    {
+      "name": "Support",
+      "color": "#A855F7",
+      "hoist": true,
+      "permissions": ["ManageMessages", "ViewAuditLog", "CreatePublicThreads", "CreatePrivateThreads"]
+    },
+    {
+      "name": "Coach",
+      "color": "#D946EF",
+      "hoist": true,
+      "permissions": ["CreatePublicThreads", "CreatePrivateThreads", "SendMessages"]
+    },
+    {
+      "name": "Capitaine",
+      "color": "#38BDF8",
+      "hoist": true,
+      "permissions": ["CreatePublicThreads", "CreatePrivateThreads", "SendMessages"]
+    },
+    {
+      "name": "Joueur",
+      "color": "#E5E7EB",
+      "hoist": false,
+      "permissions": ["SendMessages", "CreatePublicThreads"]
+    },
+    {
+      "name": "Beta Tester",
+      "color": "#F59E0B",
+      "hoist": false,
+      "permissions": ["SendMessages", "CreatePublicThreads"]
+    },
+    {
+      "name": "Membre",
+      "color": "#94A3B8",
+      "hoist": false,
+      "permissions": ["SendMessages"]
+    },
+    {
+      "name": "Non verifie",
+      "color": "#475569",
+      "hoist": false,
+      "permissions": []
+    }
+  ],
+  "categories": [
+    {
+      "name": "START",
+      "channels": [
+        {
+          "name": "bienvenue",
+          "type": "text",
+          "topic": "Point d'entree du serveur NXT5.",
+          "message": "Bienvenue sur NXT5.\n\nNXT5 est un outil pour les equipes League of Legends qui veulent importer leurs games, lire leurs statistiques, preparer leurs compos et mieux structurer leurs reviews.\n\nCommence par lire #regles, puis ouvre #guide-demarrage si tu veux configurer ton equipe."
+        },
+        {
+          "name": "regles",
+          "type": "text",
+          "topic": "Regles du serveur NXT5.",
+          "message": "Regles NXT5\n\n1. Reste respectueux avec les joueurs, coachs et membres du staff.\n2. Ne publie pas de donnees privees, de tokens, de cles API ou d'informations sensibles.\n3. Les reports de bugs doivent etre precis et exploitables.\n4. Le serveur sert a ameliorer NXT5, pas a regler des conflits d'equipe.\n5. Tout abus, spam ou comportement malveillant peut mener a une exclusion."
+        },
+        {
+          "name": "annonces",
+          "type": "announcement",
+          "topic": "Annonces importantes NXT5."
+        },
+        {
+          "name": "changelog",
+          "type": "text",
+          "topic": "Historique des mises a jour."
+        },
+        {
+          "name": "statut-nxt5",
+          "type": "text",
+          "topic": "Etat du site, incidents et maintenances."
+        }
+      ]
+    },
+    {
+      "name": "GUIDES",
+      "channels": [
+        {
+          "name": "guide-demarrage",
+          "type": "text",
+          "topic": "Installer, creer une equipe et inviter ses joueurs."
+        },
+        {
+          "name": "guide-importer",
+          "type": "text",
+          "topic": "Exporter un JSON depuis l'application NXT5 Importer."
+        },
+        {
+          "name": "guide-statistiques",
+          "type": "text",
+          "topic": "Lire les stats, groupes de games, matchups et profils."
+        },
+        {
+          "name": "guide-rapports",
+          "type": "text",
+          "topic": "Creer et lire les rapports avec commandes data."
+        },
+        {
+          "name": "guide-compos-types",
+          "type": "text",
+          "topic": "Construire des compos types depuis les champion pools."
+        }
+      ]
+    },
+    {
+      "name": "SUPPORT NXT5",
+      "channels": [
+        {
+          "name": "support",
+          "type": "forum",
+          "topic": "Questions d'utilisation et aide generale.",
+          "tags": ["Compte", "Equipe", "Import", "Stats", "Rapports", "Autre"]
+        },
+        {
+          "name": "bug-report",
+          "type": "forum",
+          "topic": "Signaler un bug avec contexte complet.",
+          "tags": ["Critique", "Import", "UI", "Mobile", "Stats", "Compte"]
+        },
+        {
+          "name": "suggestions",
+          "type": "forum",
+          "topic": "Idees d'amelioration et demandes de feature.",
+          "tags": ["Draft", "Stats", "Equipe", "Planning", "Rapports", "DA"]
+        }
+      ]
+    },
+    {
+      "name": "COMMUNAUTE",
+      "channels": [
+        {
+          "name": "discussion",
+          "type": "text",
+          "topic": "Discussion generale autour de NXT5."
+        },
+        {
+          "name": "screenshots",
+          "type": "text",
+          "topic": "Partage de screens, retours visuels et cas d'usage."
+        },
+        {
+          "name": "retours-utilisateurs",
+          "type": "forum",
+          "topic": "Retours d'experience des equipes."
+        }
+      ]
+    },
+    {
+      "name": "STAFF ONLY",
+      "private": true,
+      "allowedRoles": ["NXT5 Staff", "Support"],
+      "channels": [
+        {
+          "name": "staff-chat",
+          "type": "text",
+          "topic": "Coordination interne NXT5."
+        },
+        {
+          "name": "incidents",
+          "type": "text",
+          "topic": "Suivi des incidents et bugs critiques."
+        },
+        {
+          "name": "roadmap",
+          "type": "text",
+          "topic": "Priorites produit et decisions."
+        },
+        {
+          "name": "moderation",
+          "type": "text",
+          "topic": "Suivi moderation et decisions sensibles."
+        }
+      ]
+    }
+  ],
+  "ticketTemplate": {
+    "bugReport": [
+      "Page concernee :",
+      "Action realisee :",
+      "Message d'erreur exact :",
+      "Ce qui etait attendu :",
+      "Screen ou video :",
+      "Compte / equipe concernee si utile :"
+    ],
+    "featureRequest": [
+      "Probleme a resoudre :",
+      "Feature souhaitee :",
+      "Pourquoi c'est utile pour une equipe :",
+      "Priorite ressentie :"
+    ]
+  }
+}
