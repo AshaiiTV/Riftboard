@@ -1208,6 +1208,55 @@ function tagLabel(tag) {
   }[String(tag || "")] || String(tag || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+const CHAMPION_TAG_DEFINITIONS = [
+  ["engage", "Ouvre les combats avec une initiation claire."],
+  ["dive", "Entre rapidement sur les carries ou la backline adverse."],
+  ["front-to-back", "Joue les fights dans l'ordre, frontline devant et carries protégés."],
+  ["teamfight", "Fort quand les cinq joueurs combattent ensemble."],
+  ["pick", "Cherche à isoler une cible avant un objectif ou une rotation."],
+  ["poke", "Gratte les PV avant d'engager ou de contester une zone."],
+  ["siege", "Met la pression sur les tours et les objectifs fixes."],
+  ["side", "Crée de la pression sur une side lane."],
+  ["duel", "Fort en 1v1 ou dans les escarmouches isolées."],
+  ["scaling", "Devient plus puissant avec le temps, les niveaux ou les items."],
+  ["early", "Très fort en début de partie pour prendre le tempo."],
+  ["tempo", "Aide à accélérer la carte, les rotations ou les timings d'objectif."],
+  ["snowball", "Prend beaucoup de valeur quand il obtient une avance tôt."],
+  ["assassin", "Menace explosive sur les cibles fragiles."],
+  ["burst", "Inflige beaucoup de dégâts sur une fenêtre courte."],
+  ["control", "Contrôle les zones avec des sorts, de la portée ou du zoning."],
+  ["frontline", "Peut tenir l'espace devant l'équipe."],
+  ["peel", "Protège un carry contre les engages ou les dives."],
+  ["utility", "Apporte de la vision, du contrôle, du buff ou de la valeur d'équipe."],
+  ["objective", "Très utile pour sécuriser dragons, Nashor, Herald ou tours."],
+  ["roam", "Peut quitter sa lane pour influencer les autres zones."],
+  ["skirmish", "Fort dans les combats courts à 2v2 ou 3v3."],
+  ["reset", "Peut enchaîner après un kill ou une exécution réussie."],
+  ["disengage", "Permet de casser l'engage adverse et de reculer proprement."],
+  ["lockdown", "Peut immobiliser une cible de manière fiable."],
+  ["sustain", "Apporte du soin, de la régénération ou de la tenue en fight."],
+  ["safe", "Peut jouer avec peu de ressources ou limiter les risques."],
+  ["lane", "Fort dans la phase de lane ou pour créer une priorité locale."],
+  ["farm", "A besoin de ressources et de tempo PvE pour atteindre son pic."],
+  ["cover", "Protège une action alliée ou accompagne une prise de risque."],
+  ["gank", "Facilite les actions sur les lanes."],
+  ["disrupt", "Dérange le plan adverse et casse les formations."],
+  ["anti-dive", "Répond bien aux compositions qui veulent rentrer dans l'équipe."],
+  ["self-peel", "Dispose d'outils personnels pour survivre à une menace."],
+  ["attach", "Se lie à un allié et amplifie son impact."],
+  ["flank", "Menace forte quand il arrive sur le côté ou dans le dos."],
+  ["simple", "Plan de jeu direct, facile à exécuter."],
+  ["playmaker", "Peut créer une action décisive par mécanique ou timing."],
+  ["standard", "Profil équilibré sans identité dominante détectée."],
+];
+
+const COMPOSITION_TAG_DEFINITIONS = [
+  ["blue side", "Tag de lecture pour les compos pensées côté bleu."],
+  ["red side", "Tag de lecture pour les compos pensées côté rouge."],
+  ["scrim", "Tag libre pour retrouver rapidement les compos travaillées en entraînement."],
+  ["BO", "Tag libre pour les compos préparées dans une logique de série."],
+];
+
 function championSplashUrl(champion) {
   const id = championAssetId(champion);
   return id ? "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/" + id + "_0.jpg" : "";
@@ -3506,6 +3555,15 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
   </Surface>;
 }
 
+function CompositionTagLexicon({ open }) {
+  if (!open) return null;
+  return <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-200/16 bg-[#050914]/82 p-4 shadow-[0_0_34px_rgba(34,211,238,.08)] backdrop-blur-xl">
+    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between"><div><Badge tone="cyan">Sommaire</Badge><h3 className="mt-3 text-xl font-black text-white">Lexique des tags champions</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Ces tags décrivent l'identité d'un champion dans une Compo Type. Ils servent à lire rapidement le plan de draft, pas à juger automatiquement la compo.</p></div><div className="hidden rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100 md:block">NXT5 Draft</div></div>
+    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{CHAMPION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge></div><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{definition}</p></div>)}</div>
+    <div className="mt-4 rounded-2xl border border-violet-300/14 bg-violet-400/[0.055] p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-violet-100">Tags de classement</p><div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">{COMPOSITION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag} className="rounded-xl border border-white/10 bg-black/20 p-3"><Badge tone="purple">{tagLabel(tag)}</Badge><p className="mt-2 text-xs font-semibold leading-5 text-slate-200">{definition}</p></div>)}</div></div>
+  </motion.div>;
+}
+
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const isStaff = ["owner", ...STAFF_ACCESS_ROLE_IDS].includes(String(currentMember?.role || "").toLowerCase());
   const canCreate = Boolean(currentMember);
@@ -3515,6 +3573,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   const [form, setForm] = useState({ id: null, title: "", notes: "", tags: [], slots: emptyCompositionSlots(players) });
   const [saving, setSaving] = useState(false);
   const [sideFilter, setSideFilter] = useState("all");
+  const [showTagLexicon, setShowTagLexicon] = useState(false);
   const tagOptions = ["blue side", "red side", "scrim", "BO", "teamfight", "pick", "scaling"];
 
   useEffect(() => {
@@ -3582,7 +3641,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
     { id: "blue side", label: "Blue Side" },
     { id: "red side", label: "Red Side" },
   ];
-  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate de la maîtrise poste par poste." />{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Builder 5 lanes</Badge><h3 className="mt-3 text-3xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la maîtrise se met à jour instantanément.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}</div></div><div className="mt-5 grid gap-3 lg:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="text-sm font-black uppercase tracking-[0.28em] text-slate-300">Compos enregistrées</h3><p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p></div><div className="flex w-full rounded-2xl border border-white/10 bg-black/20 p-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] md:w-auto">{sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.34)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}</div></div><div className="mt-3 grid gap-3">{filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
+  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate de la maîtrise poste par poste." /><div className="mb-5"><button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-black text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,.08)] transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/16"><BookOpen className="h-4 w-4" />Sommaire des tags<ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} /></button><AnimatePresence initial={false}><CompositionTagLexicon open={showTagLexicon} /></AnimatePresence></div>{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Builder 5 lanes</Badge><h3 className="mt-3 text-3xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la maîtrise se met à jour instantanément.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}</div></div><div className="mt-5 grid gap-3 lg:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="text-sm font-black uppercase tracking-[0.28em] text-slate-300">Compos enregistrées</h3><p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p></div><div className="flex w-full rounded-2xl border border-white/10 bg-black/20 p-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] md:w-auto">{sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.34)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}</div></div><div className="mt-3 grid gap-3">{filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
 }
 
 function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
