@@ -1772,8 +1772,8 @@ function GuidePage() {
     ["Relier les comptes", "Dans Gestion équipe, associe les comptes NXT5 aux profils joueurs. Cela permet de savoir qui modifie, importe ou crée du contenu."],
   ];
   const importSteps = [
-    ["Installer l’importer", "Dans Intégration, télécharge l’application NXT5 Importer adaptée à ton système. Elle sert à générer un fichier de match local."],
-    ["Exporter une game", "Ouvre l’importer, colle le Game ID depuis le client League of Legends, choisis la région et génère le fichier NXT5."],
+    ["Installer l’importer", "Dans Intégration, télécharge NXT5 Importer sur le PC où le client League of Legends a la game dans son historique. L’application sert à générer un fichier de match local."],
+    ["Exporter une game", "Ouvre l’importer sur ce même PC, colle le Game ID depuis le client League of Legends, choisis la région et génère le fichier NXT5."],
     ["Importer le fichier", "Dans Intégration, utilise Importer une game et glisse le JSON généré. Donne un nom clair à l’import, par exemple Scrim 1 vs Team X."],
     ["Assigner la team", "Sélectionne si ton équipe est blue side ou red side, puis associe les champions aux profils. NXT5 ne devine pas les lanes à ta place."],
   ];
@@ -2395,7 +2395,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   return (
     <div>
-      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Télécharge l’application NXT5 Importer, génère ton fichier, puis importe le JSON ici." />
+      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Télécharge NXT5 Importer sur le PC où le client League possède la game dans son historique, génère le JSON, puis importe-le ici." />
       <div className="grid min-w-0 gap-5">
         <Surface glow className="min-w-0 p-5 md:p-6">
           <div className="flex flex-col gap-5">
@@ -2403,7 +2403,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">NXT5 Importer</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "JSON chargé" : "Prêt"}</Badge></div>
                 <h3 className="mt-3 text-2xl font-black text-white">Application locale</h3>
-                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">L’app sert à transformer une game LoL en fichier NXT5. Ici, tu importes uniquement ce fichier JSON et tu confirmes l’assignation.</p>
+                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">L’app transforme une game LoL en fichier NXT5. Elle doit être lancée sur le PC où le client League of Legends possède la partie dans son historique, sinon l’export ne peut pas récupérer les données locales.</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a>
@@ -2416,7 +2416,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">1. Exporter</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ouvre NXT5 Importer, colle le Game ID et génère le fichier.</p></div>
+              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">1. Exporter</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ouvre NXT5 Importer sur le PC où le client LoL contient cette game dans l’historique, colle le Game ID et génère le fichier.</p></div>
               <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">2. Importer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Clique sur “Importer un JSON” et sélectionne le fichier créé par l’app.</p></div>
               <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">3. Confirmer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis ton side, associe les champions aux postes et valide.</p></div>
             </div>
