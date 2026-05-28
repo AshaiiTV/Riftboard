@@ -109,7 +109,7 @@ function detectAllyTeam(match, roster, allyTeamSide = '') {
   throw Object.assign(new Error('Aucun joueur du roster ne correspond à cette game. Ajoute les bons Riot IDs avant import.'), { status: 400 });
 }
 
-function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, playerAssignments = {}) {
+function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, playerAssignments = {}, enemyLaneAssignments = {}) {
   const durationMin = Math.max(1, Number(match.info.gameDuration || 0) / 60);
   const rosterByRiot = new Map();
   const rosterById = new Map();
@@ -122,8 +122,8 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
     .slice()
     .sort((a, b) => (a.teamId - b.teamId) || ((ROLE_ORDER[a.teamPosition] || 99) - (ROLE_ORDER[b.teamPosition] || 99)))
     .map((p) => {
-      const manualRole = p.teamId === allyTeamId ? manualRoleForParticipant(p, laneAssignments) : null;
-      const role = p.teamId === allyTeamId ? (manualRole || 'UNKNOWN') : normalizeRole(p.teamPosition || p.individualPosition || p.lane, p.participantId);
+      const manualRole = p.teamId === allyTeamId ? manualRoleForParticipant(p, laneAssignments) : manualRoleForParticipant(p, enemyLaneAssignments);
+      const role = p.teamId === allyTeamId ? (manualRole || 'UNKNOWN') : (manualRole || normalizeRole(p.teamPosition || p.individualPosition || p.lane, p.participantId));
       const kills = Number(p.kills || 0);
       const deaths = Number(p.deaths || 0);
       const assists = Number(p.assists || 0);
@@ -345,10 +345,11 @@ async function ensureMatchImporterColumn() {
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, playerAssignments = {}, allyTeamSide = '' }) {
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '' }) {
   await ensureMatchImporterColumn();
   const allyTeamId = detectAllyTeam(match, roster, allyTeamSide);
   const normalizedLaneAssignments = normalizeLaneAssignments(laneAssignments);
+  const normalizedEnemyLaneAssignments = normalizeLaneAssignments(enemyLaneAssignments);
   const normalizedPlayerAssignments = normalizePlayerAssignments(playerAssignments);
   const requiredRoles = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
   const missingInputs = requiredRoles.filter((role) => !normalizedLaneAssignments[role]);
@@ -359,11 +360,20 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   if (missingProfiles.length) {
     throw Object.assign(new Error(`Liaison profil requise : associe ${missingProfiles.join(', ')} à un profil de l’équipe avant d’importer.`), { status: 400 });
   }
-  const participants = buildParticipants(match, allyTeamId, roster, normalizedLaneAssignments, normalizedPlayerAssignments);
+  const missingEnemyInputs = requiredRoles.filter((role) => !normalizedEnemyLaneAssignments[role]);
+  if (missingEnemyInputs.length) {
+    throw Object.assign(new Error(`Assignation adverse requise : indique ${missingEnemyInputs.join(', ')} avant d’importer. Cela évite les adversaires non reconnus dans les rapports et statistiques.`), { status: 400 });
+  }
+  const participants = buildParticipants(match, allyTeamId, roster, normalizedLaneAssignments, normalizedPlayerAssignments, normalizedEnemyLaneAssignments);
   const assignedRoles = new Set(participants.filter((p) => p.team_key === 'ALLY').map((p) => p.role));
   const missingRoles = requiredRoles.filter((role) => !assignedRoles.has(role));
   if (missingRoles.length) {
     throw Object.assign(new Error(`Assignation des lanes incomplète : ${missingRoles.join(', ')} non reconnu(s). Utilise le champion ou le pseudo exact visible dans la game.`), { status: 400 });
+  }
+  const assignedEnemyRoles = new Set(participants.filter((p) => p.team_key === 'ENEMY').map((p) => p.role));
+  const missingEnemyRoles = requiredRoles.filter((role) => !assignedEnemyRoles.has(role));
+  if (missingEnemyRoles.length) {
+    throw Object.assign(new Error(`Assignation adverse incomplète : ${missingEnemyRoles.join(', ')} non reconnu(s). Choisis les champions adverses visibles dans la game.`), { status: 400 });
   }
   const summary = buildMatchSummary(match, allyTeamId, participants);
 

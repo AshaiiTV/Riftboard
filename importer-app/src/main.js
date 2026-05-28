@@ -293,7 +293,8 @@ ipcMain.handle('generate-import', async (_event, form) => {
     platform,
     exportedAt: new Date().toISOString(),
     importerSource: exported.source || 'riot-match-v5',
-    match: exported.match
+    match: exported.match,
+    timeline: exported.timeline || null
   };
 
   const { canceled, filePath } = await dialog.showSaveDialog({

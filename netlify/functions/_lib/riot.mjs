@@ -244,6 +244,12 @@ export async function fetchRiotMatch(gameId) {
   return riotFetch(url, 'Game ID introuvable côté Riot.');
 }
 
+export async function fetchRiotMatchTimeline(gameId) {
+  const regional = regionFromGameId(gameId).toLowerCase();
+  const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(gameId)}/timeline`;
+  return riotFetch(url, 'Timeline de match introuvable côté Riot.');
+}
+
 export async function fetchMatchIdsByPuuid(puuid, platform = 'EUW1', options = {}) {
   const regional = accountRegionFromPlatform(platform).toLowerCase();
   const params = new URLSearchParams();

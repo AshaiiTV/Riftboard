@@ -2400,6 +2400,7 @@ function ImportHistoryCard({ match, editing, editForm, saving, onEdit, onCancel,
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, user }) {
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
+  const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [allyTeamSide, setAllyTeamSide] = useState("");
   const [importDetails, setImportDetails] = useState({ label: "", opponent: "" });
@@ -2417,6 +2418,9 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const gameplayRoster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
   function updateLaneAssignment(role, value) {
     setLaneAssignments((current) => ({ ...current, [role]: value }));
+  }
+  function updateEnemyLaneAssignment(role, value) {
+    setEnemyLaneAssignments((current) => ({ ...current, [role]: value }));
   }
   function updatePlayerAssignment(role, value) {
     setPlayerAssignments((current) => ({ ...current, [role]: value }));
@@ -2461,8 +2465,10 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     }, byRole);
   }
   function selectImportSide(side) {
+    const enemySide = side === "BLUE" ? "RED" : "BLUE";
     setAllyTeamSide(side);
     setLaneAssignments(laneAssignmentsForSide(side));
+    setEnemyLaneAssignments(laneAssignmentsForSide(enemySide));
     setPlayerAssignments(playerAssignmentsForSide(side));
   }
   function resetImportDraft() {
@@ -2471,6 +2477,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     setAllyTeamSide("");
     setImportDetails({ label: "", opponent: "" });
     setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
+    setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   }
   function startEditMatch(match) {
@@ -2509,7 +2516,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   }
   async function confirmImport(event) {
     event.preventDefault();
-    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, opponent: importDetails.opponent };
+    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, opponent: importDetails.opponent };
     setImporting(true);
     try {
       await apiFetch("matches-import-file", { method: "POST", body: JSON.stringify(payload) });
@@ -2547,9 +2554,11 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
 
   const teamMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const laneAssignmentsReady = COMP_ROLES.every((role) => String(laneAssignments[role] || "").trim() && String(playerAssignments[role] || "").trim());
-  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && importDetails.label.trim());
+  const enemyAssignmentsReady = COMP_ROLES.every((role) => String(enemyLaneAssignments[role] || "").trim());
+  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
   const previewTeams = importPreview?.teams || [];
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
+  const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
   return (
     <div>
       <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Télécharge NXT5 Importer sur le PC où le client League possède la game dans son historique, génère le JSON, puis importe-le ici." />
@@ -2594,17 +2603,36 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                     <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="truncate text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
                   </button>)}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
-                  {COMP_ROLES.map((role) => {
-                    const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
-                    return <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-3">
-                      <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></span>{assignedPlayer && <Badge tone="slate">{assignedPlayer.name}</Badge>}</div>
-                      <select value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
-                        <option value="">Champion joué</option>
-                        {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
-                      </select>
-                    </div>;
-                  })}
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide || "Side ?"}</Badge></div>
+                    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5 xl:grid-cols-1">
+                      {COMP_ROLES.map((role) => {
+                        const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
+                        return <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></span>{assignedPlayer && <Badge tone="slate">{assignedPlayer.name}</Badge>}</div>
+                          <select value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
+                            <option value="">Champion joué</option>
+                            {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
+                          </select>
+                        </div>;
+                      })}
+                    </div>
+                  </div>
+                  <div className="rounded-[1.35rem] border border-rose-300/14 bg-rose-500/[0.055] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side || "Side ?"}</Badge></div>
+                    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5 xl:grid-cols-1">
+                      {COMP_ROLES.map((role) => (
+                        <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                          <div className="mb-3 flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></div>
+                          <select value={enemyLaneAssignments[role] || ""} onChange={(event) => updateEnemyLaneAssignment(role, event.target.value)} disabled={!enemyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
+                            <option value="">Champion adverse</option>
+                            {(enemyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
               </div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold leading-6 text-slate-300">Aucun JSON chargé pour le moment.</p>}
@@ -2991,6 +3019,99 @@ function objectiveValue(match, name) {
   return Number(rawTeam?.objectives?.[name]?.kills || 0);
 }
 
+function objectiveEventLabel(event) {
+  const monster = String(event?.monsterType || "").toUpperCase();
+  const subtype = String(event?.monsterSubType || "").toUpperCase().replace("HEXTECH", "HEXTECH");
+  if (monster === "DRAGON") {
+    const element = subtype.replace("_DRAGON", "").replace(/_/g, " ").toLowerCase();
+    return element ? `${element.charAt(0).toUpperCase()}${element.slice(1)} Dragon` : "Dragon";
+  }
+  if (monster === "BARON_NASHOR") return "Nashor";
+  if (monster === "RIFTHERALD") return "Herald";
+  if (monster === "HORDE") return "Void Grubs";
+  return monster ? monster.replace(/_/g, " ") : "Objectif";
+}
+
+function objectiveEventTone(event) {
+  const label = objectiveEventLabel(event).toLowerCase();
+  if (label.includes("nashor")) return "purple";
+  if (label.includes("herald") || label.includes("grub")) return "pink";
+  if (label.includes("infernal")) return "red";
+  if (label.includes("ocean")) return "cyan";
+  if (label.includes("mountain")) return "slate";
+  if (label.includes("cloud")) return "blue";
+  if (label.includes("chemtech")) return "green";
+  if (label.includes("hextech")) return "purple";
+  return "cyan";
+}
+
+function objectiveEventIcon(event) {
+  const label = objectiveEventLabel(event).toLowerCase();
+  if (label.includes("nashor")) return "N";
+  if (label.includes("herald")) return "H";
+  if (label.includes("grub")) return "G";
+  if (label.includes("infernal")) return "F";
+  if (label.includes("ocean")) return "O";
+  if (label.includes("mountain")) return "M";
+  if (label.includes("cloud")) return "C";
+  if (label.includes("chemtech")) return "CH";
+  if (label.includes("hextech")) return "HX";
+  return "D";
+}
+
+function objectiveEvents(match) {
+  const frames = match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || [];
+  const participants = match?.raw?.info?.participants || [];
+  const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
+  const allyTeamId = Number(teamRows(match, "ALLY")[0]?.raw?.teamId || 0);
+  return frames.flatMap((frame) => (frame.events || []).filter((event) => event.type === "ELITE_MONSTER_KILL").map((event) => {
+    const killerTeamId = Number(event.killerTeamId || participantTeam.get(Number(event.killerId)) || 0);
+    return {
+      ...event,
+      teamKey: killerTeamId && allyTeamId && killerTeamId === allyTeamId ? "ALLY" : "ENEMY",
+      time: formatCountdown(Math.floor(Number(event.timestamp || 0) / 1000)),
+      label: objectiveEventLabel(event),
+    };
+  })).sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+}
+
+function objectiveCounts(match) {
+  const events = objectiveEvents(match);
+  const count = (teamKey, matcher) => events.filter((event) => event.teamKey === teamKey && matcher(event)).length;
+  return {
+    allyDragons: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("dragon")),
+    enemyDragons: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("dragon")),
+    allyGrubs: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("grub")),
+    enemyGrubs: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("grub")),
+    allyBarons: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("nashor")),
+    enemyBarons: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("nashor")),
+    allyHeralds: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("herald")),
+    enemyHeralds: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("herald")),
+  };
+}
+
+function ObjectiveHud({ match }) {
+  const events = objectiveEvents(match);
+  const counts = objectiveCounts(match);
+  const fallback = [
+    ["Dragons", objectiveValue(match, "dragon"), "D"],
+    ["Nashor", objectiveValue(match, "baron"), "N"],
+    ["Herald", objectiveValue(match, "riftHerald"), "H"],
+    ["Tours", objectiveValue(match, "tower"), "T"],
+  ];
+  return <div className="mt-5 rounded-[1.5rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.07] via-black/20 to-fuchsia-400/[0.055] p-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><Badge tone="cyan">Objectifs neutres</Badge><h4 className="mt-3 text-xl font-black text-white">Timeline objectifs</h4></div><Badge tone={events.length ? "green" : "yellow"}>{events.length ? `${events.length} événements` : "Timeline absente"}</Badge></div>
+    {events.length ? <>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {[["Dragons", `${counts.allyDragons} - ${counts.enemyDragons}`, "D"], ["Grubs", `${counts.allyGrubs} - ${counts.enemyGrubs}`, "G"], ["Nashor", `${counts.allyBarons} - ${counts.enemyBarons}`, "N"], ["Herald", `${counts.allyHeralds} - ${counts.enemyHeralds}`, "H"]].map(([label, value, icon]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/20 bg-cyan-400/10 text-sm font-black text-cyan-50">{icon}</span><div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 text-xl font-black text-white">{value}</p></div></div></div>)}
+      </div>
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("min-w-[10rem] rounded-2xl border p-3", event.teamKey === "ALLY" ? "border-cyan-300/20 bg-cyan-400/10" : "border-rose-300/20 bg-rose-500/10")}><div className="flex items-center justify-between gap-2"><span className={cx("flex h-9 w-9 items-center justify-center rounded-xl border text-[0.62rem] font-black", tone(objectiveEventTone(event)))}>{objectiveEventIcon(event)}</span><Badge tone={event.teamKey === "ALLY" ? "cyan" : "red"}>{event.teamKey === "ALLY" ? "Nous" : "Eux"}</Badge></div><p className="mt-3 truncate text-sm font-black text-white">{event.label}</p><p className="mt-1 text-xs font-semibold text-slate-200">{event.time}</p></div>)}
+      </div>
+    </> : <div className="mt-4 grid gap-2 sm:grid-cols-4">{fallback.map(([label, value, icon]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-3 text-center"><span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xs font-black text-slate-200">{icon}</span><p className="mt-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 text-xl font-black text-white">{value}</p></div>)}</div>}
+  </div>;
+}
+
 function roleScore(row) {
   const kda = (statValue(row, "kills") + statValue(row, "assists")) / Math.max(1, statValue(row, "deaths"));
   const kp = parsePercent(row.kill_participation || row.kp);
@@ -3056,8 +3177,7 @@ function MatchDataPanel({ match }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  const objectives = [["Dragons", objectiveValue(match, "dragon")], ["Barons", objectiveValue(match, "baron")], ["Tours", objectiveValue(match, "tower")], ["Inhibs", objectiveValue(match, "inhibitor")]];
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{match.opponent || match.game_id}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{match.game_id} · {match.duration || "--:--"}</p></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{objectives.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-3 text-center"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-600">{label}</p><p className="mt-1 text-xl font-black text-white">{value}</p></div>)}</div></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameMetricSignals match={match} /><div className="mt-5 grid gap-4"><div><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone="cyan">Alliés</Badge><p className="text-sm font-black text-white">Détails joueurs, items et sorts</p></div><div className="space-y-2">{ally.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div><div><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone="red">Adversaires</Badge><p className="text-sm font-black text-white">Détails joueurs, items et sorts</p></div><div className="space-y-2">{enemy.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div></div></Surface>;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{match.opponent || match.game_id}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{match.game_id} · {match.duration || "--:--"}</p></div></div><ObjectiveHud match={match} /><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameMetricSignals match={match} /><div className="mt-5 grid gap-4"><div><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone="cyan">Alliés</Badge><p className="text-sm font-black text-white">Détails joueurs, items et sorts</p></div><div className="space-y-2">{ally.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div><div><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone="red">Adversaires</Badge><p className="text-sm font-black text-white">Détails joueurs, items et sorts</p></div><div className="space-y-2">{enemy.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div></div></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -4106,6 +4226,15 @@ function reportRows(matches, matchIds) {
   return selected.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match }))).filter((row) => row.team_key === "ALLY");
 }
 
+function reportObjectiveLines(matches, matchIds) {
+  const selected = matches.filter((match) => matchIds.includes(match.id));
+  return selected.flatMap((match) => {
+    const events = objectiveEvents(match);
+    if (!events.length) return [`${match.opponent || match.game_id}: timeline objectifs absente du JSON. Compteurs disponibles: ${match.objective_score || "non renseignés"}.`];
+    return events.map((event) => `${match.opponent || match.game_id} · ${event.time} · ${event.teamKey === "ALLY" ? "NXT5" : "Adversaire"} prend ${event.label}`);
+  });
+}
+
 function roleRows(rows, role) {
   const needle = String(role || "").replace(/["']/g, "").toUpperCase();
   return rows.filter((row) => String(row.role || "").toUpperCase() === needle);
@@ -4148,8 +4277,17 @@ function renderReportContent(content, rows) {
   });
 }
 
-function ReportPreview({ content, rows }) {
-  return <div className="rounded-2xl border border-white/10 bg-black/[0.26] p-4 text-sm leading-7 text-slate-100 shadow-inner shadow-black/35">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-600">L’aperçu apparaîtra ici.</p>}</div>;
+function ReportObjectivePanel({ matches, matchIds }) {
+  const lines = reportObjectiveLines(matches, matchIds);
+  if (!matchIds?.length) return null;
+  return <div className="mb-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-3">
+    <div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Objectifs neutres</p><Badge tone="cyan">{lines.length}</Badge></div>
+    <div className="mt-2 max-h-40 space-y-1 overflow-auto pr-1">{lines.map((line, index) => <p key={`${line}-${index}`} className="text-xs font-semibold leading-5 text-slate-100">{line}</p>)}</div>
+  </div>;
+}
+
+function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
+  return <div className="rounded-2xl border border-white/10 bg-black/[0.26] p-4 text-sm leading-7 text-slate-100 shadow-inner shadow-black/35"><ReportObjectivePanel matches={matches} matchIds={matchIds} />{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-600">L’aperçu apparaîtra ici.</p>}</div>;
 }
 
 const REPORT_REWRITE_MARKER = "[NXT5_REPORT_V2]";
@@ -4189,14 +4327,19 @@ function buildReportRewriteContent(report, matches) {
 function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const reports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
   const urlReportId = new URLSearchParams(window.location.search).get("report") || "";
   const urlMatchId = new URLSearchParams(window.location.search).get("match") || "";
   const canCaptainDelete = ["owner", "captain", "coach", "assistant", "analyst", "manager", "board"].includes(String(currentMember?.role || "").toLowerCase());
   const [form, setForm] = useState({ id: null, title: "", content: "", matchIds: [] });
+  const [selectedArchiveId, setSelectedArchiveId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState(urlReportId || null);
   const [lexiconOpen, setLexiconOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const selected = reports.find((report) => report.id === selectedReportId) || reports[0];
+  const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
+  const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
+  const scopedReports = selectedArchive ? reports.filter((report) => reportMatchIds(report).some((id) => archiveMatchIds(selectedArchive).includes(id))) : reports;
   const selectedRows = selected ? reportRows(matches, reportMatchIds(selected)) : [];
   const formRows = reportRows(matches, form.matchIds);
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
@@ -4212,6 +4355,16 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
   function toggleMatch(id) {
     setForm((current) => ({ ...current, matchIds: current.matchIds.includes(id) ? current.matchIds.filter((item) => item !== id) : [...current.matchIds, id] }));
+  }
+
+  function useArchiveForReport(archive) {
+    const ids = archiveMatchIds(archive).filter((id) => matches.some((match) => match.id === id));
+    setSelectedArchiveId((current) => current === archive.id ? "" : archive.id);
+    setForm((current) => ({
+      ...current,
+      title: current.title || archive.name || "",
+      matchIds: current.matchIds.length ? current.matchIds : ids,
+    }));
   }
 
   function insertCommand(command) {
@@ -4285,7 +4438,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   }
 
   const commands = [[`/KDA "ADC"`, "KDA moyen d’un rôle."], [`/DAMAGE "MID"`, "Dégâts moyens d’un rôle."], [`/VISION "SUP"`, "Vision moyenne d’un rôle."], [`/GOLD "JGL"`, "Gold moyen d’un rôle."], [`/KP "TOP"`, "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
-  return <div><PageHeader eyebrow="Review staff" title="Rapports de review" subtitle="Crée des contenus liés aux games importées, avec des commandes qui injectent les datas utiles." /><div className="grid gap-5 2xl:grid-cols-[1.05fr_.95fr]"><Surface glow className="p-5"><div className="flex items-center justify-between gap-3"><div><h3 className="text-2xl font-black text-white">{form.id ? "Modifier le rapport" : "Créer un rapport"}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Contenu à gauche, rendu data à droite.</p></div><Button variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button></div>{lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><div className="grid gap-2 md:grid-cols-2">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/25 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-400">{text}</p></button>)}</div></div>}<form onSubmit={saveReport} className="mt-5 space-y-4"><TextInput label="Titre" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Review scrim vs..." required icon={FileText} /><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Games liées</p><div className="grid max-h-[180px] gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.length ? matches.map((match) => <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", form.matchIds.includes(match.id) ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{match.opponent || match.game_id}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p></button>) : <p className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-500">Importe une game pour lier des données.</p>}</div></div><div className="grid gap-4 xl:grid-cols-2"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Contenu</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Notes, timestamps, décisions discutées...\n/KDA "ADC"`} required rows={13} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-650 focus:border-cyan-300/35" /></label><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Aperçu</p><ReportPreview content={form.content} rows={formRows} /></div></div><div className="flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetReportForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !form.title.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer le rapport"}</Button></div></form></Surface><div className="space-y-5"><Surface className="p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-xl font-black text-white">Rapports existants</h3><p className="mt-1 text-sm font-semibold text-slate-400">{reports.length} rapport{reports.length > 1 ? "s" : ""} disponible{reports.length > 1 ? "s" : ""}</p></div>{reports.length > 0 && <Button variant="ghost" icon={RefreshCw} onClick={rewriteExistingReports} disabled={saving}>Réécrire anciens</Button>}</div><div className="mt-4 max-h-[360px] space-y-2 overflow-auto pr-1">{reports.length ? reports.map((report) => <button key={report.id} type="button" onClick={() => setSelectedReportId(report.id)} className={cx("w-full rounded-xl border p-3 text-left transition", selected?.id === report.id ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{report.title}</p><Badge tone="slate">{reportMatchIds(report).length} game{reportMatchIds(report).length > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p></button>) : <EmptyState icon={FileText} title="Aucun rapport" text="Crée un premier rapport lié à tes reviews." />}</div></Surface><Surface glow>{selected ? <><div className="mb-4 flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-2xl font-black text-white">{selected.title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Par {selected.author_name || "NXT5"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p></div><div className="flex shrink-0 flex-wrap justify-end gap-2"><Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport}>Aller vers stats</Button><Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>{canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}{canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}</div></div><ReportPreview content={selected.content} rows={selectedRows} /></> : <EmptyState icon={FileText} title="Sélectionne un rapport" text="Le contenu apparaîtra ici." />}</Surface></div></div></div>;
+  return <div><PageHeader eyebrow="Review staff" title="Rapports de review" subtitle="Crée des contenus liés aux games importées, avec des commandes qui injectent les datas utiles." /><Surface className="mb-5 p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Même logique que Statistiques : clique un groupe pour filtrer les rapports et préremplir les games du rapport.</p></div>{selectedArchive && <Button variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")}>Retirer le groupe</Button>}</div><div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const archiveMatches = matches.filter((match) => ids.includes(match.id)); const wins = archiveMatches.filter((match) => match.result === "Victoire").length; const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("rounded-2xl border p-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/40 bg-cyan-400/12 shadow-[0_0_24px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/20 hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{ids.length} game{ids.length > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{archive.description || "Groupe de games"}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((wins / Math.max(1, ids.length)) * 100)}% · {wins}W - {ids.length - wins}L</p></button>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun groupe pour le moment. Crée-les dans Statistiques.</p>}</div></Surface><div className="grid gap-5 2xl:grid-cols-[1.05fr_.95fr]"><Surface glow className="p-5"><div className="flex items-center justify-between gap-3"><div><h3 className="text-2xl font-black text-white">{form.id ? "Modifier le rapport" : "Créer un rapport"}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Contenu à gauche, rendu data à droite.</p></div><Button variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button></div>{lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><div className="grid gap-2 md:grid-cols-2">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/25 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-400">{text}</p></button>)}</div></div>}<form onSubmit={saveReport} className="mt-5 space-y-4"><TextInput label="Titre" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Review scrim vs..." required icon={FileText} /><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Games liées</p><div className="grid max-h-[180px] gap-2 overflow-auto pr-1 md:grid-cols-2">{scopedMatches.length ? scopedMatches.map((match) => <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", form.matchIds.includes(match.id) ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{match.opponent || match.game_id}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p></button>) : <p className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-500">Importe une game ou retire le filtre groupe.</p>}</div></div><div className="grid gap-4 xl:grid-cols-2"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Contenu</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Notes, timestamps, décisions discutées...\n/KDA "ADC"`} required rows={13} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-650 focus:border-cyan-300/35" /></label><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Aperçu</p><ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div><div className="flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetReportForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !form.title.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer le rapport"}</Button></div></form></Surface><div className="space-y-5"><Surface className="p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-xl font-black text-white">Rapports existants</h3><p className="mt-1 text-sm font-semibold text-slate-400">{scopedReports.length} / {reports.length} rapport{reports.length > 1 ? "s" : ""} visible{scopedReports.length > 1 ? "s" : ""}</p></div>{reports.length > 0 && <Button variant="ghost" icon={RefreshCw} onClick={rewriteExistingReports} disabled={saving}>Réécrire anciens</Button>}</div><div className="mt-4 max-h-[360px] space-y-2 overflow-auto pr-1">{scopedReports.length ? scopedReports.map((report) => <button key={report.id} type="button" onClick={() => setSelectedReportId(report.id)} className={cx("w-full rounded-xl border p-3 text-left transition", selected?.id === report.id ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{report.title}</p><Badge tone="slate">{reportMatchIds(report).length} game{reportMatchIds(report).length > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p></button>) : <EmptyState icon={FileText} title="Aucun rapport" text="Crée un rapport lié aux games de ce groupe." />}</div></Surface><Surface glow>{selected ? <><div className="mb-4 flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-2xl font-black text-white">{selected.title}</h3><p className="mt-1 text-sm font-semibold text-slate-500">Par {selected.author_name || "NXT5"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p></div><div className="flex shrink-0 flex-wrap justify-end gap-2"><Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport}>Aller vers stats</Button><Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>{canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}{canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}</div></div><ReportPreview content={selected.content} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} /></> : <EmptyState icon={FileText} title="Sélectionne un rapport" text="Le contenu apparaîtra ici." />}</Surface></div></div></div>;
 }
 
 function SettingsPage({ user, onUserUpdate, pushToast }) {

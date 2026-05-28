@@ -1,5 +1,5 @@
 import { json, readJson, handleError } from './_lib/http.mjs';
-import { fetchRiotMatch } from './_lib/riot.mjs';
+import { fetchRiotMatch, fetchRiotMatchTimeline } from './_lib/riot.mjs';
 
 const EUROPE_PLATFORMS = ['EUW1', 'EUN1', 'TR1', 'RU'];
 
@@ -34,7 +34,13 @@ async function fetchFirstAvailableMatch(input) {
   for (const candidate of candidateGameIds(input)) {
     try {
       const match = await fetchRiotMatch(candidate);
-      return { gameId: candidate, match, attempts };
+      let timeline = null;
+      try {
+        timeline = await fetchRiotMatchTimeline(candidate);
+      } catch {
+        timeline = null;
+      }
+      return { gameId: candidate, match, timeline, attempts };
     } catch (err) {
       attempts.push(`${candidate}: ${err.message}`);
       if (err.status && err.status !== 404) throw err;
@@ -61,7 +67,7 @@ export default async function handler(request) {
     const body = request.method === 'POST' ? await readJson(request) : {};
     const shouldFallback = url.searchParams.get('fallback') === '1' || body.fallback === true;
     const input = readGameId(url.searchParams.get('gameId') || body.gameId, url.searchParams.get('platform') || body.platform, shouldFallback);
-    const { gameId, match } = await fetchFirstAvailableMatch(input);
+    const { gameId, match, timeline } = await fetchFirstAvailableMatch(input);
 
     return json({
       source: 'nxt5-riot-match-export',
@@ -69,7 +75,8 @@ export default async function handler(request) {
       gameId,
       platform: gameId.split('_')[0],
       exportedAt: new Date().toISOString(),
-      match
+      match,
+      timeline
     });
   } catch (err) {
     return handleError(err);

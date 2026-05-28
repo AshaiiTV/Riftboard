@@ -7,13 +7,15 @@ import { fetchRiotMatch } from './_lib/riot.mjs';
 function unwrapImportPayload(body) {
   const payload = body?.payload || body?.file || body;
   const match = payload?.match || payload?.riotMatch || (payload?.info?.participants ? payload : null);
+  const timeline = payload?.timeline || payload?.matchTimeline || payload?.riotTimeline || match?.timeline || null;
   const gameId = String(payload?.gameId || payload?.metadata?.gameId || match?.metadata?.matchId || '').trim().toUpperCase();
   const label = String(body?.label || payload?.label || payload?.metadata?.label || '').trim().slice(0, 120);
   const opponent = String(body?.opponent || payload?.opponent || payload?.metadata?.opponent || '').trim().slice(0, 120);
   const laneAssignments = body?.laneAssignments || payload?.laneAssignments || payload?.metadata?.laneAssignments || {};
+  const enemyLaneAssignments = body?.enemyLaneAssignments || payload?.enemyLaneAssignments || payload?.metadata?.enemyLaneAssignments || {};
   const playerAssignments = body?.playerAssignments || payload?.playerAssignments || payload?.metadata?.playerAssignments || {};
   const allyTeamSide = String(body?.allyTeamSide || payload?.allyTeamSide || payload?.metadata?.allyTeamSide || '').trim().slice(0, 20);
-  return { match, gameId, label, opponent, laneAssignments, playerAssignments, allyTeamSide };
+  return { match, timeline, gameId, label, opponent, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide };
 }
 
 function assertRiotMatchShape(match) {
@@ -33,12 +35,13 @@ export default async function handler(request, context) {
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
-    let { match, gameId, label, opponent, laneAssignments, playerAssignments, allyTeamSide } = unwrapImportPayload(body);
+    let { match, timeline, gameId, label, opponent, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide } = unwrapImportPayload(body);
     let resolvedGameId = gameId || String(match?.metadata?.matchId || '').trim().toUpperCase();
     if (!/^([A-Z0-9]+)_\d+$/.test(resolvedGameId)) {
       throw Object.assign(new Error('Game ID absent ou invalide dans le fichier. Attendu : EUW1_7123456789.'), { status: 400, code: 'NXT5_IMPORT_FILE_INVALID' });
     }
     if (!match) match = await fetchRiotMatch(resolvedGameId);
+    if (timeline) match.timeline = timeline;
     assertRiotMatchShape(match);
     if (body.previewOnly) {
       return json({
@@ -79,7 +82,7 @@ export default async function handler(request, context) {
     const roster = await sql`select * from players where team_id = ${teamId}`;
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
-    let savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments, playerAssignments, allyTeamSide });
+    let savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide });
     if (opponent || label) {
       const named = await sql`
         update matches
