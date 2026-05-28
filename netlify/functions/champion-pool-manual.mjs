@@ -5,6 +5,14 @@ import { requireAuth } from './_lib/auth.mjs';
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
 const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
 
+async function ensureChampionPoolSchema() {
+  await sql`alter table champion_pool add column if not exists role text`;
+  await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
+  await sql`alter table champion_pool add column if not exists notes text`;
+  await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
+  await sql`create index if not exists idx_champion_pool_team on champion_pool(team_id)`;
+}
+
 function cleanText(value, max = 120) {
   return String(value || '').trim().slice(0, max);
 }
@@ -48,6 +56,7 @@ export default async function handler(request, context) {
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
     const body = await readJson(request);
+    await ensureChampionPoolSchema();
 
     const action = cleanText(body.action || 'upsert', 20);
     const teamId = cleanText(body.teamId, 80);

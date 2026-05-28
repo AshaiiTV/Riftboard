@@ -101,6 +101,14 @@ async function ensureMatchImporterColumn() {
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
 }
 
+async function ensureChampionPoolSchema() {
+  await sql`alter table champion_pool add column if not exists role text`;
+  await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
+  await sql`alter table champion_pool add column if not exists notes text`;
+  await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
+  await sql`create index if not exists idx_champion_pool_team on champion_pool(team_id)`;
+}
+
 async function ensureRoleConstraints() {
   await sql`alter table players drop constraint if exists players_role_check`;
   await sql`
@@ -138,6 +146,7 @@ export default async function handler(request, context) {
       return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], tournamentCodes: [], inviteCodes: [], availability: [] });
     }
     await ensureMatchImporterColumn();
+    await ensureChampionPoolSchema();
     await ensureRoleConstraints();
 
     const [

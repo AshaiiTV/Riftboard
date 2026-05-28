@@ -238,6 +238,9 @@ async function rebuildChampionPool(teamId) {
     `;
 
     if (existing[0]) {
+      if (['manual', 'riot_manual'].includes(String(existing[0].source || ''))) {
+        continue;
+      }
       await sql`
         update champion_pool
         set player_name = ${r.player_name},
@@ -247,11 +250,11 @@ async function rebuildChampionPool(teamId) {
             winrate = ${winrate},
             kda = ${Number(r.kda || 0).toFixed(2)},
             cs_per_min = ${Number(r.cs_per_min || 0).toFixed(1)},
-            impact_grade = case when source in ('manual', 'riot_manual') then impact_grade else '—' end,
-            verdict = case when source in ('manual', 'riot_manual') then verdict else ${verdict} end,
-            status = case when source in ('manual', 'riot_manual') then status else 'work' end,
+            impact_grade = '—',
+            verdict = ${verdict},
+            status = 'work',
             notes = notes,
-            source = case when source in ('manual', 'riot_manual') then 'riot_manual' else 'riot' end,
+            source = 'riot',
             updated_at = now()
         where id = ${existing[0].id}
       `;
