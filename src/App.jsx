@@ -2622,59 +2622,77 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
       </div>
     </div>
 
-    <div className="mt-6 rounded-3xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.075] via-black/24 to-fuchsia-400/[0.055] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/75">Champions joués</p>
-          <p className="mt-1 text-sm font-semibold text-slate-200">Clique un champion pour ouvrir ses games et ses moyennes détaillées.</p>
+          <Badge tone="cyan">Champion read</Badge>
+          <h4 className="mt-3 text-xl font-black text-white">Champions joués</h4>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Une lecture rapide du pool réellement joué dans les games importées. Clique un champion pour ouvrir ses games.</p>
         </div>
-        {selectedChampionStats && <Badge tone="cyan">{championDisplayName(selectedChampionStats.champion)} sélectionné</Badge>}
+        <Badge tone="slate">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</Badge>
       </div>
-      <div className="mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 2xl:grid-cols-3">
-        {championStats.length ? championStats.map((item) => {
-          const active = selectedChampion === item.champion;
-          return <button key={item.champion} type="button" onClick={() => setSelectedChampion(active ? "" : item.champion)} className={cx("group min-w-0 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-black/25")}>
-            <div className="flex items-center gap-3">
-              <ChampionPortrait champion={item.champion} alt={item.champion} className="h-11 w-11 shrink-0 rounded-xl border border-white/10 object-cover" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-white">{championDisplayName(item.champion)}</p>
-                <p className="mt-1 truncate text-xs font-bold text-slate-300">{item.count} game{item.count > 1 ? "s" : ""} · {item.wins}W - {item.losses}L</p>
+      {championStats.length ? <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-200">Pool du profil</p>
+            {selectedChampionStats && <button type="button" onClick={() => setSelectedChampion("")} className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:text-white">Fermer</button>}
+          </div>
+          <div className="grid max-h-[22rem] gap-2 overflow-auto pr-1">
+            {championStats.map((item, index) => {
+              const active = selectedChampion === item.champion;
+              const topPick = index === 0;
+              return <button key={item.champion} type="button" onClick={() => setSelectedChampion(active ? "" : item.champion)} className={cx("group flex min-w-0 items-center gap-3 rounded-2xl border p-2.5 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035]")}>
+                <ChampionPortrait champion={item.champion} alt={item.champion} className="h-12 w-12 shrink-0 rounded-xl border border-white/10 object-cover" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <p className="truncate text-sm font-black text-white">{championDisplayName(item.champion)}</p>
+                    {topPick && <Badge tone="purple">Top pick</Badge>}
+                  </div>
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-200">{item.count} game{item.count > 1 ? "s" : ""} · {item.wins}W - {item.losses}L · KDA {item.kda}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className={cx("text-lg font-black", item.winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{item.winrate}%</p>
+                  <p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">WR</p>
+                </div>
+              </button>;
+            })}
+          </div>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-4">
+          {selectedChampionStats ? <div className="min-w-0">
+            <div className="relative min-h-[150px] overflow-hidden rounded-2xl border border-cyan-200/16 bg-cyan-400/[0.055] p-4">
+              <ChampionBackdrop champion={selectedChampionStats.champion} />
+              <div className="relative z-10 flex min-w-0 items-center gap-4">
+                <ChampionPortrait champion={selectedChampionStats.champion} alt={selectedChampionStats.champion} className="h-20 w-20 shrink-0 rounded-2xl border border-cyan-200/25 object-cover" />
+                <div className="min-w-0">
+                  <p className="truncate text-2xl font-black text-white">{championDisplayName(selectedChampionStats.champion)}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-100">{selectedRows.length} game{selectedRows.length > 1 ? "s" : ""} · {selectedChampionStats.wins}W - {selectedChampionStats.losses}L</p>
+                  <div className="mt-3 flex flex-wrap gap-2">{championStyleTags(selectedChampionStats.champion).slice(0, 3).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div>
+                </div>
               </div>
-              <Badge tone={item.winrate >= 50 ? "green" : "red"}>{item.winrate}%</Badge>
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-2 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">KDA</p><p className="mt-1 text-sm font-black text-white">{item.kda}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-2 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">KP</p><p className="mt-1 text-sm font-black text-white">{item.avgKp.toFixed(0)}%</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-2 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">DMG</p><p className="mt-1 text-sm font-black text-white">{formatPoints(item.avgDamage)}</p></div>
+            <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
+              <ProfileHudMetric label="WR" value={selectedChampionStats.winrate + "%"} detail="Champion" tone={selectedChampionStats.winrate >= 50 ? "green" : "orange"} />
+              <ProfileHudMetric label="KDA" value={selectedChampionStats.kda} detail={`${selectedChampionStats.totals.kills}/${selectedChampionStats.totals.deaths}/${selectedChampionStats.totals.assists}`} tone="cyan" />
+              <ProfileHudMetric label="KP" value={selectedChampionStats.avgKp.toFixed(0) + "%"} detail="Moyenne" tone="purple" />
+              <ProfileHudMetric label="CS/min" value={selectedChampionStats.avgCsPerMin.toFixed(1)} detail="Moyenne" tone="orange" />
             </div>
-          </button>;
-        }) : <div className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Pas encore de champion sur les games importées.</div>}
-      </div>
+            {bestDamageRow && <p className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-3 py-2 text-xs font-bold text-cyan-50">Meilleure game dégâts : {formatPoints(bestDamageRow.damage)} contre {bestDamageRow.match?.opponent || "adversaire inconnu"} · {bestDamageRow.match?.game_id || "game inconnue"}</p>}
+          </div> : <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/18 p-5 text-center">
+            <Crown className="h-10 w-10 text-cyan-100" />
+            <h4 className="mt-4 text-xl font-black text-white">Sélectionne un champion</h4>
+            <p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-200">Le détail s’ouvre ici avec ses games, ses moyennes et ses tags de style.</p>
+          </div>}
+        </div>
+      </div> : <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Pas encore de champion sur les games importées.</div>}
     </div>
 
     <AnimatePresence initial={false}>{selectedChampionStats && <motion.div key={selectedChampionStats.champion} initial={{ height: 0, opacity: 0, y: -8 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: "easeOut" }} className="overflow-hidden">
-      <div className="mt-5 rounded-3xl border border-fuchsia-300/18 bg-fuchsia-400/[0.055] p-4 shadow-[0_0_35px_rgba(217,70,239,.08)]">
-        <div className="flex flex-col gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <ChampionPortrait champion={selectedChampionStats.champion} alt={selectedChampionStats.champion} className="h-16 w-16 shrink-0 rounded-2xl border border-cyan-200/25 object-cover" />
-            <div className="min-w-0">
-              <p className="truncate text-2xl font-black text-white">{championDisplayName(selectedChampionStats.champion)}</p>
-              <p className="mt-1 text-sm font-semibold text-slate-200">{selectedRows.length} game{selectedRows.length > 1 ? "s" : ""} · {selectedChampionStats.wins}W - {selectedChampionStats.losses}L</p>
-            </div>
-          </div>
-          <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
-            <ProfileHudMetric label="WR" value={selectedChampionStats.winrate + "%"} detail="Sur ce champion" tone={selectedChampionStats.winrate >= 50 ? "green" : "orange"} />
-            <ProfileHudMetric label="KDA" value={selectedChampionStats.kda} detail={selectedChampionStats.totals.kills + "/" + selectedChampionStats.totals.deaths + "/" + selectedChampionStats.totals.assists + " total"} tone="cyan" />
-            <ProfileHudMetric label="KP" value={selectedChampionStats.avgKp.toFixed(1) + "%"} detail="Moyenne" tone="purple" />
-            <ProfileHudMetric label="CS/min" value={selectedChampionStats.avgCsPerMin.toFixed(1)} detail="Moyenne" tone="orange" />
-          </div>
+      <div className="mt-4 rounded-3xl border border-fuchsia-300/16 bg-fuchsia-400/[0.045] p-4 shadow-[0_0_35px_rgba(217,70,239,.06)]">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div><Badge tone="purple">Games du champion</Badge><h4 className="mt-3 text-xl font-black text-white">{championDisplayName(selectedChampionStats.champion)}</h4></div>
+          <Badge tone="slate">{selectedRows.length} ligne{selectedRows.length > 1 ? "s" : ""}</Badge>
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <StatMeter label="Dégâts moyens champion" value={selectedChampionStats.avgDamage} max={maxDamage} detail={formatPoints(selectedChampionStats.avgDamage)} tone="purple" />
-          <StatMeter label="Gold moyen champion" value={selectedChampionStats.avgGold} max={maxGold} detail={formatPoints(selectedChampionStats.avgGold)} tone="orange" />
-          <StatMeter label="Vision moyenne champion" value={selectedChampionStats.avgVision} max={maxVision} detail={selectedChampionStats.avgVision.toFixed(1)} tone="cyan" />
-        </div>
-        {bestDamageRow && <p className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-3 py-2 text-xs font-bold text-cyan-50">Meilleure game dégâts : {formatPoints(bestDamageRow.damage)} contre {bestDamageRow.match?.opponent || "adversaire inconnu"} · {bestDamageRow.match?.game_id || "game inconnue"}</p>}
         <div className="mt-4 max-h-72 space-y-2 overflow-auto pr-1">
           {selectedRows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || ""))).map((row, index) => <div key={(row.id || row.match?.id || row.match?.game_id || "game") + "-" + index} className="grid gap-3 rounded-2xl border border-white/10 bg-black/28 p-3 xl:grid-cols-[minmax(0,1.35fr)_repeat(5,minmax(70px,.55fr))] xl:items-center">
             <div className="min-w-0">
