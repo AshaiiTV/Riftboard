@@ -3287,8 +3287,8 @@ const CHAMPION_TIERS = [
 ];
 
 const CHAMPION_LANE_POOLS = {
-  TOP: ["Aatrox", "Camille", "Chogath", "Darius", "DrMundo", "Fiora", "Gangplank", "Garen", "Gnar", "Gwen", "Irelia", "Jax", "Jayce", "Kayle", "Kennen", "Kled", "KSante", "Malphite", "Mordekaiser", "Nasus", "Olaf", "Ornn", "Pantheon", "Poppy", "Quinn", "Renekton", "Riven", "Rumble", "Ryze", "Sett", "Shen", "Singed", "Sion", "Teemo", "Tryndamere", "Urgot", "Vladimir", "Volibear", "Warwick", "Yone", "Yorick"],
-  JGL: ["Amumu", "Diana", "Ekko", "Elise", "Evelynn", "Fiddlesticks", "Gragas", "Graves", "Hecarim", "Ivern", "JarvanIV", "Karthus", "Kayn", "Khazix", "Kindred", "LeeSin", "Lillia", "Maokai", "MasterYi", "Nidalee", "Nocturne", "Nunu", "Olaf", "Poppy", "Rammus", "RekSai", "Rengar", "Sejuani", "Shyvana", "Skarner", "Taliyah", "Trundle", "Udyr", "Vi", "Viego", "Volibear", "Warwick", "XinZhao", "Zac"],
+  TOP: ["Aatrox", "Camille", "Chogath", "Darius", "DrMundo", "Fiora", "Gangplank", "Garen", "Gnar", "Gwen", "Irelia", "Jax", "Jayce", "Kayle", "Kennen", "Kled", "KSante", "Malphite", "MonkeyKing", "Mordekaiser", "Nasus", "Olaf", "Ornn", "Pantheon", "Poppy", "Quinn", "Renekton", "Riven", "Rumble", "Ryze", "Sett", "Shen", "Singed", "Sion", "Teemo", "Tryndamere", "Urgot", "Vladimir", "Volibear", "Warwick", "Yone", "Yorick"],
+  JGL: ["Amumu", "Diana", "Ekko", "Elise", "Evelynn", "Fiddlesticks", "Gragas", "Graves", "Hecarim", "Ivern", "JarvanIV", "Karthus", "Kayn", "Khazix", "Kindred", "LeeSin", "Lillia", "Maokai", "MasterYi", "MonkeyKing", "Nidalee", "Nocturne", "Nunu", "Olaf", "Poppy", "Rammus", "RekSai", "Rengar", "Sejuani", "Shyvana", "Skarner", "Taliyah", "Trundle", "Udyr", "Vi", "Viego", "Volibear", "Warwick", "XinZhao", "Zac"],
   MID: ["Ahri", "Akali", "Anivia", "Annie", "AurelionSol", "Azir", "Cassiopeia", "Corki", "Diana", "Ekko", "Fizz", "Galio", "Hwei", "Irelia", "Kassadin", "Katarina", "Leblanc", "Lissandra", "Lux", "Malzahar", "Neeko", "Orianna", "Qiyana", "Ryze", "Sylas", "Syndra", "Taliyah", "Talon", "TwistedFate", "Veigar", "Velkoz", "Vex", "Viktor", "Vladimir", "Xerath", "Yasuo", "Yone", "Zed", "Ziggs", "Zoe"],
   ADC: ["Aphelios", "Ashe", "Caitlyn", "Draven", "Ezreal", "Jhin", "Jinx", "Kaisa", "Kalista", "KogMaw", "Lucian", "MissFortune", "Nilah", "Samira", "Senna", "Seraphine", "Sivir", "Smolder", "Tristana", "Twitch", "Varus", "Vayne", "Xayah", "Zeri", "Ziggs"],
   SUP: ["Alistar", "Ashe", "Bard", "Blitzcrank", "Brand", "Braum", "Janna", "Karma", "Leona", "Lulu", "Lux", "Maokai", "Milio", "Morgana", "Nami", "Nautilus", "Pyke", "Rakan", "Rell", "Renata", "Senna", "Seraphine", "Sona", "Soraka", "Swain", "TahmKench", "Taric", "Thresh", "Yuumi", "Zilean", "Zyra"],
@@ -3317,8 +3317,9 @@ function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
   return <div draggable={canManage} onDragStart={(event) => onDragStart(event, row)} className={cx("group flex min-h-[52px] items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2 transition", canManage ?"cursor-grab active:cursor-grabbing hover:border-cyan-300/25 hover:bg-white/[0.05]" : "")}><img src={championSquareUrl(row)} alt={row.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-[0.68rem] font-semibold text-slate-500">{detail}</p></div>{canManage && <button type="button" onClick={() => onDelete(row)} disabled={saving} className="rounded-lg p-1.5 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>}</div>;
 }
 
-function ChampionSearchTile({ champion, disabled, canManage, onDragStart }) {
-  return <div draggable={canManage && !disabled} onDragStart={(event) => onDragStart(event, { champion })} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", disabled ?"border-white/5 bg-white/[0.02] opacity-35" : "cursor-grab border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10 active:cursor-grabbing")}><img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span></div>;
+function ChampionSearchTile({ champion, active, existingRow, canManage, onDragStart }) {
+  const dragRow = existingRow || { champion };
+  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, dragRow)} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}><img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>{active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}</div>;
 }
 
 function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -3334,11 +3335,22 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
   const [localPool, setLocalPool] = useState(data.championPool || []);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || players[0];
   const canManageSelectedPool = canManageTeamPool || String(selectedPlayer?.user_id || "") === String(user?.id || "");
-  const selectedRows = (localPool || [])
+  const selectedPlayerRows = (localPool || [])
     .filter((row) => String(row.team_id || "") === String(activeTeamId || "") && selectedPlayer && (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name))
+    .map((row) => ({ ...row, role: row.role || selectedPlayer?.role || "UNK", status: championPoolStatus(row) }));
+  const selectedRows = selectedPlayerRows
     .filter((row) => ["manual", "riot_manual"].includes(String(row.source || "")))
-    .map((row) => ({ ...row, role: row.role || selectedPlayer?.role || "UNK", status: championPoolStatus(row) }))
     .sort((a, b) => championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
+  const selectedChampionByKey = new Map();
+  selectedPlayerRows.forEach((row) => {
+    const key = championAssetId(row.champion) || championKey(row.champion);
+    if (!key || selectedChampionByKey.has(key)) return;
+    selectedChampionByKey.set(key, row);
+  });
+  selectedRows.forEach((row) => {
+    const key = championAssetId(row.champion) || championKey(row.champion);
+    if (key) selectedChampionByKey.set(key, row);
+  });
   const pickedChampionKeys = new Set(selectedRows.map((row) => championAssetId(row.champion) || championKey(row.champion)));
   const visibleChampions = championOptions()
     .filter((champion) => championDisplayName(champion).toLowerCase().includes(query.toLowerCase()))
@@ -3519,8 +3531,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                     </div>
                     <div className="grid max-h-[260px] gap-2 overflow-auto pr-1 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-10">
                       {visibleChampions.map((champion) => {
-                        const disabled = pickedChampionKeys.has(championAssetId(champion) || championKey(champion));
-                        return <ChampionSearchTile key={champion} champion={champion} disabled={disabled} canManage={canManageSelectedPool} onDragStart={onDragStart} />;
+                        const championKeyValue = championAssetId(champion) || championKey(champion);
+                        const active = pickedChampionKeys.has(championKeyValue);
+                        return <ChampionSearchTile key={champion} champion={champion} active={active} existingRow={selectedChampionByKey.get(championKeyValue)} canManage={canManageSelectedPool} onDragStart={onDragStart} />;
                       })}
                     </div>
                   </div>
