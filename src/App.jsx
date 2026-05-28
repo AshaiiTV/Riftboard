@@ -71,7 +71,7 @@ const AUTH_ROUTES = {
 const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/mentions-legales", "/confidentialite", "/conditions", "/contact"];
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
-const DISCORD_INVITE_URL = "";
+const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";
 const PLANNING_DAYS = [
   ["MON", "Lun"],
   ["TUE", "Mar"],
