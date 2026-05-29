@@ -1316,10 +1316,43 @@ function ChampionPortrait({ champion, row, alt, className = "h-full w-full objec
   return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" />;
 }
 
-function ChampionBackdrop({ champion }) {
+function championSplashFocus(champion, focus = "default") {
+  if (focus !== "face") return "center center";
+  const id = championAssetId(champion);
+  const overrides = {
+    Aatrox: "50% 18%",
+    Alistar: "48% 20%",
+    AurelionSol: "52% 18%",
+    Azir: "50% 22%",
+    Bard: "50% 20%",
+    Blitzcrank: "48% 22%",
+    Chogath: "48% 18%",
+    Galio: "50% 18%",
+    Hecarim: "50% 22%",
+    Jhin: "48% 24%",
+    Khazix: "48% 20%",
+    KogMaw: "50% 24%",
+    Malphite: "50% 20%",
+    Nautilus: "50% 20%",
+    Nocturne: "50% 22%",
+    Ornn: "50% 22%",
+    Rammus: "50% 24%",
+    RekSai: "50% 22%",
+    Renata: "48% 24%",
+    Skarner: "50% 20%",
+    TahmKench: "50% 24%",
+    Thresh: "50% 22%",
+    Velkoz: "50% 20%",
+    Warwick: "50% 22%",
+    Zac: "50% 22%",
+  };
+  return overrides[id] || "50% 24%";
+}
+
+function ChampionBackdrop({ champion, focus = "default" }) {
   const url = championSplashUrl(champion);
   if (!url) return null;
-  return <div className="absolute inset-0 opacity-30"><img src={url} alt="" className="h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-[#070b16] via-[#070b16]/78 to-[#070b16]/30" /></div>;
+  return <div className="absolute inset-0 opacity-30"><img src={url} alt="" className="h-full w-full object-cover" style={{ objectPosition: championSplashFocus(champion, focus) }} /><div className="absolute inset-0 bg-gradient-to-r from-[#070b16] via-[#070b16]/78 to-[#070b16]/30" /></div>;
 }
 
 function StatBar({ value, max, tone: t = "cyan" }) {
@@ -3130,7 +3163,7 @@ function VersusPlayerMini({ row, side, opponent }) {
   const kda = row ? `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}` : "-/-/-";
   const kp = row ? Math.round(parsePercent(row.kill_participation || row.kp)) : 0;
   return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]", ahead && "shadow-[0_0_24px_rgba(34,211,238,.10)]")}>
-    {row && <ChampionBackdrop champion={row.champion} />}
+    {row && <ChampionBackdrop champion={row.champion} focus="face" />}
     <div className="absolute inset-0 bg-gradient-to-r from-[#050711]/94 via-[#050711]/78 to-[#050711]/48" />
     <div className={cx("relative z-10 flex min-w-0 items-center gap-2.5", side === "ENEMY" && "flex-row-reverse text-right")}>
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35 md:h-14 md:w-14">
@@ -3441,8 +3474,10 @@ function championTierFrame(tier, active = false) {
 }
 
 function ChampionTierMark({ tier, active = false, className = "" }) {
+  const Icon = tier?.id === "lock" ? ShieldCheck : tier?.id === "pocket" ? Flame : tier?.id === "danger" ? AlertTriangle : Gauge;
   return <span className={cx("relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition", championTierFrame(tier, active), className)}>
-    <img src="/assets/nxt5-mark.png?v=8" alt="" aria-hidden="true" className="h-7 w-7 object-contain drop-shadow-[0_0_12px_rgba(255,255,255,.22)]" />
+    <Icon className="relative z-10 h-5 w-5 drop-shadow-[0_0_10px_rgba(255,255,255,.20)]" />
+    <span className="pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full bg-current opacity-50 shadow-[0_0_10px_currentColor]" />
     <span className="pointer-events-none absolute inset-x-1 bottom-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
   </span>;
 }
